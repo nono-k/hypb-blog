@@ -1,16 +1,28 @@
 ---
-
+import Layout from "../layouts/layout.astro";
+import Hero from "../components/pages/hero/hero.astro";
+import NewArticle from "../components/new-article.astro";
+import SearchArea from "../components/search-area.astro";
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout home>
+  <section class="hero">
+    <Hero />
+  </section>
+  <section class="new-article">
+    <NewArticle />
+  </section>
+  <section class="search">
+    <SearchArea />
+  </section>
+</Layout>
+
+<style lang="scss">
+  .hero {
+    margin-top: 3.75rem;
+    margin-bottom: 10rem;
+  }
+  .new-article {
+    margin-bottom: 15rem;
+  }
+</style>

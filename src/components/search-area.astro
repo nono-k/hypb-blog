@@ -1,0 +1,74 @@
+---
+import Container from "./container.astro";
+
+
+---
+<Container maxWidth="1000px">
+  <div class="inner">
+    <div class="search-keyword">
+      <div class="title">
+        <span class="ja">キーワード</span>
+        <span class="en">keyword</span>
+      </div>
+      <div class="search-button"></div>
+    </div>
+    <div class="search-category">
+      <div class="title">
+        <span class="ja">カテゴリー</span>
+        <span class="en">category</span>
+      </div>
+    </div>
+    <div class="link">
+      <a href="/">記事一覧は<br>こちら</a>
+    </div>
+  </div>
+</Container>
+
+<style lang="scss">
+  .inner {
+    background-color: var(--gray-10);
+    padding: 3.5rem 5rem 4rem;
+    border-radius: 3rem;
+  }
+  .title {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    gap: 1rem;
+  }
+  .ja {
+    font-size: 1.8rem;
+  }
+  .en {
+    text-transform: uppercase;
+  }
+  .search-button {
+    width: 100%;
+    max-width: 38rem;
+    position: relative;
+    margin-bottom: 0.9rem;
+  }
+  .search-category {
+    margin-top: 3.2rem;
+    padding-top: 2.2rem;
+    border-top: 1px solid var(--black);
+  }
+  .link {
+    padding-top: 6.5rem;
+    a {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      margin-inline: auto;
+      width: 12rem;
+      height: 12rem;
+      background-color: var(--yellow);
+      border-radius: 50%;
+      font-size: 1.4rem;
+      color: var(--black);
+      font-weight: bold;
+    }
+  }
+</style>

@@ -1,0 +1,14 @@
+---
+const { maxWidth = '1380px' } = Astro.props;
+---
+<div class="container">
+    <slot />
+</div>
+
+<style define:vars={{maxWidth}} lang="scss">
+  .container {
+    max-width: var(--maxWidth);
+    margin-inline: auto;
+    padding-inline: 2rem;
+  }
+</style>

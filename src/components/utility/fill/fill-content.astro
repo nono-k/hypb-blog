@@ -1,0 +1,41 @@
+---
+
+const { en, ja, lead } = Astro.props;
+---
+<div class="container">
+  <div class="inner">
+    <div class="title">
+      <div class="en">{en}</div>
+      <div class="ja">{ja}</div>
+    </div>
+    <p class="lead" set:html={lead} />
+    <slot />
+  </div>
+</div>
+
+<style lang="scss">
+  .container {
+    background-color: var(--gray-10);
+  }
+  .inner {
+    max-width: 980px;
+    margin-inline: auto;
+    padding: 4rem;
+  }
+  .title {
+    display: flex;
+    flex-direction: column;
+  }
+  .en {
+    font-size: 4em;
+    font-weight: 500;
+    margin-left: -0.5rem;
+    line-height: 1;
+  }
+  .ja {
+    font-size: 1.2rem;
+  }
+  .lead {
+    margin: 1.5rem 0 3.5rem;
+  }
+</style>

@@ -1,0 +1,34 @@
+---
+// Supports weights 100-900
+import '@fontsource-variable/noto-serif-display';
+
+const { class: className } = Astro.props;
+---
+<h1 class={className}>
+  <a href="/">нуль</a>
+</h1>
+
+<style lang="scss">
+  h1 {
+    font-family: 'Noto Serif Display Variable', serif;
+  }
+  a {
+    color: var(--black);
+  }
+  // Homeのheaderのロゴ
+  .logo-headHome {
+    font-size: 6.25rem;
+    line-height: 0.8;
+    margin-top: -25px;
+  }
+  // Home以外のheaderのロゴ
+  .logo-head {
+    font-size: 4.5rem;
+    margin-top: -25px;
+  }
+  .logo-footer {
+    font-size: 5rem;
+    margin-top: -30px;
+    line-height: 1;
+  }
+</style>

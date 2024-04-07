@@ -1,0 +1,53 @@
+---
+import FillBody from "../../components/utility/fill/fill-body.astro"
+import FillContent from "../../components/utility/fill/fill-content.astro"
+import Layout from "../../layouts/layout.astro"
+---
+
+<Layout>
+  <FillContent en="About" ja="このサイトについて" lead="нульはプログラミング関連をテーマにしたテックブログです<br/>このブログでは中の人が学んだことをアウトプットしていくブログになります。<br/>皆さまの役に立てたら幸いです。<br/><br/>以下本サイトの概要になります。">
+  <div class="fill-body">
+    <h2>記事</h2>
+    <p>フロントエンド技術(CSS、JavaScript、各種ライブラリーやフレームワーク)、Web技術、書籍紹介など、皆さまの役に立つような記事を掲載しています。</p>
+    <h2>海外サイトのみのギャラリー集（仮）</h2>
+    <p>こちらは現在準備中です。<br/>中の人が参考になる、勉強になると思う海外サイトをまとめたギャラリーサイトをまとめたサイトを予定しております。</p>
+    <h2>お問い合わせ</h2>
+    <p>弊ブログに関するご質問やご要望がございましたら、以下のお問い合わせフォームにご連絡ください。</p>
+    <a href="/contact" class="link">お問い合わせ</a>
+  </div>
+  </FillContent>
+</Layout>
+
+<style lang="scss">
+  .fill-body {
+    margin-top: 3.5rem;
+    & * + * {
+      margin-top: var(--stack-space, 1.5rem);
+    }
+    & + h2 {
+      --stack-space: 0
+    }
+    h2 {
+      --stack-space: 4rem;
+      font-size: 1.5rem;
+      padding: 1rem 1.5rem;
+      border-left: 8px solid var(--black);
+      background: linear-gradient(135deg,transparent 25%,rgba(0,0,0,.05) 25%,rgba(0,0,0,.05) 50%,transparent 50%,transparent 75%,rgba(0,0,0,.05) 75%,rgba(0,0,0,.05));
+      background-size: 4px 4px;
+      letter-spacing: 0.1em;
+    }
+    p {
+      padding-left: 1.5rem;
+      padding-right: 1rem;
+      line-height: 1.75;
+    }
+    .link {
+      color: var(--blue);
+      display: block;
+      margin-top: 1rem;
+      padding-left: 1.5rem;
+      padding-right: 1rem;
+      cursor: pointer;
+    }
+  }
+</style>

@@ -1,0 +1,74 @@
+---
+
+---
+<div class="inner">
+  <a href="">
+    <div class="image">
+      <img src="/public/bookダミー.jpeg" alt="">
+    </div>
+    <div class="title">タイトルが入ります</div>
+    <div class="categoryTag">Web</div>
+    <div class="tagsTime">
+      <ul class="list">
+        <li>Web</li>
+        <li>CSS</li>
+      </ul>
+      <time datetime="">2024/04/01</time>
+    </div>
+  </a>
+</div>
+
+<style lang="scss">
+  .inner {
+    padding: 1.25rem;
+    border: 2px solid transparent;
+    border-radius: 1.5rem;
+    transition: .2s;
+  }
+  .image {
+    aspect-ratio: 16 / 9;
+    margin-bottom: 1rem;
+    img {
+      border-radius: 1.5rem;
+    }
+  }
+  .title {
+    color: var(--black);
+    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+    height: 48px;
+    display: --webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .list {
+    color: var(--black);
+  }
+  .tagsTime {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 0.5rem;
+    li {
+      display: flex;
+      gap: 0.8rem;
+      font-size: 0.75rem;
+    }
+  }
+  time {
+    color: var(--black);
+    font-size: 0.75rem;
+  }
+
+  .categoryTag {
+    width: 130px;
+    padding: 5px 0;
+    margin-bottom: 0.5rem;
+    border-radius: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--blue);
+    color: var(--black);
+  }
+</style>

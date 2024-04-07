@@ -1,0 +1,78 @@
+---
+import Hamburger from "../../base/hamburger.astro"
+import Logo from "../../base/logo.astro"
+import Container from "../../container.astro"
+import HeroSlider from './hero-slider.astro'
+
+const lists = [
+  { text: '新着', link: '/articles' },
+  { text: 'Coding', link: '/' },
+  { text: 'Web', link: '/' },
+  // { text: '書籍紹介', link: '' },
+]
+---
+<Container>
+  <div class="hero">
+    <header class="header">
+      <div class="titleSub">
+        <Logo class="logo-headHome" />
+        <p class="sub">Web技術を<br />知る・試す・楽しむ<br />ためのテックブログ</p>
+      </div>
+      <Hamburger />
+    </header>
+    <div class="hero-inner">
+      <HeroSlider />
+      <ul class="list for-large">
+        {lists.map((list) => (
+          <li class="item">
+            <a href={list.link}>{list.text}</a>
+          </li>
+          ))}
+      </ul>
+    </div>
+  </div>
+</Container>
+
+
+<style lang="scss">
+  .hero {
+    background-color: var(--gray-10);
+    border-radius: 38px;
+  }
+  .header {
+    padding: 2.5rem 3.75rem 3rem 1.875rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--black);
+  }
+  .titleSub {
+    display: flex;
+  }
+  .sub {
+    font-size: 0.875rem;
+    margin-left: 25px;
+    font-family: 'Shippori Mincho', serif;
+  }
+  .hero-inner {
+    padding: 0 0.5rem 5rem;
+  }
+
+  .list {
+    display: flex;
+    justify-content: center;
+    margin-top: 3.375rem;
+    gap: 2rem;
+  }
+  .item {
+    a {
+      display: inline-block;
+      color: #fff;
+      width: 124px;
+      padding: 0.5rem;
+      background-color: var(--blue);
+      border-radius: 20px;
+      text-align: center;
+    }
+  }
+</style>
