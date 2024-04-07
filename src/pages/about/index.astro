@@ -1,10 +1,12 @@
 ---
-import FillBody from "../../components/utility/fill/fill-body.astro"
 import FillContent from "../../components/utility/fill/fill-content.astro"
 import Layout from "../../layouts/layout.astro"
+
+const pageTitle = 'About';
+const description = 'このサイトについて';
 ---
 
-<Layout>
+<Layout pageTitle={pageTitle} description={description}>
   <FillContent en="About" ja="このサイトについて" lead="нульはプログラミング関連をテーマにしたテックブログです<br/>このブログでは中の人が学んだことをアウトプットしていくブログになります。<br/>皆さまの役に立てたら幸いです。<br/><br/>以下本サイトの概要になります。">
   <div class="fill-body">
     <h2>記事</h2>
