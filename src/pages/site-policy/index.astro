@@ -1,0 +1,62 @@
+---
+import FillContent from "../../components/utility/fill/fill-content.astro";
+import Layout from "../../layouts/layout.astro";
+
+const pageTitle = 'Site Policy';
+const description = 'サイトポリシー';
+---
+
+<Layout pageTitle={pageTitle} description={description}>
+  <FillContent en="Site Policy" ja="サイトポリシー" lead="">
+    <div class="fill-body">
+      <h2>免責事項</h2>
+      <p>当サイトのコンテンツ・情報について、可能な限り正確な情報を掲載するよう努めておりますが、正確性や安全性を保証するものではありません。当サイトに掲載された内容によって生じた損害等の一切の責任を負いかねますのでご了承ください。</p>
+      <p>当サイトからリンクやバナーなどによって他のサイトに移動した場合、移動先サイトで提供される情報、サービス等について一切の責任を負いません。</p>
+      <h2>著作権・肖像権</h2>
+      <p>当サイトで掲載しているすべてのコンテンツ（文章、画像、動画、音声、ファイル等）の著作権・肖像権等は当サイト所有者または各権利所有者が保有し、許可なく無断利用（転載、複製、譲渡、二次利用等）することを禁止します。また、コンテンツの内容を変形・変更・加筆修正することも一切認めておりません。</p>
+      <p>各権利所有者におかれましては、万一掲載内容に問題がございましたら、ご本人様よりお問い合わせください。迅速に対応いたします。</p>
+      <h2>リンク</h2>
+      <p>当サイトは原則リンクフリーです。リンクを行う場合の許可や連絡は不要です。引用する際は、引用元の明記と該当ページへのリンクをお願いします。</p>
+      <p>ただし、画像ファイルへの直リンク、インラインフレームを使用したHTMLページ内で表示する形でのリンクはご遠慮ください。</p>
+      <h2>本サイトポリシーの変更</h2>
+      <p>当サイトは、本サイトポリシーの内容を適宜見直し、その改善に努めます。</p>
+      <p>本サイトポリシーは、事前の予告なく変更することがあります。</p>
+      <p>本サイトポリシーの変更は、当サイトに掲載された時点で有効になるものとします。</p>
+    </div>
+  </FillContent>
+</Layout>
+
+<style lang="scss">
+  .fill-body {
+    margin-top: 3.5rem;
+    & * + * {
+      margin-top: var(--stack-space, 1.5rem);
+    }
+    & + h2 {
+      --stack-space: 0
+    }
+    h2 {
+      --stack-space: 4rem;
+      font-size: 1.5rem;
+      padding: 1rem 1.5rem;
+      border-left: 8px solid var(--blue);
+      background: linear-gradient(135deg,transparent 25%,rgba(0,0,0,.05) 25%,rgba(0,0,0,.05) 50%,transparent 50%,transparent 75%,rgba(0,0,0,.05) 75%,rgba(0,0,0,.05));
+      background-size: 4px 4px;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+    }
+    p {
+      padding-left: 1.5rem;
+      padding-right: 1rem;
+      line-height: 1.75;
+    }
+    ul {
+      padding-left: 3rem;
+      padding-right: 1rem;
+    }
+    li {
+      list-style: outside;
+      --stack-space: 0.5rem
+    }
+  }
+</style>

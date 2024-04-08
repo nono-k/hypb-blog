@@ -8,7 +8,7 @@ const { en, ja, lead } = Astro.props;
       <div class="en">{en}</div>
       <div class="ja">{ja}</div>
     </div>
-    <p class="lead" set:html={lead} />
+    {lead && <p class="lead" set:html={lead} />}
     <slot />
   </div>
 </div>

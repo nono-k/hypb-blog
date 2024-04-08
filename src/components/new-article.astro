@@ -5,10 +5,12 @@ import Card from "./card.astro";
 ---
 <div class="inner">
   <h2>新着記事</h2>
-  <div class="card-content">
-    <Card />
-    <Card />
-    <Card />
+  <div class="wrapper">
+    <div class="card-content">
+      <Card />
+      <Card />
+      <Card />
+    </div>
   </div>
 </div>
 
@@ -25,6 +27,7 @@ import Card from "./card.astro";
       writing-mode: vertical-lr;
       font-size: 2.5rem;
       letter-spacing: 0.3em;
+      font-weight: 600;
     }
   }
   .card-content {
