@@ -1,16 +1,24 @@
 ---
 import Card from "./card.astro";
+import LinkButton from './ui/link-button.astro';
 
+const { posts } = Astro.props;
 
 ---
 <div class="inner">
   <h2>新着記事</h2>
   <div class="wrapper">
     <div class="card-content">
-      <Card />
-      <Card />
-      <Card />
+      {
+        posts.map((post) => {
+          const { slug, data: { image, title, pubDate, category, tags }} = post;
+          return (
+            <Card home url={`/articles/${slug}`} src={image} title={title} time={pubDate} category={category} tags={tags} />
+          )
+        })
+      }
     </div>
+    <LinkButton link="/articles" text="記事一覧" />
   </div>
 </div>
 

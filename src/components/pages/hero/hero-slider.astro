@@ -1,23 +1,39 @@
 ---
-
+import { lists } from "./hero-data";
 ---
 <div class="swiper">
   <div class="swiper-wrapper">
-    <div class="swiper-slide">
-      <a href="" class="swiper-container">
-        <div class="image">
-          <img src="/public/bookダミー.jpeg" alt="">
-        </div>
-        <div class="bg">
-          <div class="category">
-            <div class="bgTitle">
-              <h3>タイトルが入ります</h3>
+    {lists.map((list) => {
+      const { title, slug, img, color, data, category, tags } = list
+      return (
+        <div class="swiper-slide">
+          <a href={`articles/${slug}`} class="swiper-container" data-swiper-parallax-x="100%">
+            <div class="image" data-swiper-parallax-scale="1.5">
+              <img src={img} alt="" />
             </div>
-          </div>
+            <div class="bg" data-color={color}>
+              <div class="category">{category}</div>
+              <div class="bg-title">
+                <h2>{title}</h2>
+              </div>
+              <div class="list">
+                <time>{data}</time>
+                <ul>
+                  {tags.map((tag) => {
+                    return (
+                      <li class="item">{tag}</li>
+                    )
+                  })}
+                </ul>
+              </div>
+            </div>
+          </a>
         </div>
-      </a>
-    </div>
+      )
+    })}
   </div>
+  <button id="hero_button_prev" class="prevButton">前の記事</button>
+  <button id="hero_button_next" class="nextButton">次の記事</button>
 </div>
 
 <style lang="scss">
@@ -42,6 +58,11 @@
     position: absolute;
     top: 0;
     right: 0;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
   .bg {
     width: 50%;
@@ -53,6 +74,149 @@
     top: 0;
     left: 0;
     padding: 7rem 3rem 3rem;
+    &[data-color='black'] {
     background-color: var(--black);
+    }
+    &[data-color='blue'] {
+      background-color: var(--blue);
+    }
+    &[data-color='yellow'] {
+      background-color: var(--yellow);
+    }
+    &[data-color='red'] {
+      background-color: var(--red);
+    }
+    .category {
+      padding: 0.25rem 1rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid #fff;
+      border-radius: 1rem;
+      width: fit-content;
+      font-size: 0.75rem;
+    }
+    .bg-title {
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+    .list {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+    ul {
+      display: flex;
+      gap: 0.5rem;
+      overflow: hidden;
+    }
+    li {
+      font-size: 0.75rem;
+    }
+  }
+  .prevButton, .nextButton {
+    position: absolute;
+    bottom: 1px;
+    color: #fff;
+    z-index: 1;
+    font-size: 1.2rem;
+    border: 2px solid currentColor;
+    padding: 1rem 3rem;
+    overflow: hidden;
+    &::before {
+      content: '';
+      display: block;
+      background: var(--black);
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: scale(0, 1);
+      transition: transform .4s;
+      z-index: -1;
+    }
+  }
+  .prevButton {
+    left: 0;
+    border-left: none;
+    border-top-right-radius: 2rem;
+    border-bottom-right-radius: 2rem;
+    &::before {
+      transform-origin: left top;
+    }
+  }
+  .nextButton {
+    right: 0;
+    border-right: none;
+    border-top-left-radius: 2rem;
+    border-bottom-left-radius: 2rem;
+    &::before {
+      transform-origin: right top;
+    }
+  }
+  @media (hover: hover) {
+    .prevButton, .nextButton {
+      &:hover {
+        &::before {
+          transform: scale(1, 1);
+        }
+      }
+    }
+    .prevButton {
+      &:hover {
+        &::before {
+          transform-origin: right top;
+        }
+      }
+    }
+    .nextButton {
+      &:hover {
+        &::before {
+          transform-origin: left top;
+        }
+      }
+    }
   }
 </style>
+
+<script>
+  import { gsap } from 'gsap';
+  import Swiper from 'swiper';
+  import 'swiper/css/bundle';
+  import { Autoplay, Parallax, Navigation } from 'swiper/modules';
+
+  const swiper = new Swiper('.swiper', {
+    modules: [Autoplay, Parallax, Navigation],
+    slidesPerView: 1,
+    loop: true,
+    loopAdditionalSlides: 1,
+    parallax: true,
+    speed: 1500,
+    // autoplay: {
+    //   delay: 3000,
+    // }
+    navigation: {
+      prevEl: '#hero_button_prev',
+      nextEl: '#hero_button_next',
+    },
+    on: {
+      slideChangeTransitionStart: () => {
+        gsap.from('.bg h2', {
+          y: '100px',
+          duration: 1,
+        });
+        gsap.from('.bg .item', {
+          y: '100px',
+          duration: 0.8,
+          delay: 0.1,
+          stagger: {
+            each: 0.1,
+          }
+        })
+      }
+    }
+  })
+</script>

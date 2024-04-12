@@ -1,24 +1,31 @@
 ---
 import { Image } from "astro:assets";
+import BatchCategory from "./ui/batch-category.astro";
+
+const { home, url, src, title, time, category, tags } = Astro.props;
+const color = home ? 'var(--black)' : 'var(--gray-10)';
 ---
 <div class="inner">
-  <a href="">
+  <a href={url}>
     <div class="image">
-      <Image src="/public/bookダミー.jpeg" alt="" width="200" height="200" />
+      <Image src={src} alt="" width="200" height="200" />
     </div>
-    <div class="title">タイトルが入ります</div>
-    <div class="categoryTag">Web</div>
+    <div class="title">{title}</div>
+    <BatchCategory home={home} text={category} />
     <div class="tagsTime">
       <ul class="list">
-        <li>Web</li>
-        <li>CSS</li>
+        {tags.map((item) => {
+          return (
+            <li>{item}</li>
+          )
+        })}
       </ul>
-      <time datetime="">2024/04/01</time>
+      <time datetime="">{time}</time>
     </div>
   </a>
 </div>
 
-<style lang="scss">
+<style lang="scss" define:vars={{color}}>
   .inner {
     padding: 1.25rem;
     border: 2px solid transparent;
@@ -34,7 +41,7 @@ import { Image } from "astro:assets";
     }
   }
   .title {
-    color: var(--black);
+    color: var(--color);
     margin-bottom: 1rem;
     padding: 0 0.5rem;
     height: 48px;
@@ -44,12 +51,15 @@ import { Image } from "astro:assets";
     -webkit-box-orient: vertical;
   }
   .list {
-    color: var(--black);
+    color: var(--color);
+    display: flex;
+    gap: 0.8rem;
   }
   .tagsTime {
     display: flex;
     justify-content: space-between;
     padding: 0 0.5rem;
+    margin-top: 0.5rem;
     li {
       display: flex;
       gap: 0.8rem;
@@ -57,19 +67,15 @@ import { Image } from "astro:assets";
     }
   }
   time {
-    color: var(--black);
+    color: var(--color);
     font-size: 0.75rem;
   }
 
-  .categoryTag {
-    width: 130px;
-    padding: 5px 0;
-    margin-bottom: 0.5rem;
-    border-radius: 1rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--blue);
-    color: var(--black);
+  @media (hover: hover) {
+    .inner {
+      &:hover {
+        border: 2px solid var(--color);
+      }
+    }
   }
 </style>

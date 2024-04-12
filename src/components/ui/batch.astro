@@ -1,0 +1,34 @@
+---
+const {
+  text,
+  link,
+  bg = '#fff',
+  color = 'var(--black)',
+  width = '6.25rem',
+  height = '2.5rem',
+  fontSize = '1rem',
+  radius = '1rem',
+} = Astro.props;
+
+---
+<div class="batch">
+  <a href={`/articles/${link}`}>
+    {text}
+  </a>
+</div>
+
+<style define:vars={{width, height, fontSize, radius, bg, color}} lang="scss">
+  .batch {
+    width: var(--width);
+    height: var(--height);
+    border-radius: var(--radius);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg);
+    a {
+      color: var(--color);
+      font-size: var(--fontSize);
+    }
+  }
+</style>

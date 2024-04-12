@@ -1,0 +1,77 @@
+---
+import { getCollection } from "astro:content";
+
+const { title, items} = Astro.props;
+
+
+const categoryTagNum = async(title, name) => {
+  const allPosts = await getCollection('articles');
+  switch (title) {
+    case 'Category':
+      const filterCategory = allPosts.filter(item => item.data.category === name);
+      return filterCategory.length;
+    case 'Tag':
+      const filterTag = allPosts.filter(items => {
+        return items.data.tags.some(item => item === name)
+      })
+      return filterTag.length;
+  }
+}
+---
+<details>
+  <summary>
+    <div class="inner">{title}</div>
+  </summary>
+  <div class="content">
+    {items.map(item => {
+      const { name, slug } = item;
+      const catTagNum = categoryTagNum(title, name);
+      return (
+        <div class="item">
+          <a href={
+            title === 'Category'
+              ? `/articles/category/${slug}`
+              : `/articles/tag/${slug}`
+          }>{name}</a>
+          <div class="num">{catTagNum}</div>
+        </div>
+      )
+    })}
+  </div>
+</details>
+
+<style lang="scss">
+  details[open] summary .inner {
+    border-bottom-left-radius: unset;
+    border-bottom-right-radius: unset;
+  }
+  .inner {
+    width: 100%;
+    background-color: var(--yellow);
+    padding: 0.8rem 1rem;
+    border-radius: 1rem;
+    border: 2px solid var(--gray-10);
+  }
+  .content {
+    background-color: var(--black);
+    border: 2px solid var(--gray-10);
+    border-top: none;
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+    padding: 1rem 1.25rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    a {
+      color: var(--gray-10);
+    }
+  }
+  .num {
+    color: var(--gray-10);
+  }
+</style>

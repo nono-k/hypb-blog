@@ -1,8 +1,13 @@
 ---
-import Layout from "../layouts/layout.astro";
-import Hero from "../components/pages/hero/hero.astro";
-import NewArticle from "../components/new-article.astro";
-import SearchArea from "../components/search-area.astro";
+import Layout from "@/layouts/layout";
+import Hero from "@/components/pages/hero/hero.astro";
+import NewArticle from "@/components/new-article.astro";
+import SearchArea from "@/components/search-area.astro";
+import { getCollection } from "astro:content";
+import { compareDesc } from 'date-fns';
+
+const articlePosts = await getCollection('articles');
+const sortedArticlePosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
 ---
 
 <Layout home>
@@ -10,7 +15,7 @@ import SearchArea from "../components/search-area.astro";
     <Hero />
   </section>
   <section class="new-article">
-    <NewArticle />
+    <NewArticle posts={sortedArticlePosts} />
   </section>
   <section class="search">
     <SearchArea />

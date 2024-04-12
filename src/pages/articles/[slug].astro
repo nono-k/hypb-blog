@@ -1,0 +1,39 @@
+---
+import Layout from "@/layouts/layout";
+import Container from "../../components/container.astro";
+import ArticleContainer from "@/components/pages/article/article-container.astro";
+import Sidebar from "@/components/sidebar.astro";
+import ArticleList from "@/components/pages/article/article-list.astro";
+import { category } from "@/lib/constants";
+
+import { getCollection } from "astro:content";
+import { format, formatISO } from 'date-fns';
+
+export async function getStaticPaths({}) {
+  const articlePosts = await getCollection('articles');
+  return articlePosts.map((post) => {
+    return { params: { slug: post.slug },props: { post: post }};
+  });
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+const {
+  data: { title, pubDate, image, category, description },
+} = post;
+const pubDateISO = formatISO(pubDate);
+const pubDateJA = format(pubDate, 'yyyy年MM月dd日');
+---
+
+<Layout pageTitle={title} description={description}>
+  <Container>
+    <ArticleContainer>
+      <Sidebar />
+      <ArticleList>
+      <div>
+        <Content />
+      </div>
+      </ArticleList>
+    </ArticleContainer>
+  </Container>
+</Layout>

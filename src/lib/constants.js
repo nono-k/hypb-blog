@@ -8,7 +8,16 @@ export const siteMeta = {
   siteImg: '/ogp.png',
 };
 
-export const categories = [
-  { categoryName: 'Python', categorySlug: 'python' },
-  { categoryName: 'JavaScript', categorySlug: 'javascript' },
+export const category = [
+  { name: 'Web', slug: 'web' },
+  { name: 'Coding', slug: 'coding' },
+  { name: 'ブログ', slug: 'blog' },
+  { name: '書籍紹介', slug: 'book' },
+];
+
+export const tags = [
+  { name: 'CSS', slug: 'css' },
+  { name: 'JavaScript', slug: 'javascript' },
+  { name: 'Astro', slug: 'astro' },
+  { name: 'Markdown', slug: 'markdown' },
 ];

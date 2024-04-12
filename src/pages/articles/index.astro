@@ -1,0 +1,38 @@
+---
+import Layout from "@/layouts/layout";
+import Container from "@/components/container.astro";
+import ArticleContainer from "@/components/pages/article/article-container.astro";
+import Sidebar from "@/components/sidebar.astro";
+
+import { getCollection } from "astro:content";
+import { compareDesc } from 'date-fns';
+import ArticleList from "@/components/pages/article/article-list.astro";
+import Card from "@/components/card.astro";
+import ListTitle from "@/components/pages/list-title.astro";
+
+const articlePosts = await getCollection('articles');
+const sortedArticlePosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+
+const allPostsNum = articlePosts.length;
+const pageTitle = 'Articles';
+const description = 'ブログの記事一覧';
+---
+
+<Layout pageTitle={pageTitle} description={description}>
+  <Container>
+    <ListTitle title="すべての記事" num={allPostsNum} />
+    <ArticleContainer>
+      <Sidebar />
+      <ArticleList>
+      {
+        sortedArticlePosts.map((post) => {
+          const { slug, data: { image, title, pubDate, category, tags }} = post;
+          return (
+            <Card url={`/articles/${slug}`} src={image} title={title} time={pubDate} category={category} tags={tags} />
+          )
+        })
+      }
+      </ArticleList>
+    </ArticleContainer>
+  </Container>
+</Layout>
