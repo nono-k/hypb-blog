@@ -25,24 +25,11 @@
   }
 }
 
-.bounds {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: all;
-  // border: 1px solid red;
-  background-color: var(--black);
-  &:hover {
-    transform: scale(0.9);
-  }
-}
-
 //ハンバーガーメニューopen
 .buttonActive {
   z-index: 999;
   .hamburger {
+    background-color: transparent;
     &::before, &::after {
       background-color: var(--black);
     }

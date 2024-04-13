@@ -17,7 +17,6 @@ const anim = {
 }
 
 export default function Overlay({ menuIsActive }) {
-  console.log(menuIsActive);
   const [ screenSize, setScreenSize ] = useState({x: null, y: null});
 
   const shuffle = (a) =>{
@@ -40,6 +39,14 @@ export default function Overlay({ menuIsActive }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (menuIsActive) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'visible';
+    }
+  }, [menuIsActive])
 
   const getSquare = () => {
     if (!screenSize.x || !screenSize.y) return null;
