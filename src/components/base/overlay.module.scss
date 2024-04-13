@@ -1,0 +1,154 @@
+.squareContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  height: 100vh;
+  z-index: -1;
+  // z-index: 10;
+  // opacity: 0;
+  &.active {
+    z-index: 100;
+  }
+}
+
+.column {
+  width: 5vw;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.square {
+  width: 100%;
+  height: 5vw;
+  background-color: var(--red);
+}
+
+.menuContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 101;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  visibility: hidden;
+  .menuInner {
+    width: 100%;
+    max-width: 1000px;
+    height: 450px;
+    margin: auto;
+    padding: 0 2rem;
+    display: grid;
+    place-items: center;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    grid-column-gap: 2.5rem;
+  }
+
+  .leftList {
+    display: flex;
+    flex-direction: column;
+    grid-area: 1 / 1 / 3 / 2;
+    width: 400px;
+    font-family: 'Noto Serif Display Variable', serif;
+    font-weight: 700;
+  }
+  .menuLink {
+    text-transform: uppercase;
+    display: block;
+    height: 100%;
+    overflow: hidden;
+
+    svg {
+      width: 100%;
+      height: 110px;
+      stroke: var(--black);
+      fill: var(--black);
+      stroke-width: 1;
+      stroke-dasharray: 1000;
+      stroke-dashoffset: -250;
+      font-size: 4.8rem;
+      letter-spacing: -0.03em;
+      transform: translateY(100%);
+      transition: stroke-dashoffset .7s ease-out, fill .8s, transform 0.3s ease-out;
+    }
+    &:hover {
+      // border-left: 1px solid #000;
+      & svg {
+        stroke-dashoffset: 0;
+        transition: stroke-dashoffset .6s ease-out, fill .6s;
+        fill: transparent;
+      }
+    }
+  }
+  .searchArea {
+    grid-area: 1 / 2 / 2 / 3;
+    width: 100%;
+  }
+  .searchButton {
+    width: 100%;
+    max-width: 38rem;
+    position: relative;
+  }
+  .rightList {
+    grid-area: 2 / 2 / 3 / 3;
+    place-self: end;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    a {
+      color: #fff;
+    }
+  }
+}
+
+.menuContainer.active {
+  visibility: visible;
+  .menuLink svg {
+    transform: translateY(0%);
+  }
+}
+
+@include mixin.mobile {
+  .menuContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    .menuInner {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      place-items: unset;
+    }
+    .leftList {
+      gap: 1rem;
+      padding-left: 1rem;
+    }
+    .menuLink {
+      font-size: 1.5rem;
+      color: var(--black);
+    }
+    .searchArea {
+      order: -1;
+    }
+    .searchButton {
+      max-width: unset;
+      button {
+        height: 2.5rem;
+        font-size: 0.785rem;
+      }
+    }
+    .rightList {
+      place-self: unset;
+      text-align: left;
+      padding-left: 1rem;
+      font-size: 0.75rem;
+      gap: 0.5rem;
+    }
+  }
+}

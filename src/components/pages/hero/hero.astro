@@ -1,5 +1,5 @@
 ---
-import Hamburger from "../../base/hamburger.astro"
+import Hamburger from "../../base/hamburger.jsx"
 import Logo from "../../base/logo.astro"
 import Container from "../../container.astro"
 import HeroSlider from './hero-slider.astro'
@@ -18,7 +18,7 @@ const lists = [
         <Logo class="logo-headHome" />
         <p class="sub">Web技術を<br />知る・試す・楽しむ<br />ためのテックブログ</p>
       </div>
-      <Hamburger />
+      <Hamburger client:load />
     </header>
     <div class="hero-inner">
       <HeroSlider />
