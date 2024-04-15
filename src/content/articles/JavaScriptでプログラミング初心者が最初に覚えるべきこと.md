@@ -2,7 +2,7 @@
 title: JavaScriptでプログラミング初心者が最初に覚えるべきこと
 slug: javascript-programming-basics
 pubDate: '2023-02-05'
-image: /src/assets/images/javascript-programming-basics.jpg
+image: ../../assets/images/javascript-programming-basics.jpg
 category: 書籍紹介
 tags:
   - CSS

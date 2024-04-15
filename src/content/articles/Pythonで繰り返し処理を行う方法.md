@@ -2,7 +2,7 @@
 title: Pythonで繰り返し処理を行う方法
 slug: python-loop-processing
 pubDate: '2023-01-09'
-image: /src/assets/images/python.jpg
+image: ../../assets/images/python.jpg
 category: Web
 tags:
   - CSS

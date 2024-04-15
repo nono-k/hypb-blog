@@ -2,7 +2,7 @@
 title: JSONデータをPythonで扱う方法
 slug: json-python
 pubDate: '2022-12-09'
-image: /src/assets/images/python.jpg
+image: ../../assets/images/python.jpg
 category: 書籍紹介
 tags:
   - Markdown
