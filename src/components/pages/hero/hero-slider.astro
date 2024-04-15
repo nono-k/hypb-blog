@@ -5,6 +5,7 @@ import { lists } from "./hero-data";
   <div class="swiper-wrapper">
     {lists.map((list) => {
       const { title, slug, img, color, data, category, tags } = list
+
       return (
         <div class="swiper-slide">
           <a href={`articles/${slug}`} class="swiper-container" data-swiper-parallax-x="100%">
