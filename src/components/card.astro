@@ -38,6 +38,7 @@ const color = home ? 'var(--black)' : 'var(--gray-10)';
     img {
       height: 100%;
       border-radius: 1.5rem;
+      object-fit: cover;
     }
   }
   .title {
@@ -75,6 +76,23 @@ const color = home ? 'var(--black)' : 'var(--gray-10)';
     .inner {
       &:hover {
         border: 2px solid var(--color);
+      }
+    }
+  }
+  @include mixin.phone {
+    .inner {
+      padding: 0.75rem;
+      margin-top: 0.85rem;
+      border: 1px solid var(--color);
+      & + & {
+        margin-top: 1.5rem;
+      }
+      .image {
+        margin-bottom: 0.5rem;
+      }
+      .title {
+        margin-bottom: 0.5rem;
+        height: auto;
       }
     }
   }

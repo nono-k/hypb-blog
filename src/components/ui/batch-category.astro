@@ -34,7 +34,7 @@ const color =
 <style define:vars={{width, height, fontSize, radius, bg, color}} lang="scss">
   .batch {
     width: var(--width);
-    height: var(--height);
+    padding-block: 5px;
     border-radius: var(--radius);
     display: flex;
     justify-content: center;
@@ -42,5 +42,11 @@ const color =
     background-color: var(--bg);
     color: var(--color);
     font-size: var(--fontSize);
+  }
+  @include mixin.phone {
+    .batch {
+      width: calc(var(--width) * 0.9230769231);
+      font-size: 0.875rem;
+    }
   }
 </style>

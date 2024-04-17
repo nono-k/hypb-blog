@@ -32,4 +32,18 @@ const sortedArticlePosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDat
     max-width: calc(1380px - 4rem);
     margin-left: auto;
   }
+  @include mixin.mobile {
+    .new-article {
+      margin-bottom: 10rem;
+    }
+  }
+  @include mixin.phone {
+    .hero {
+      margin-top: 1.5rem;
+      margin-bottom: 6rem;
+    }
+    .new-article {
+      margin-bottom: 5rem;
+    }
+  }
 </style>

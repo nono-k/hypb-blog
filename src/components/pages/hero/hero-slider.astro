@@ -17,11 +17,26 @@ import hero04 from '../../../assets/images/hero04.jpg';
       return (
         <div class="swiper-slide">
           <a href={`articles/${slug}`} class="swiper-container" data-swiper-parallax-x="100%">
-            <div class="image" data-swiper-parallax-scale="1.5">
+            <div class="image">
               <Image src={heroImg} alt="" />
             </div>
             <div class="bg" data-color={color}>
               <div class="category">{category}</div>
+              <div class="bg-title for-large">
+                <h2>{title}</h2>
+              </div>
+              <div class="list for-large">
+                <time>{data}</time>
+                <ul>
+                  {tags.map((tag) => {
+                    return (
+                      <li class="item">{tag}</li>
+                    )
+                  })}
+                </ul>
+              </div>
+            </div>
+            <div class="sp for-mobile">
               <div class="bg-title">
                 <h2>{title}</h2>
               </div>
@@ -187,6 +202,111 @@ import hero04 from '../../../assets/images/hero04.jpg';
           transform-origin: left top;
         }
       }
+    }
+    @include mixin.mobile {
+      .prevButton, .nextButton {
+        &:hover {
+          color: #fff;
+          border-color: var(--black);
+        }
+      }
+    }
+  }
+  @include mixin.mobile {
+    .swiper {
+      height: 680px;
+    }
+    .swiper-container {
+      display: flex;
+      flex-direction: column;
+    }
+    .image {
+      width: 100%;
+      height: 420px;
+      position: static;
+      order: 2;
+      img {
+        border-bottom-right-radius: 24px;
+        border-bottom-left-radius: 24px;
+      }
+    }
+    .bg {
+      position: static;
+      width: 100%;
+      height: 80px;
+      order: 1;
+      padding: 1.25rem 1.5rem 1.875rem 0;
+      display: block;
+      border-top-right-radius: 24px;
+      border-top-left-radius: 24px;
+      .category {
+        margin-left: auto;
+      }
+    }
+    .sp {
+      order: 3;
+      margin-left: 0.5rem;
+      .bg-title {
+        margin-top: 1.25rem;
+        margin-bottom: 1rem;
+        h2 {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--black);
+        }
+      }
+      .list {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        color: var(--black);
+        time {
+          font-size: 0.75rem;
+        }
+        ul {
+          display: flex;
+          gap: 1rem;
+        }
+        .item {
+          font-size: 0.75rem;
+        }
+      }
+    }
+    .prevButton, .nextButton {
+      bottom: 0;
+      color: var(--black);
+      padding: 1rem 2rem;
+    }
+  }
+  @include mixin.phone {
+    .swiper {
+      height: 480px;
+    }
+    .image {
+      height: 256px;
+    }
+    .bg {
+      height: 60px;
+      padding: 1rem 1.125rem 1.875rem 0;
+    }
+    .sp {
+      .bg-title {
+        margin-top: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      ul {
+        gap: 1rem;
+      }
+    }
+    .prevButton, .nextButton {
+      bottom: 0;
+      font-size: 1rem;
+    }
+    .prevButton {
+      padding: 1rem 2rem 1rem 1rem;
+    }
+    .nextButton {
+      padding: 1rem 1rem 1rem 2rem;
     }
   }
 </style>

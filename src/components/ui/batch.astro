@@ -4,8 +4,6 @@ const {
   link,
   bg = '#fff',
   color = 'var(--black)',
-  width = '6.25rem',
-  height = '2.5rem',
   fontSize = '1rem',
   radius = '1rem',
 } = Astro.props;
@@ -17,10 +15,9 @@ const {
   </a>
 </div>
 
-<style define:vars={{width, height, fontSize, radius, bg, color}} lang="scss">
+<style define:vars={{fontSize, radius, bg, color}} lang="scss">
   .batch {
-    width: var(--width);
-    height: var(--height);
+    padding: 0.5rem 1.5rem;
     border-radius: var(--radius);
     display: flex;
     justify-content: center;
@@ -29,6 +26,14 @@ const {
     a {
       color: var(--color);
       font-size: var(--fontSize);
+    }
+  }
+  @include mixin.mobile {
+    .batch {
+      padding-inline: 1rem;
+      a {
+        font-size: max(calc(var(--fontSize) * 0.9), 0.75rem);
+      }
     }
   }
 </style>

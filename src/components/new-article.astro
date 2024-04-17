@@ -45,4 +45,40 @@ const { posts } = Astro.props;
     margin-top: -1.25rem;
     margin-bottom: 4rem;
   }
+  @include mixin.mobile {
+    .inner {
+      margin-left: 2rem;
+      flex-direction: column;
+      padding: 2rem 1.5rem;
+      border-top-left-radius: 32px;
+      border-bottom-left-radius: 32px;
+      h2 {
+        writing-mode: unset;
+        letter-spacing: 0.1em;
+        font-size: 2rem;
+        margin-left: 1.5rem;
+      }
+    }
+    .card-content {
+      gap: 0;
+      margin-bottom: 3rem;
+    }
+  }
+  @include mixin.phone {
+    .inner {
+      margin-left: 1.5rem;
+      padding: 1.5rem;
+      padding-bottom: 2rem;
+      border-top-left-radius: 20px;
+      border-bottom-left-radius: 20px;
+      h2 {
+        font-size: 1.375rem;
+        margin-left: 0;
+      }
+    }
+    .card-content {
+      grid-template-columns: auto;
+      margin-bottom: 2rem;
+    }
+  }
 </style>
