@@ -1,0 +1,49 @@
+---
+import SearchIcon from "../icon/search-icon.astro";
+import SearchModal from "./search-modal.astro";
+
+
+---
+
+<button class="search-button">キーワードで検索する</button>
+<div class="search-icon">
+  <SearchIcon width="26" height="26" />
+</div>
+<dialog class="search-modal">
+  <SearchModal />
+</dialog>
+
+<style lang="scss">
+  .search-button {
+    width: 100%;
+    height: 3.8rem;
+    background-color: #fff;
+    border: 1px solid var(--black);
+    border-radius: 1.9rem;
+    text-align: left;
+    padding-left: 3.2rem;
+    padding-right: 3.8rem;
+  }
+  .search-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 16px;
+    margin-top: 3px;
+    color: #202123aa;
+  }
+  @include mixin.phone {
+    .search-button {
+      height: 50px;
+    }
+  }
+</style>
+
+<script>
+  const searchButton = document.querySelector('.search-button');
+  const searchModal = document.querySelector('.search-modal');
+
+  searchButton.addEventListener('click', () => {
+    searchModal.showModal();
+  })
+</script>

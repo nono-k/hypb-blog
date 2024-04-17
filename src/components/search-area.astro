@@ -2,6 +2,7 @@
 import Container from "./container.astro";
 import Batch from "./ui/batch.astro";
 import { category, tags } from "../lib/constants";
+import SearchButton from "./ui/search-button.astro";
 
 ---
 
@@ -12,7 +13,9 @@ import { category, tags } from "../lib/constants";
         <span class="ja">キーワード</span>
         <span class="en">keyword</span>
       </div>
-      <div class="search-button"></div>
+      <div class="search-button">
+        <SearchButton />
+      </div>
       <ul class="list">
         {tags.map(tag => {
           const { name, slug } = tag;
