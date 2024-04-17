@@ -1,0 +1,113 @@
+---
+import FillContent from "@/components/utility/fill/fill-content.astro";
+import Layout from "@/layouts/layout";
+
+const pageTitle = 'Contact';
+const description = 'お問い合わせ';
+---
+<Layout pageTitle={pageTitle} description={description}>
+  <FillContent en="Contact" ja="お問い合わせ" lead="お問い合わせありがとうございます。<br />弊ブログに関するご質問やご要望がございましたら、以下のフォームにご記入ください。">
+    <form action="https://hypb-blog.form.newt.so/v1/8VK_oilIG" class="form" id="form" method="post">
+      <div class="form-list">
+        <label class="form-item" for="name">お名前<span>必須</span></label>
+        <input class="form-content" id="name" name="name" required/>
+      </div>
+      <div class="form-list">
+        <label class="form-item" for="email">メールアドレス<span>必須</span></label>
+        <input class="form-content" id="email" name="email" type="email" required/>
+      </div>
+      <div class="form-list">
+        <label class="form-item" for="message">お問い合わせ内容<span>必須</span></label>
+        <textarea class="form-content" id="message" name="message" required></textarea>
+      </div>
+      <div class="form-list">
+        <div class="form-item"></div>
+        <button type="submit" class="form-button">送信</button>
+      </div>
+    </form>
+  </FillContent>
+</Layout>
+
+<style lang="scss">
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 3.8rem;
+  }
+  .form-list {
+    display: flex;
+    gap: 3rem;
+    textarea {
+      height: 300px;
+    }
+  }
+  .form-item {
+    width: calc(100% / 2.8);
+    display: flex;
+    justify-content: space-between;
+    line-height: 60px;
+    span {
+      color: red;
+      font-size: 0.9rem;
+    }
+  }
+  .form-content {
+    width: 100%;
+    height: 60px;
+    border: 1px solid #000;
+    border-radius: 1rem;
+    padding: 1.25rem;
+  }
+  .form-button {
+    width: 100%;
+    height: 60px;
+    background: var(--black);
+    color: #fff;
+    text-align: center;
+    border-radius: 1rem;
+    margin: 1rem 2rem 2rem;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  const form = document.getElementById('form');
+  form?.addEventListener('submit', submitFormData);
+
+  async function submitFormData(event) {
+    event.preventDefault();
+    const target = event.target;
+
+    const data = {
+      name: target.name.value,
+      email: target.email.value,
+      message: target.message.value,
+    };
+
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      formData.append(key, value);
+    })
+
+    try {
+      const response = await sendRequest(formData);
+      if (response.ok) {
+        location.href = 'contact/thanks'
+      } else {
+        location.href = 'contact/error'
+      }
+    } catch (err) {
+      location.href = 'contact/error'
+    }
+  }
+
+  async function sendRequest(formData) {
+    return await fetch('https://hypb-blog.form.newt.so/v1/8VK_oilIG', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Accept: 'application/json',
+      }
+    })
+  }
+</script>
