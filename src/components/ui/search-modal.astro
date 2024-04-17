@@ -1,34 +1,11 @@
 ---
 import '@pagefind/default-ui/css/ui.css';
 ---
-
-<div class="container">
-  <div class="overlay"></div>
-  <div class="modal">
-    <div id="search"></div>
-  </div>
+<div class="modal">
+  <div id="search"></div>
 </div>
 
 <style lang="scss">
-  .container {
-    width: 100vw;
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    padding: 10vh;
-    overflow: auto;
-  }
-  .overlay {
-    width: 100vw;
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    background-color: #0f172acc;
-    backdrop-filter: blur(4px);
-    z-index: -1;
-  }
   .modal {
     width: 100%;
     max-width: 800px;
@@ -54,6 +31,5 @@ import '@pagefind/default-ui/css/ui.css';
       placeholder: 'キーワードで検索する',
       clear_search: 'クリア',
     },
-
   })
 </script>

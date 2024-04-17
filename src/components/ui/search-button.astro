@@ -10,7 +10,10 @@ import SearchModal from "./search-modal.astro";
   <SearchIcon width="26" height="26" />
 </div>
 <dialog class="search-modal">
-  <SearchModal />
+  <div class="container">
+    <div class="overlay"></div>
+    <SearchModal />
+  </div>
 </dialog>
 
 <style lang="scss">
@@ -32,9 +35,36 @@ import SearchModal from "./search-modal.astro";
     margin-top: 3px;
     color: #202123aa;
   }
+  .search-modal {
+    &::backdrop {
+      display: none;
+    }
+  }
+  .container {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 10vh;
+    overflow: auto;
+  }
+  .overlay {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #0f172acc;
+    backdrop-filter: blur(4px);
+    // z-index: -1;
+  }
   @include mixin.phone {
     .search-button {
       height: 50px;
+    }
+    .container {
+      padding: 2rem 0.5rem;
     }
   }
 </style>
@@ -42,8 +72,34 @@ import SearchModal from "./search-modal.astro";
 <script>
   const searchButton = document.querySelector('.search-button');
   const searchModal = document.querySelector('.search-modal');
+  const overlay = document.querySelector('.overlay');
+  const body = document.body;
 
-  searchButton.addEventListener('click', () => {
+  const openModal = () => {
     searchModal.showModal();
+    body.style.overflow = 'hidden';
+  }
+
+  const closeModal = () => {
+    searchModal.close();
+    body.style.overflow = 'visible';
+  }
+
+  searchButton.addEventListener('click', () => openModal());
+
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay ) {
+      closeModal();
+    }
+  })
+  searchModal.addEventListener('click', (event) => {
+    // モーダル内でのクリックが外部に伝播しないようにする
+    event.stopPropagation();
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && body.style.overflow === 'hidden') {
+      closeModal();
+    }
   })
 </script>
