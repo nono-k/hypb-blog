@@ -1,0 +1,39 @@
+---
+const {
+  text,
+  link,
+  bg = '#fff',
+  color = 'var(--black)',
+  fontSize = '1rem',
+  radius = '1rem',
+} = Astro.props;
+
+---
+<div class="batch">
+  <a href={`/articles/${link}`}>
+    {text}
+  </a>
+</div>
+
+<style define:vars={{fontSize, radius, bg, color}} lang="scss">
+  .batch {
+    padding: 0.5rem 1.5rem;
+    border-radius: var(--radius);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg);
+    a {
+      color: var(--color);
+      font-size: var(--fontSize);
+    }
+  }
+  @include mixin.mobile {
+    .batch {
+      padding-inline: 1rem;
+      a {
+        font-size: max(calc(var(--fontSize) * 0.9), 0.75rem);
+      }
+    }
+  }
+</style>

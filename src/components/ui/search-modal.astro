@@ -1,0 +1,35 @@
+---
+import '@pagefind/default-ui/css/ui.css';
+---
+<div class="modal">
+  <div id="search"></div>
+</div>
+
+<style lang="scss">
+  .modal {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: #1e293b;
+    --pagefind-ui-background: #1e293b;
+    --pagefind-ui-border: rgba(226, 232, 240, 0.0509803922);
+    --pagefind-ui-text: var(--gray-10);
+  }
+</style>
+
+<script>
+  import { PagefindUI } from '@pagefind/default-ui';
+
+  new PagefindUI({
+    element: '#search',
+    pageSize: 15,
+    translations: {
+      placeholder: 'キーワードで検索する',
+      clear_search: 'クリア',
+    },
+  })
+</script>

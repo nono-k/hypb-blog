@@ -1,0 +1,70 @@
+.hamburger {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 64px;
+  height: 64px;
+  background-color: var(--black);
+  border-radius: 50%;
+  transition: .2s;
+  &::before, &::after {
+    content: '';
+    display: block;
+    width: 30px;
+    height: 2px;
+    background-color: var(--gray-10);
+    transition: .2s;
+  }
+  &.isActive {
+    &::before, &::after {
+      background-color: #fff;
+    }
+  }
+}
+
+//ハンバーガーメニューopen
+.buttonActive {
+  z-index: 999;
+  .hamburger {
+    background-color: transparent;
+    &::before, &::after {
+      background-color: var(--black);
+    }
+    &::before {
+      transform: rotate(-45deg);
+    }
+    &::after {
+      transform: rotate(45deg);
+      margin-top: -8px;
+    }
+  }
+}
+
+@include mixin.phone {
+  .hamburger {
+    background-color: var(--black);
+    border-radius: 50%;
+    padding: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    &::before, &::after {
+      width: 20px;
+      height: 1px;
+      background-color: var(--gray-10);
+    }
+  }
+  .bounds {
+    display: none;
+  }
+  .buttonActive {
+    .hamburger {
+      background-color: transparent;
+    }
+  }
+}

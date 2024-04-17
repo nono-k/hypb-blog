@@ -11,6 +11,7 @@ const { class: className } = Astro.props;
 <style lang="scss">
   h1 {
     font-family: 'Noto Serif Display Variable', serif;
+    font-weight: 700;
   }
   a {
     color: var(--black);
@@ -30,5 +31,24 @@ const { class: className } = Astro.props;
     font-size: 5rem;
     margin-top: -30px;
     line-height: 1;
+  }
+  @include mixin.mobile {
+    .logo-headHome {
+      font-size: 3.875rem;
+      margin-top: 0;
+    }
+    .logo-footer {
+      font-size: 3.125rem;
+      margin-top: -10px;
+    }
+  }
+  @include mixin.phone {
+    .logo-headHome {
+      font-size: 2.625rem;
+    }
+    .logo-head {
+      font-size: 2.625rem;
+      margin-top: -15px;
+    }
   }
 </style>

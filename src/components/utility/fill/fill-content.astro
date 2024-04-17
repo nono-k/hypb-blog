@@ -38,4 +38,25 @@ const { en, ja, lead } = Astro.props;
   .lead {
     margin: 1.5rem 0 3.5rem;
   }
+  @include mixin.mobile {
+    .inner {
+      padding-block: 3rem
+    }
+  }
+  @include mixin.phone {
+    .inner {
+      padding: 1.375rem 1.375rem 3rem;
+    }
+    .en {
+      font-size: 2rem;
+      margin-left: 0;
+    }
+    .ja {
+      font-size: 0.75rem;
+    }
+    .lead {
+      margin-block: 1.25rem 2.5rem;
+      font-size: 0.875rem;
+    }
+  }
 </style>

@@ -1,5 +1,5 @@
 ---
-import Hamburger from "../../base/hamburger.astro"
+import Hamburger from "../../base/hamburger.jsx"
 import Logo from "../../base/logo.astro"
 import Container from "../../container.astro"
 import HeroSlider from './hero-slider.astro'
@@ -18,7 +18,7 @@ const lists = [
         <Logo class="logo-headHome" />
         <p class="sub">Web技術を<br />知る・試す・楽しむ<br />ためのテックブログ</p>
       </div>
-      <Hamburger />
+      <Hamburger client:load />
     </header>
     <div class="hero-inner">
       <HeroSlider />
@@ -57,7 +57,6 @@ const lists = [
   .hero-inner {
     padding: 0 0.5rem 5rem;
   }
-
   .list {
     display: flex;
     justify-content: center;
@@ -73,6 +72,23 @@ const lists = [
       background-color: var(--blue);
       border-radius: 20px;
       text-align: center;
+    }
+  }
+  @include mixin.mobile {
+    .hero-inner {
+      padding: 1.125rem 0.5rem 2.625rem;
+    }
+  }
+  @include mixin.phone {
+    .hero {
+      border-radius: 20px;
+    }
+    .header {
+      padding: 1rem;
+    }
+    .sub {
+      font-size: 0.625rem;
+      margin-left: 1rem;
     }
   }
 </style>

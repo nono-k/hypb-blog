@@ -1,0 +1,54 @@
+---
+const { title, num } = Astro.props;
+---
+<div class="list-title">
+  <div class="empty for-large"></div>
+  <div class="inner">
+    <h2>{title}</h2>
+    <p><strong>{num}</strong>件</p>
+  </div>
+</div>
+
+<style lang="scss">
+  .list-title {
+    max-width: 1380px;
+    margin-inline: auto;
+    padding: 0 2rem;
+    display: flex;
+    gap: 1rem;
+  }
+  .empty {
+    width: 220px;
+  }
+  .inner {
+    background-color: var(--gray-10);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    padding-right: 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 1.5rem;
+    h2 {
+      font-size: 1.125rem;
+    }
+  }
+  @include mixin.mobile {
+    .list-title {
+      padding: 0 1.5rem;
+    }
+    .inner {
+      h2 {
+        font-size: 1rem;
+      }
+    }
+  }
+  @include mixin.phone {
+    .list-title {
+      padding: 0;
+    }
+    .inner {
+      padding-block: 0.6rem;
+    }
+  }
+</style>

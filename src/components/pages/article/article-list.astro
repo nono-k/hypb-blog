@@ -1,0 +1,22 @@
+---
+
+---
+
+<div class="article-list">
+  <slot />
+</div>
+
+<style lang="scss">
+  .article-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-top: -1.25rem;
+    flex: 1;
+  }
+  @include mixin.phone {
+    .article-list {
+      display: revert;
+    }
+  }
+</style>

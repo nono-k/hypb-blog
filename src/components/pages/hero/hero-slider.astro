@@ -1,23 +1,63 @@
 ---
+import { Image } from "astro:assets";
+import { lists } from "./hero-data";
+import hero01 from '../../../assets/images/hero01.jpg';
+import hero02 from '../../../assets/images/hero02.jpg';
+import hero03 from '../../../assets/images/hero03.jpg';
+import hero04 from '../../../assets/images/hero04.jpg';
 
 ---
 <div class="swiper">
   <div class="swiper-wrapper">
-    <div class="swiper-slide">
-      <a href="" class="swiper-container">
-        <div class="image">
-          <img src="/public/bookダミー.jpeg" alt="">
-        </div>
-        <div class="bg">
-          <div class="category">
-            <div class="bgTitle">
-              <h3>タイトルが入ります</h3>
+    {lists.map((list, i) => {
+      const { title, slug, img, color, data, category, tags } = list
+      const heroImages = [hero01, hero02, hero03, hero04]
+      const heroImg = heroImages[i];
+
+      return (
+        <div class="swiper-slide">
+          <a href={`articles/${slug}`} class="swiper-container" data-swiper-parallax-x="100%">
+            <div class="image">
+              <Image src={heroImg} alt="" />
             </div>
-          </div>
+            <div class="bg" data-color={color}>
+              <div class="category">{category}</div>
+              <div class="bg-title for-large">
+                <h2>{title}</h2>
+              </div>
+              <div class="list for-large">
+                <time>{data}</time>
+                <ul>
+                  {tags.map((tag) => {
+                    return (
+                      <li class="item">{tag}</li>
+                    )
+                  })}
+                </ul>
+              </div>
+            </div>
+            <div class="sp for-mobile">
+              <div class="bg-title">
+                <h2>{title}</h2>
+              </div>
+              <div class="list">
+                <time>{data}</time>
+                <ul>
+                  {tags.map((tag) => {
+                    return (
+                      <li class="item">{tag}</li>
+                    )
+                  })}
+                </ul>
+              </div>
+            </div>
+          </a>
         </div>
-      </a>
-    </div>
+      )
+    })}
   </div>
+  <button id="hero_button_prev" class="prevButton">前の記事</button>
+  <button id="hero_button_next" class="nextButton">次の記事</button>
 </div>
 
 <style lang="scss">
@@ -42,6 +82,11 @@
     position: absolute;
     top: 0;
     right: 0;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
   .bg {
     width: 50%;
@@ -53,6 +98,254 @@
     top: 0;
     left: 0;
     padding: 7rem 3rem 3rem;
+    &[data-color='black'] {
     background-color: var(--black);
+    }
+    &[data-color='blue'] {
+      background-color: var(--blue);
+    }
+    &[data-color='yellow'] {
+      background-color: var(--yellow);
+    }
+    &[data-color='red'] {
+      background-color: var(--red);
+    }
+    .category {
+      padding: 0.25rem 1rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid #fff;
+      border-radius: 1rem;
+      width: fit-content;
+      font-size: 0.75rem;
+    }
+    .bg-title {
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+    .list {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+    ul {
+      display: flex;
+      gap: 0.5rem;
+      overflow: hidden;
+    }
+    li {
+      font-size: 0.75rem;
+    }
+  }
+  .prevButton, .nextButton {
+    position: absolute;
+    bottom: 1px;
+    color: #fff;
+    z-index: 1;
+    font-size: 1.2rem;
+    border: 2px solid currentColor;
+    padding: 1rem 3rem;
+    overflow: hidden;
+    &::before {
+      content: '';
+      display: block;
+      background: var(--black);
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: scale(0, 1);
+      transition: transform .4s;
+      z-index: -1;
+    }
+  }
+  .prevButton {
+    left: 0;
+    border-left: none;
+    border-top-right-radius: 2rem;
+    border-bottom-right-radius: 2rem;
+    &::before {
+      transform-origin: left top;
+    }
+  }
+  .nextButton {
+    right: 0;
+    border-right: none;
+    border-top-left-radius: 2rem;
+    border-bottom-left-radius: 2rem;
+    &::before {
+      transform-origin: right top;
+    }
+  }
+  @media (hover: hover) {
+    .prevButton, .nextButton {
+      &:hover {
+        &::before {
+          transform: scale(1, 1);
+        }
+      }
+    }
+    .prevButton {
+      &:hover {
+        &::before {
+          transform-origin: right top;
+        }
+      }
+    }
+    .nextButton {
+      &:hover {
+        &::before {
+          transform-origin: left top;
+        }
+      }
+    }
+    @include mixin.mobile {
+      .prevButton, .nextButton {
+        &:hover {
+          color: #fff;
+          border-color: var(--black);
+        }
+      }
+    }
+  }
+  @include mixin.mobile {
+    .swiper {
+      height: 680px;
+    }
+    .swiper-container {
+      display: flex;
+      flex-direction: column;
+    }
+    .image {
+      width: 100%;
+      height: 420px;
+      position: static;
+      order: 2;
+      img {
+        border-bottom-right-radius: 24px;
+        border-bottom-left-radius: 24px;
+      }
+    }
+    .bg {
+      position: static;
+      width: 100%;
+      height: 80px;
+      order: 1;
+      padding: 1.25rem 1.5rem 1.875rem 0;
+      display: block;
+      border-top-right-radius: 24px;
+      border-top-left-radius: 24px;
+      .category {
+        margin-left: auto;
+      }
+    }
+    .sp {
+      order: 3;
+      margin-left: 0.5rem;
+      .bg-title {
+        margin-top: 1.25rem;
+        margin-bottom: 1rem;
+        h2 {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--black);
+        }
+      }
+      .list {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        color: var(--black);
+        time {
+          font-size: 0.75rem;
+        }
+        ul {
+          display: flex;
+          gap: 1rem;
+        }
+        .item {
+          font-size: 0.75rem;
+        }
+      }
+    }
+    .prevButton, .nextButton {
+      bottom: 0;
+      color: var(--black);
+      padding: 1rem 2rem;
+    }
+  }
+  @include mixin.phone {
+    .swiper {
+      height: 480px;
+    }
+    .image {
+      height: 256px;
+    }
+    .bg {
+      height: 60px;
+      padding: 1rem 1.125rem 1.875rem 0;
+    }
+    .sp {
+      .bg-title {
+        margin-top: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      ul {
+        gap: 1rem;
+      }
+    }
+    .prevButton, .nextButton {
+      bottom: 0;
+      font-size: 1rem;
+    }
+    .prevButton {
+      padding: 1rem 2rem 1rem 1rem;
+    }
+    .nextButton {
+      padding: 1rem 1rem 1rem 2rem;
+    }
   }
 </style>
+
+<script>
+  import { gsap } from 'gsap';
+  import Swiper from 'swiper';
+  import 'swiper/css/bundle';
+  import { Autoplay, Parallax, Navigation } from 'swiper/modules';
+
+  const swiper = new Swiper('.swiper', {
+    modules: [Autoplay, Parallax, Navigation],
+    slidesPerView: 1,
+    loop: true,
+    loopAdditionalSlides: 1,
+    parallax: true,
+    speed: 1500,
+    // autoplay: {
+    //   delay: 3000,
+    // }
+    navigation: {
+      prevEl: '#hero_button_prev',
+      nextEl: '#hero_button_next',
+    },
+    on: {
+      slideChangeTransitionStart: () => {
+        gsap.from('.bg h2', {
+          y: '100px',
+          duration: 1,
+        });
+        gsap.from('.bg .item', {
+          y: '100px',
+          duration: 0.8,
+          delay: 0.1,
+          stagger: {
+            each: 0.1,
+          }
+        })
+      }
+    }
+  })
+</script>

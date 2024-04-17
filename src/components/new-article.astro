@@ -1,16 +1,24 @@
 ---
 import Card from "./card.astro";
+import LinkButton from './ui/link-button.astro';
 
+const { posts } = Astro.props;
 
 ---
 <div class="inner">
   <h2>新着記事</h2>
   <div class="wrapper">
     <div class="card-content">
-      <Card />
-      <Card />
-      <Card />
+      {
+        posts.map((post) => {
+          const { slug, data: { image, title, pubDate, category, tags }} = post;
+          return (
+            <Card home url={`/articles/${slug}`} src={image} title={title} time={pubDate} category={category} tags={tags} />
+          )
+        })
+      }
     </div>
+    <LinkButton link="/articles" text="記事一覧" />
   </div>
 </div>
 
@@ -36,5 +44,41 @@ import Card from "./card.astro";
     gap: 0.5rem;
     margin-top: -1.25rem;
     margin-bottom: 4rem;
+  }
+  @include mixin.mobile {
+    .inner {
+      margin-left: 2rem;
+      flex-direction: column;
+      padding: 2rem 1.5rem;
+      border-top-left-radius: 32px;
+      border-bottom-left-radius: 32px;
+      h2 {
+        writing-mode: unset;
+        letter-spacing: 0.1em;
+        font-size: 2rem;
+        margin-left: 1.5rem;
+      }
+    }
+    .card-content {
+      gap: 0;
+      margin-bottom: 3rem;
+    }
+  }
+  @include mixin.phone {
+    .inner {
+      margin-left: 1.5rem;
+      padding: 1.5rem;
+      padding-bottom: 2rem;
+      border-top-left-radius: 20px;
+      border-bottom-left-radius: 20px;
+      h2 {
+        font-size: 1.375rem;
+        margin-left: 0;
+      }
+    }
+    .card-content {
+      grid-template-columns: auto;
+      margin-bottom: 2rem;
+    }
   }
 </style>

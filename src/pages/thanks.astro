@@ -1,0 +1,32 @@
+---
+import FillContent from "@/components/utility/fill/fill-content.astro";
+import Layout from "@/layouts/layout";
+
+const pageTitle = 'Thanks';
+const description = '問い合わせの送信が成功しました';
+---
+<Layout pageTitle={pageTitle} description={description}>
+  <FillContent en="Thanks" ja="お問い合わせありがとうございます！">
+    <div class="thanks">
+      <p>このたびは、нульへお問い合わせ頂き誠にありがとうございます。<br/>お送り頂きました内容を確認の上、折り返しご連絡させて頂きます。<br/>また、ご記入頂いたメールアドレスへ、自動返信の確認メールをお送りしております。</p>
+      <p>しばらく経ってもメールが届かない場合は、入力頂いたメールアドレスが間違っているか、迷惑メールフォルダに振り分けられている可能性がございます。<br/>また、ドメイン指定をされている場合は、メールが受信できるようあらかじめ設定をお願いいたします。<br/>以上の内容をご確認の上、お手数ですがもう一度フォームよりお問い合わせ頂きますようお願い申し上げます。</p>
+      <a href="/">ホームへ戻る</a>
+    </div>
+  </FillContent>
+</Layout>
+
+<style lang="scss">
+  .thanks {
+    margin-top: 3rem;
+    line-height: 1.7;
+    p + p {
+      margin-top: 1.5rem;
+    }
+    a {
+      display: inline-block;
+      color: var(--blue);
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+  }
+</style>

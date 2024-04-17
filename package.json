@@ -5,15 +5,28 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/mdx": "^2.2.4",
+    "@astrojs/react": "^3.3.0",
     "@fontsource-variable/inter": "^5.0.17",
     "@fontsource-variable/noto-serif-display": "^5.0.20",
     "@fontsource/shippori-mincho": "^5.0.12",
+    "@pagefind/default-ui": "^1.1.0",
     "astro": "^4.5.15",
-    "sass": "^1.74.1"
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.0.0",
+    "framer-motion": "^11.0.28",
+    "gsap": "^3.12.5",
+    "pagefind": "^1.1.0",
+    "react": "^18.2.0",
+    "sass": "^1.74.1",
+    "swiper": "^11.1.1"
+  },
+  "volta": {
+    "node": "20.9.0"
   }
 }

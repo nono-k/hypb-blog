@@ -1,8 +1,11 @@
 ---
 import Container from "./container.astro";
-
+import Batch from "./ui/batch.astro";
+import { category, tags } from "../lib/constants";
+import SearchButton from "./ui/search-button.astro";
 
 ---
+
 <Container maxWidth="1000px">
   <div class="inner">
     <div class="search-keyword">
@@ -10,16 +13,38 @@ import Container from "./container.astro";
         <span class="ja">キーワード</span>
         <span class="en">keyword</span>
       </div>
-      <div class="search-button"></div>
+      <div class="search-button">
+        <SearchButton />
+      </div>
+      <ul class="list">
+        {tags.map(tag => {
+          const { name, slug } = tag;
+          return (
+          <li>
+            <Batch text={name} link={`tag/${slug}`} bg="var(--blue)" color="#fff" fontSize="0.75rem" />
+          </li>
+        )})
+        }
+      </ul>
     </div>
     <div class="search-category">
       <div class="title">
         <span class="ja">カテゴリー</span>
         <span class="en">category</span>
       </div>
+      <ul class="list">
+        {category.map(item => {
+          const { name, slug } = item;
+          return (
+          <li>
+            <Batch text={name} link={`category/${slug}`} radius="1.5rem" />
+          </li>
+        )})
+        }
+      </ul>
     </div>
     <div class="link">
-      <a href="/">記事一覧は<br>こちら</a>
+      <a href="/articles">記事一覧は<br>こちら</a>
     </div>
   </div>
 </Container>
@@ -69,6 +94,68 @@ import Container from "./container.astro";
       font-size: 1.4rem;
       color: var(--black);
       font-weight: bold;
+    }
+  }
+  .list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    row-gap: 1.5rem;
+    li {
+      margin-top: 0.5rem;
+    }
+  }
+  @include mixin.mobile {
+    .inner {
+      padding: 2.5rem 3rem;
+    }
+    .title {
+      gap: 0.75rem;
+    }
+    .ja {
+      font-size: 1.375rem;
+    }
+    .en {
+      font-size: 0.75rem;
+    }
+    .search-category {
+      margin-top: 2.75rem;
+      padding-top: 2rem;
+    }
+    .link {
+      padding-top: 4rem;
+      a {
+        width: 9rem;
+        height: 9rem;
+        font-size: 1.25rem;
+      }
+    }
+    .list {
+      gap: 0.5rem;
+      row-gap: 0;
+    }
+  }
+  @include mixin.phone {
+    .inner {
+      padding: 1rem;
+      padding-bottom: 2rem;
+      border-radius: 20px;
+    }
+    .title {
+      gap: 0.5rem;
+    }
+    .ja {
+      font-size: 1.2rem;
+    }
+    .en {
+      font-size: 0.7rem;
+    }
+    .search-category {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+    }
+    .link {
+      padding-top: 3.5rem;
     }
   }
 </style>

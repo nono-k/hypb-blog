@@ -1,6 +1,6 @@
 ---
-import FillContent from "../../components/utility/fill/fill-content.astro";
-import Layout from "../../layouts/layout.astro";
+import FillContent from "@/components/utility/fill/fill-content.astro";
+import Layout from "@/layouts/layout";
 
 const pageTitle = 'Privacy Policy';
 const description = 'プライバシーポリシー';
@@ -92,6 +92,27 @@ const description = 'プライバシーポリシー';
     li {
       list-style: outside;
       --stack-space: 0.5rem
+    }
+  }
+  @include mixin.phone {
+    .fill-body {
+      margin-top: 2.5rem;
+      font-size: 0.875rem;
+      & * + * {
+        margin-top: var(--stack-space, 1rem);
+      }
+      h2 {
+        --stack-space: 2rem;
+        font-size: 1.25rem;
+        padding: 0.5rem 0.75rem;
+        border-width: 5px;
+      }
+      p {
+        padding-inline: 0.5rem 0;
+      }
+      ul {
+        padding-left: 2rem;
+      }
     }
   }
 </style>

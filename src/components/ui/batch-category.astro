@@ -1,0 +1,52 @@
+---
+const {
+  home,
+  text,
+  width = '130px',
+  height = '2rem',
+  fontSize = '1rem',
+  radius = '1rem',
+} = Astro.props;
+
+const getCategoryColor = (text) => {
+  switch (text) {
+    case 'Coding':
+      return 'var(--yellow)';
+    case 'Web':
+      return home ? 'var(--black)' : 'var(--gray-10)';
+    case 'ブログ':
+      return 'var(--blue)';
+    case '書籍紹介':
+      return 'var(--red)';
+    default:
+      return 'var(--gray-10)';
+  }
+}
+const bg = getCategoryColor(text);
+
+const color =
+  bg === 'var(--yellow)' || bg === 'var(--gray-10)'
+  ? 'var(--black)' : '#fff';
+
+---
+<div class="batch">{text}</div>
+
+<style define:vars={{width, height, fontSize, radius, bg, color}} lang="scss">
+  .batch {
+    width: var(--width);
+    padding-block: 5px;
+    border-radius: var(--radius);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg);
+    color: var(--color);
+    font-size: var(--fontSize);
+  }
+  @include mixin.phone {
+    .batch {
+      width: calc(var(--width) * 0.9230769231);
+      font-size: 0.875rem;
+    }
+  }
+</style>

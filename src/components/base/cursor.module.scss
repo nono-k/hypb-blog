@@ -1,0 +1,16 @@
+.cursor {
+  position: fixed;
+  width: 14px;
+  height: 14px;
+  background-color: #8d999c;
+  opacity: 0.6;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: background-color 0.3s;
+  z-index: 9999;
+  &.isActive {
+    transition: 0.1s;
+    background-color: var(--yellow) !important;
+    transform: scale(2.0) !important;
+  }
+}

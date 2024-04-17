@@ -1,27 +1,32 @@
 ---
 import '@fontsource/shippori-mincho/800.css';
 
-import Hamburger from "./hamburger.astro";
+import Hamburger from "./hamburger.jsx";
 import Logo from './logo.astro';
 import Container from '../container.astro';
 
 ---
 
 <header class="header">
-  <Container>
+  <div class="container">
     <div class="inner">
       <div class="titleSub">
         <Logo class="logo-head" />
         <p class="sub">Web技術を<br />知る・試す・楽しむ<br />ためのテックブログ</p>
       </div>
-      <Hamburger />
+      <Hamburger client:load />
     </div>
-  </Container>
+  </div>
 </header>
 
 <style lang="scss">
   .header {
     margin-bottom: 3rem;
+  }
+  .container {
+    max-width: 1380px;
+    margin-inline: auto;
+    padding-inline: 2rem;
   }
   .inner {
     background-color: var(--gray-10);
@@ -40,9 +45,21 @@ import Container from '../container.astro';
     margin-left: 25px;
     font-family: 'Shippori Mincho', serif;
   }
-  // @include mixin.mobile {
-  //   .inner {
-  //     background-color: var(--red);
-  //   }
-  // }
+  @include mixin.phone {
+    .header {
+      margin-bottom: 1.75rem;
+    }
+    .container {
+      padding: 0;
+    }
+    .inner {
+      padding: 0.75rem 1.375rem 1rem 1.375rem;
+      border-bottom-left-radius: 30px;
+      border-bottom-right-radius: 30px;
+    }
+    .sub {
+      font-size: 0.625rem;
+      margin-left: 1rem;
+    }
+  }
 </style>

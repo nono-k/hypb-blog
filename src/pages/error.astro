@@ -1,0 +1,29 @@
+---
+import FillContent from "@/components/utility/fill/fill-content.astro";
+import Layout from "@/layouts/layout";
+
+const pageTitle = 'Error';
+const description = '問い合わせの送信が失敗しました';
+---
+<Layout pageTitle={pageTitle} description={description}>
+  <FillContent en='Error' ja='エラーページ'>
+    <div class="error">
+      <p>送信に失敗しました<br/>お手数ですがもう一度入力内容を確認の上送信をお願いします</p>
+      <a href="/contact">お問い合わせページへ戻る</a>
+    </div>
+  </FillContent>
+</Layout>
+
+<style lang="scss">
+  .error {
+    margin-top: 3rem;
+    line-height: 1.7;
+    a {
+      display: inline-block;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      color: var(--black);
+    }
+  }
+</style>
