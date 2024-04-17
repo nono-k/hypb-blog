@@ -92,12 +92,12 @@ const description = 'お問い合わせ';
     try {
       const response = await sendRequest(formData);
       if (response.ok) {
-        location.href = 'contact/thanks'
+        location.href = '/thanks'
       } else {
-        location.href = 'contact/error'
+        location.href = '/error'
       }
     } catch (err) {
-      location.href = 'contact/error'
+      location.href = '/error'
     }
   }
 
