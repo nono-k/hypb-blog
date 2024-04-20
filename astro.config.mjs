@@ -5,7 +5,6 @@ import react from '@astrojs/react';
 import remarkBreaks from 'remark-breaks';
 import remarkLinkCard from 'remark-link-card';
 import rehypePrettyCode from 'rehype-pretty-code';
-import { log } from 'node_modules/astro/dist/core/logger/core';
 
 const {
   siteUrl
