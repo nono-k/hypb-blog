@@ -1,0 +1,44 @@
+---
+
+---
+<div class="stack" data-pagefind-body id="article-body">
+  <slot />
+</div>
+
+<style lang="scss" is:global>
+  .stack > * + * {
+    margin-top: var(--stack-space, 1.5em);
+  }
+  .stack h2,
+  .stack h3 {
+    --stack-space: 2em;
+  }
+  .stack h2 + *,
+  .stack h3 + * {
+    --stack-space: 0.8em;
+  }
+  .stack p {
+    line-height: 1.8;
+  }
+  .stack {
+    background-color: var(--gray-10);
+    padding: 0 2.5rem 3.125rem;
+    border-bottom-left-radius: 38px;
+    border-bottom-right-radius: 38px;
+    h2 {
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(37, 37, 54, .3);
+      font-weight: 600;
+    }
+    li {
+      list-style: unset;
+      margin-left: 1.5rem;
+    }
+    blockquote {
+      margin-inline: auto;
+      padding: 1rem 1rem 1rem 1.5rem;
+      border-left: 4px solid #202123;
+      background-color: #20212311;
+    }
+  }
+</style>

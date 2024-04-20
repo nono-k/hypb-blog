@@ -23,8 +23,12 @@
     "gsap": "^3.12.5",
     "pagefind": "^1.1.0",
     "react": "^18.2.0",
+    "rehype-pretty-code": "^0.13.1",
+    "remark-breaks": "^4.0.0",
+    "remark-link-card": "^1.3.1",
     "sass": "^1.74.1",
-    "swiper": "^11.1.1"
+    "swiper": "^11.1.1",
+    "tocbot": "^4.27.0"
   },
   "volta": {
     "node": "20.9.0"

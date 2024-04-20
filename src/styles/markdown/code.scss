@@ -1,0 +1,33 @@
+[data-rehype-pretty-code-figure] {
+  position: relative;
+  [data-rehype-pretty-code-title] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 0.5rem 1rem;
+    background-color: var(--yellow);
+    border-top-left-radius: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    & + pre > code {
+      padding-top: 3rem;
+    }
+  }
+  pre {
+    border-radius: 0.5rem;
+  }
+  pre > code {
+    display: grid;
+    border-radius: 0.5rem;
+    padding: 1.5rem 0 1.5rem;
+    line-height: 1.75;
+    [data-line] {
+      border-left: 4px solid transparent;
+      padding: 0 1.5rem;
+    }
+    .highlighted {
+      background-color: #2e4c35;
+      border-color: #469458;
+    }
+  }
+}

@@ -2,9 +2,34 @@ import { defineConfig } from 'astro/config';
 import { siteMeta } from './src/lib/constants';
 import mdx from "@astrojs/mdx";
 import react from '@astrojs/react';
+import remarkBreaks from 'remark-breaks';
+import remarkLinkCard from 'remark-link-card';
+import rehypePrettyCode from 'rehype-pretty-code';
+import { log } from 'node_modules/astro/dist/core/logger/core';
+
 const {
   siteUrl
 } = siteMeta;
+
+const codeOptions = {
+  theme: 'one-dark-pro',
+  defaultLang: 'plaintext',
+  onVistitLine(node) {
+    if (node.children.length === 0) {
+      node.children = [{ type: 'text', value: ' ' }];
+    }
+  },
+  onVisitHighlightedLine(node) {
+    if (!node.properties) {
+      node.properties = {}; // propertiesが定義されていない場合は初期化する
+    }
+    if (!node.properties.className) {
+      node.properties.className = []; // classNameが定義されていない場合は初期化する
+    }
+    node.properties.className.push('highlighted');
+  },
+};
+
 
 
 // https://astro.build/config
@@ -25,5 +50,20 @@ export default defineConfig({
   integrations: [
     mdx(),
     react()
-  ]
+  ],
+  markdown: {
+    syntaxHighlight: false,
+    remarkPlugins: [
+      remarkBreaks,
+      [
+        remarkLinkCard, {
+          cache: true,
+          shortenUrl: true,
+        }
+      ],
+    ],
+    rehypePlugins: [
+      [rehypePrettyCode, codeOptions],
+    ]
+  }
 });

@@ -3,37 +3,112 @@ import Layout from "@/layouts/layout";
 import Container from "../../components/container.astro";
 import ArticleContainer from "@/components/pages/article/article-container.astro";
 import Sidebar from "@/components/sidebar.astro";
-import ArticleList from "@/components/pages/article/article-list.astro";
-import { category } from "@/lib/constants";
+import { category, tags } from "@/lib/constants";
 
 import { getCollection } from "astro:content";
-import { format, formatISO } from 'date-fns';
+import { compareDesc, format, formatISO } from 'date-fns';
+import BatchCategory from "@/components/ui/batch-category.astro";
+import ArticleBody from "@/components/pages/article/article-body.astro";
+import PaginationBox from "@/components/pages/article/pagination-box.astro";
 
 export async function getStaticPaths({}) {
   const articlePosts = await getCollection('articles');
-  return articlePosts.map((post) => {
-    return { params: { slug: post.slug },props: { post: post }};
-  });
+  const sortedBlogPosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+  const numberOfPosts = articlePosts.length;
+
+  return sortedBlogPosts.map((post) => {
+    const { slug } = post;
+    const currentPage = sortedBlogPosts.findIndex((post) => post.slug === slug);
+    const prev = currentPage + 1 >= numberOfPosts
+      ? {}
+      : { prevTitle: sortedBlogPosts[currentPage+1].data.title, prevImage: sortedBlogPosts[currentPage+1].data.image, prev: `/articles/${sortedBlogPosts[currentPage+1].slug}` };
+    const next = currentPage - 1 < 0
+      ? {}
+      : { nextTitle: sortedBlogPosts[currentPage-1].data.title, nextImage: sortedBlogPosts[currentPage-1].data.image, next: `/articles/${sortedBlogPosts[currentPage-1].slug}` };
+    return { params: {slug}, props: {post, url: {...prev, ...next}} };
+  })
 }
 
-const { post } = Astro.props;
+const { post, url } = Astro.props;
 const { Content } = await post.render();
 const {
-  data: { title, pubDate, image, category, description },
+  data: { title, pubDate, image, description},
 } = post;
 const pubDateISO = formatISO(pubDate);
-const pubDateJA = format(pubDate, 'yyyy年MM月dd日');
+const pubDateJA = format(pubDate, 'yyyy.MM.dd');
+
+const categoryName = post.data.category;
+const tagsName = post.data.tags;
+
+const categorySlug = category.find((cat) => cat.name === categoryName).slug;
 ---
 
 <Layout pageTitle={title} description={description}>
   <Container>
     <ArticleContainer>
-      <Sidebar />
-      <ArticleList>
-      <div data-pagefind-body>
-        <Content />
+      <Sidebar blog />
+      <div class="article">
+        <header class="header">
+          <a href={`/articles/category/${categorySlug}`}><BatchCategory text={categoryName} home/></a>
+          <h1 class="title">{title}</h1>
+          <div class="time">
+            投稿日：
+            <time datetime={pubDateISO}>{pubDateJA}</time>
+          </div>
+          <ul class="list">
+            {tagsName.map((tag) => {
+              const tagSlug = tags.find((item) => item.name === tag).slug;
+              return (
+                <li class="item">
+                  <a href={`/articles/tag/${tagSlug}`}>   #{tag}
+                  </a>
+                </li>
+              )
+            })}
+          </ul>
+        </header>
+        <ArticleBody>
+          <Content />
+        </ArticleBody>
+        <PaginationBox {...url} />
       </div>
-      </ArticleList>
     </ArticleContainer>
   </Container>
 </Layout>
+
+<style lang="scss">
+  .article {
+    width: calc(100% - 220px);
+    margin-left: clamp(0px, 1.5vw, 2rem);
+  }
+  .header {
+    background: var(--gray-10);
+    border-top-left-radius: 38px;
+    border-top-right-radius: 38px;
+    padding: 2.5rem;
+  }
+  .title {
+    font-size: 2rem;
+    margin-block: 0.5rem;
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 600;
+  }
+  .time {
+    font-size: 0.875rem;
+    // margin-bottom: 0.5rem;
+  }
+  .list {
+    display: flex;
+    gap: 0.8rem;
+    a {
+      font-size: 0.875rem;
+      color: var(--black);
+    }
+  }
+  @include mixin.mobile {
+    .article {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+</style>
