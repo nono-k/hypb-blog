@@ -16,7 +16,7 @@ export async function getOgImage(title) {
         backgroundColor: '#202123',
         backgroundImage: 'radial-gradient(#e8eaed 5%, transparent 5%)',
         backgroundSize: '52px 52px',
-        padding: '50px 60px',
+        padding: '50px 68px',
       }}
     >
       <div
@@ -34,8 +34,8 @@ export async function getOgImage(title) {
       >
       <div></div>
       <div style={{
-        fontSize: 32,
-        fontWeight: 600,
+        fontSize: 48,
+        fontWeight: 700,
         padding: '0 140px 0 120px',
         lineHeight: 1.5
         }}>{title}</div>
@@ -53,7 +53,7 @@ export async function getOgImage(title) {
         {
           name: 'Shippori+Mincho',
           data: fontTitle,
-          weight: 600,
+          weight: 700,
           style: "normal"
         },
         {
