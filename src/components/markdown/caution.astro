@@ -1,0 +1,28 @@
+---
+import { CautionIcon } from "../icon/markdown-icon";
+const { text } = Astro.props;
+---
+<div class="caution">
+  <p class="title">
+    <CautionIcon />
+    Caution
+  </p>
+  <p class="text">{text}</p>
+</div>
+
+<style lang="scss">
+  .caution {
+    width: 100%;
+    margin-inline: auto;
+    padding: 0.5rem 1rem 1rem 1.5rem;
+    border-left: 4px solid var(--red);
+    background-color: rgba(255,42,81,.1);
+  }
+  .title {
+    color: var(--red);
+    margin-bottom: 0.5rem;
+    line-height: 18px;
+    display: flex;
+    gap: 0.25rem;
+  }
+</style>

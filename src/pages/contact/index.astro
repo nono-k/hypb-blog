@@ -68,6 +68,27 @@ const description = 'お問い合わせ';
     margin: 1rem 2rem 2rem;
     cursor: pointer;
   }
+  @include mixin.mobile {
+    .form-list {
+      display: block;
+    }
+    .form-item {
+      width: auto;
+      justify-content: unset;
+      gap: 1rem
+    }
+    .form-button {
+      margin-inline: 0;
+    }
+  }
+  @include mixin.phone {
+    .form {
+      gap: 1.5rem;
+    }
+    .form-content {
+      height: 50px;
+    }
+  }
 </style>
 
 <script>

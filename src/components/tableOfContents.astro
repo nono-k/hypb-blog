@@ -1,0 +1,62 @@
+---
+
+---
+<nav class="toc-nav">
+  <div class="toc-title">
+    <h2>目次</h2>
+  </div>
+  <div class="toc"></div>
+</nav>
+
+<style lang="scss" is:global>
+  .toc-nav {
+    background: var(--black);
+    border: 2px solid var(--gray-10);
+    border-radius: 1rem;
+    margin-top: 32px;
+    position: sticky;
+    top: 32px;
+    .toc-title {
+      background-color: var(--yellow);
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      h2 {
+        font-size: 1rem;
+        font-weight: normal;
+      }
+    }
+    .toc {
+      padding: 1rem 1rem 1.5rem 1.25rem;
+    }
+    .toc-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      &  .tocList {
+        padding-left: 1rem;
+        margin-top: 0.25rem;
+      }
+    }
+    .toc-link {
+      color: #a4a5a9;
+      font-size: 0.87rem;
+    }
+    .to-link-active {
+      color: #fff;
+    }
+  }
+</style>
+
+<script>
+  import * as tocbot from 'tocbot'
+
+  tocbot.init({
+    tocSelector: '.toc',
+    contentSelector: '#article-body',
+    activeLinkClass: 'to-link-active',
+    listClass: 'toc-list',
+    linkClass: 'toc-link',
+    headingSelector: 'h2, h3'
+  })
+  // tocbot.refresh();
+</script>
