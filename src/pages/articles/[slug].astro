@@ -30,9 +30,11 @@ export async function getStaticPaths({}) {
 }
 
 const { post, url } = Astro.props;
+
 const { Content } = await post.render();
 const {
-  data: { title, pubDate, image, description},
+  slug,
+  data: { title, pubDate, description},
 } = post;
 const pubDateISO = formatISO(pubDate);
 const pubDateJA = format(pubDate, 'yyyy.MM.dd');
@@ -43,7 +45,7 @@ const tagsName = post.data.tags;
 const categorySlug = category.find((cat) => cat.name === categoryName).slug;
 ---
 
-<Layout pageTitle={title} description={description}>
+<Layout pageTitle={title} description={description} articleOgp={slug}>
   <Container>
     <ArticleContainer>
       <Sidebar blog />
