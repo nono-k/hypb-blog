@@ -1,9 +1,13 @@
 ---
 import { Image } from "astro:assets";
+import { format, formatISO } from 'date-fns';
 import BatchCategory from "./ui/batch-category.astro";
 
 const { home, url, src, title, time, category, tags } = Astro.props;
 const color = home ? 'var(--black)' : 'var(--gray-10)';
+
+const pubDateISO = formatISO(time);
+const pubDateJA = format(time, 'yyyy.MM.dd');
 ---
 <div class="inner">
   <a href={url}>
@@ -20,7 +24,7 @@ const color = home ? 'var(--black)' : 'var(--gray-10)';
           )
         })}
       </ul>
-      <time datetime="">{time}</time>
+      <time datetime={pubDateISO}>{pubDateJA}</time>
     </div>
   </a>
 </div>

@@ -1,11 +1,11 @@
 export const lists = [
   {
-    title: 'テキストが入りますテキストが入ります01',
-    slug: 'javascript-programming-basics',
+    title: 'Astroで個人ブログを作成しました',
+    slug: 'first-post',
     img: '../../assets/images/hero01.jpg',
     color: 'red',
     data: '2024.01.01',
-    category: 'Web',
+    category: 'ブログ',
     tags: [
       'tag01',
       'tag02',

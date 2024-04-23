@@ -10,11 +10,13 @@
     font-size: 0.75rem;
     line-height: 1;
     & + pre > code {
-      padding-top: 3rem;
+      padding-top: 2.5rem;
     }
   }
   pre {
     border-radius: 0.5rem;
+    letter-spacing: 0.02em;
+    overflow-x: scroll;
   }
   pre > code {
     display: grid;

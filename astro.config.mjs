@@ -3,6 +3,7 @@ import { siteMeta } from './src/lib/constants';
 import mdx from "@astrojs/mdx";
 import react from '@astrojs/react';
 import remarkBreaks from 'remark-breaks';
+import remarkGemoji from 'remark-gemoji';
 import remarkLinkCard from 'remark-link-card';
 import rehypePrettyCode from 'rehype-pretty-code';
 
@@ -29,8 +30,6 @@ const codeOptions = {
   },
 };
 
-
-
 // https://astro.build/config
 export default defineConfig({
   site: siteUrl,
@@ -54,6 +53,7 @@ export default defineConfig({
     syntaxHighlight: false,
     remarkPlugins: [
       remarkBreaks,
+      remarkGemoji,
       [
         remarkLinkCard, {
           cache: true,
