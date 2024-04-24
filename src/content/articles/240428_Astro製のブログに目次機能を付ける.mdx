@@ -1,0 +1,82 @@
+---
+title: Astro製のブログに目次機能を付ける
+slug: astrojs-tocbot
+pubDate: '2024-04-28'
+image: ../../assets/images/python.jpg
+category: ブログ
+tags:
+  - Astro
+  - Markdown
+description: Astroで作成したブログに目次機能を付けるやり方を紹介してます
+---
+import Import from '../../components/markdown/import.astro';
+
+## はじめに
+
+Astroで作成したこのブログに目次機能を実装したのでやり方を書く。
+画面幅960px以上で閲覧すると記事の左側に目次リンクが表示されます📔
+
+結論としてはTocBotというライブラリーを利用して簡単に実装することができた。
+
+https://tscanlin.github.io/tocbot/
+
+## 前提として
+
+AstroではMarkdownで書いた見出しに対して自動でidが振られます。
+また、Astroの`render()`メソッドの戻り値で見出しのリストが返ってきます。
+
+```astro
+---
+import { getEntryBySlug } from 'astro:content';
+const entry = await getEntryBySlug('blog', 'entry-1');
+
+const { Content, headings } = await entry.render();
+---
+```
+
+上記のように`const { Content, headings } = await entry.render();`で`headings`に見出しのリストが返ってきます。
+
+👇ドキュメント
+
+https://docs.astro.build/en/reference/api-reference/#render
+
+このように目次の情報が取得できるので、コンポーネントを作るなりで自由に作ればいいのだが、スクロール位置によって目次リンクをアクティブにするなどを自作するのは大変だったのでライブラリーに頼った。
+
+## TocBotの使い方
+
+そこでライブラリーとしてTocBotを採用しました。
+TocBotはフレームワーク非依存なJavaScriptライブラリーで、セレクターで指定した要素の中を走査して、見つかった見出しからリンクを含むリスト要素を生成してくれます。また、スクロール位置によって目次にアクティブクラスを自動で付与してくれます。
+
+⬇️は当ブログの`tableOfContents.astro`コンポーネントになります。
+(長いのでCSSは省略してます。)
+
+```astro title="tableOfContents.astro"
+---
+
+---
+<nav class="toc-nav">
+  <div class="toc-title">
+    <h2>目次</h2>
+  </div>
+  <div class="toc"></div>
+</nav>
+
+<script>
+  import * as tocbot from 'tocbot'
+
+  tocbot.init({
+    tocSelector: '.toc', // 目次を追加するクラス名
+    contentSelector: '#article-body', // 目次を取得するコンテンツ
+    activeLinkClass: 'to-link-active', // アクティブになった時のクラス名
+    listClass: 'toc-list', // olのクラス名
+    linkClass: 'toc-link', // aタグのクラス名
+    headingSelector: 'h2, h3' // 目次として取得する見出しタグ
+  })
+</script>
+```
+<Import text="Astroでコンポーネント内でCSSを書く場合、CSSにはis:globalを付ける必要があります" />
+
+## まとめ
+
+TocBotライブラリーを使ってブログに目次機能を付けました。
+非常にお手軽にスクロール位置の指定などの機能を付けられ便利でした。
