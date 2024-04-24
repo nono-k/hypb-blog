@@ -6,8 +6,19 @@ import SearchArea from "@/components/search-area.astro";
 import { getCollection } from "astro:content";
 import { compareDesc } from 'date-fns';
 
-const articlePosts = await getCollection('articles');
-const sortedArticlePosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+export async function getStaticPaths({ paginate }) {
+  const articlePosts = await getCollection('articles');
+  const sortedArticlePosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+  return paginate(sortedArticlePosts, {
+    pageSize: 6,
+  })
+}
+
+const {
+  page: {
+    data
+  }
+} = Astro.props;
 ---
 
 <Layout home>
@@ -15,7 +26,7 @@ const sortedArticlePosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDat
     <Hero />
   </section>
   <section class="new-article">
-    <NewArticle posts={sortedArticlePosts} />
+    <NewArticle posts={data} />
   </section>
   <section class="search">
     <SearchArea />
