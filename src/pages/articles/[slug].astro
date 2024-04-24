@@ -13,8 +13,9 @@ import PaginationBox from "@/components/pages/article/pagination-box.astro";
 
 export async function getStaticPaths({}) {
   const articlePosts = await getCollection('articles');
-  const sortedBlogPosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
-  const numberOfPosts = articlePosts.length;
+  const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
+  const sortedBlogPosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+  const numberOfPosts = nonDraftPosts.length;
 
   return sortedBlogPosts.map((post) => {
     const { slug } = post;
