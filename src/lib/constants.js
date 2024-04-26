@@ -1,7 +1,7 @@
 export const siteMeta = {
   siteTitle: 'нуль',
   siteDesc: 'Web技術を知る・試す・楽しむためのテックブログ',
-  siteUrl: 'https://hypb.pages.dev',
+  siteUrl: 'https://hypb.dev',
   siteType: 'website',
   siteLocale: 'ja_JP',
   siteIcon: '/favicon.svg',
