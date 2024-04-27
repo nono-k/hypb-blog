@@ -27,7 +27,7 @@ const { prev, next, prevTitle, nextTitle, prevImage, nextImage } = Astro.props;
 
 <style lang="scss">
   .pagination-box {
-    margin-top: 3rem;
+    margin-top: 4rem;
     padding: 3.5rem 2.5rem 3rem;
     background-color: var(--gray-10);
     border-radius: 38px;
@@ -62,8 +62,12 @@ const { prev, next, prevTitle, nextTitle, prevImage, nextImage } = Astro.props;
       }
     }
     .title {
-      font-size: 0.875rem;
-      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+      display: --webkit-box;
+      overflow: hidden;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
   }
   .link-btn {
@@ -117,6 +121,44 @@ const { prev, next, prevTitle, nextTitle, prevImage, nextImage } = Astro.props;
             scale: (1.05);
           }
         }
+      }
+    }
+  }
+  @include mixin.mobile {
+    .pagination-box {
+      padding: 2rem;
+
+      .prev-inner {
+        margin-right: 1.25rem;
+      }
+      .next-inner {
+        margin-left: 1.25rem;
+      }
+      .cap {
+        font-size: 0.875rem;
+      }
+    }
+    .link-btn {
+      a {
+        font-size: 1rem;
+        padding: 0.5rem;
+        max-width: 220px
+      }
+    }
+  }
+  @include mixin.phone {
+    .pagination-box {
+      margin-top: 3rem;
+      border-radius: 20px;
+      padding: 1rem;
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .link-btn {
+      grid-area: 2 / 1 / 3 / 3;
+      margin-top: 1rem;
+      a {
+        font-size: 0.875rem;
+        max-width: 180px
       }
     }
   }

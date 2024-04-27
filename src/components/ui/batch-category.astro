@@ -12,12 +12,12 @@ const getCategoryColor = (text) => {
   switch (text) {
     case 'Coding':
       return 'var(--yellow)';
-    case 'Web':
-      return home ? 'var(--black)' : 'var(--gray-10)';
     case 'ブログ':
-      return 'var(--blue)';
+      return home ? 'var(--black)' : 'var(--gray-10)';
     case '書籍紹介':
       return 'var(--red)';
+    case 'Web':
+      return 'var(--blue)';
     default:
       return 'var(--gray-10)';
   }
@@ -45,8 +45,9 @@ const color =
   }
   @include mixin.phone {
     .batch {
-      width: calc(var(--width) * 0.9230769231);
-      font-size: 0.875rem;
+      width: calc(var(--width) * 0.7);
+      font-size: 0.75rem;
+      padding-block: 2px;
     }
   }
 </style>

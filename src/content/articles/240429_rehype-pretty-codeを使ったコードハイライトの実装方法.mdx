@@ -1,0 +1,66 @@
+---
+title: rehype-pretty-codeを使ったコードハイライトの実装方法
+slug: astrojs-rehype-pretty-code
+pubDate: '2024-04-29'
+image: ../../assets/images/python.jpg
+category: ブログ
+tags:
+  - Astro
+  - Markdown
+description: Astroでのrehype-pretty-codeを使ったシンタックスハイライトをやり方
+draft: true
+---
+
+## はじめに
+
+Astroで作成したこのブログのコードハイライトのプラグインにrehype-pretty-codeを使ったので実装方法などを書く🔮（👇ドキュメントが詳しく書かれているのでこちらを見たほうがいいかもです）
+
+https://rehype-pretty.pages.dev/
+
+## rehype-pretty-codeとは？
+
+rehype-pretty-codeは名前の通りrehypeプラグインになります。
+このプラグインでも[Shiki](https://shiki.matsu.io/)を使ってシンタックスハイライトを行っています。
+
+前回の記事でも書きましたが、AstroでもデフォルトでShikiを使っているのになぜrehype-pretty-codeを使ったかというと、Astroでファイル名と行の強調表現のやり方が分からなかったからです。
+
+このブログでは⬇️のように書くことでファイル名や行の強調ができるようになります。
+
+````
+```js title="astro.config.mjs" {3-5, 9-11}
+export default defineConfig({
+  site: siteUrl,
+  prefetch: {
+    prefetchAll: true
+  },
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `@use "src/styles/mixin.scss";`
+        }
+```
+````
+
+```js title="astro.config.mjs" {3-5, 9-11}
+export default defineConfig({
+  site: siteUrl,
+  prefetch: {
+    prefetchAll: true
+  },
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `@use "src/styles/mixin.scss";`
+        }
+```
+
+この記事では、ファイル名の表示と行の強調表現まで書きます。
+行番号の表示などのやり方はドキュメントを見てください。
+
+## Astroで使うための準備
+
+`astro.config.mjs`でrehype-pretty-codeを使う準備をします。
+Astroでは標準でシンタックスハイライトが効いているので`syntaxHighlight`を`false`にします。
+

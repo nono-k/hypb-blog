@@ -1,11 +1,11 @@
 export const lists = [
   {
-    title: 'テキストが入りますテキストが入ります01',
-    slug: 'javascript-programming-basics',
+    title: 'Astroで個人ブログを作成しました',
+    slug: 'first-post',
     img: '../../assets/images/hero01.jpg',
     color: 'red',
-    data: '2024.01.01',
-    category: 'Web',
+    data: '2024-04-27',
+    category: 'ブログ',
     tags: [
       'tag01',
       'tag02',
@@ -17,7 +17,7 @@ export const lists = [
     slug: 'json-python',
     img: '../../assets/images/hero02.jpg',
     color: 'blue',
-    data: '2024.01.01',
+    data: '2024-04-28',
     category: 'Web',
     tags: [
       'tag01',
@@ -30,7 +30,7 @@ export const lists = [
     slug: 'object-sort',
     img: '../../assets/images/hero03.jpg',
     color: 'yellow',
-    data: '2024.01.01',
+    data: '2024-04-28',
     category: 'CSS',
     tags: [
       'tag01',
@@ -43,7 +43,7 @@ export const lists = [
     slug: 'python-loop-processing',
     img: '../../assets/images/hero04.jpg',
     color: 'blue',
-    data: '2024.01.01',
+    data: '2024-04-27',
     category: 'Vue',
     tags: [
       'tag01',

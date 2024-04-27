@@ -7,11 +7,16 @@
 
 <style lang="scss" is:global>
   .stack > * + * {
-    margin-top: var(--stack-space, 1.5em);
+    margin-top: var(--stack-space, 1.25em);
   }
   .stack h2,
   .stack h3 {
-    --stack-space: 2em;
+    letter-spacing: 0.05em;
+    &::before {
+      display: inline-block;
+      margin-right: 0.2rem;
+      color: #202123ee;
+    }
   }
   .stack h2 + *,
   .stack h3 + * {
@@ -26,9 +31,22 @@
     border-bottom-left-radius: 38px;
     border-bottom-right-radius: 38px;
     h2 {
+      --stack-space: 2em;
       padding-bottom: 0.75rem;
       border-bottom: 1px solid rgba(37, 37, 54, .3);
       font-weight: 600;
+      &::before {
+        content: '#';
+      }
+    }
+    h3 {
+      --stack-space: 1.8em;
+      font-weight: 600;
+      &::before {
+        content: '##';
+        margin-right: 0.35rem;
+        letter-spacing: -0.05em;
+      }
     }
     li {
       list-style: unset;
@@ -39,6 +57,27 @@
       padding: 1rem 1rem 1rem 1.5rem;
       border-left: 4px solid #202123;
       background-color: #20212311;
+    }
+    a {
+      text-decoration: underline;
+      color: var(--black);
+    }
+    span code {
+      padding: 0.2em 0.4em;
+      background-color: rgba(145,145,145,.2) !important;
+      color: var(--black) !important;
+      font-size: 0.875rem;
+    }
+  }
+  @include mixin.phone {
+    .stack {
+      padding-inline: 1rem;
+      font-size: 0.875rem;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      h2 {
+        font-size: 1.25rem;
+      }
     }
   }
 </style>

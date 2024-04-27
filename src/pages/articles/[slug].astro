@@ -1,8 +1,8 @@
 ---
 import Layout from "@/layouts/layout";
-import Container from "../../components/container.astro";
 import ArticleContainer from "@/components/pages/article/article-container.astro";
 import Sidebar from "@/components/sidebar.astro";
+import '@fontsource/shippori-mincho/600.css';
 import { category, tags } from "@/lib/constants";
 
 import { getCollection } from "astro:content";
@@ -13,8 +13,9 @@ import PaginationBox from "@/components/pages/article/pagination-box.astro";
 
 export async function getStaticPaths({}) {
   const articlePosts = await getCollection('articles');
-  const sortedBlogPosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
-  const numberOfPosts = articlePosts.length;
+  const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
+  const sortedBlogPosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+  const numberOfPosts = nonDraftPosts.length;
 
   return sortedBlogPosts.map((post) => {
     const { slug } = post;
@@ -46,7 +47,7 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
 ---
 
 <Layout pageTitle={title} description={description} articleOgp={slug}>
-  <Container>
+  <div class="container">
     <ArticleContainer>
       <Sidebar blog />
       <div class="article">
@@ -75,10 +76,15 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
         <PaginationBox {...url} />
       </div>
     </ArticleContainer>
-  </Container>
+  </div>
 </Layout>
 
 <style lang="scss">
+  .container {
+    max-width: 1380px;
+    margin-inline: auto;
+    padding-inline: 2rem;
+  }
   .article {
     width: calc(100% - 220px);
     margin-left: clamp(0px, 1.5vw, 2rem);
@@ -111,6 +117,19 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
     .article {
       width: 100%;
       margin-left: 0;
+    }
+  }
+  @include mixin.phone {
+    .container {
+      padding-inline: 0;
+    }
+    .header {
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 1.5rem 1rem;
+    }
+    .title {
+      font-size: 1.25rem;
     }
   }
 </style>

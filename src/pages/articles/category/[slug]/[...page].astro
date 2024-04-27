@@ -13,7 +13,8 @@ import { category } from "@/lib/constants";
 
 export async function getStaticPaths({paginate}) {
   const articlePosts = await getCollection('articles');
-  const sortedArticlePosts = articlePosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+  const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
+  const sortedArticlePosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
   return category.flatMap((category) => {
     const { name, slug } = category;
     const filteredPosts = sortedArticlePosts.filter((post) => {

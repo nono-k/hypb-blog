@@ -6,12 +6,13 @@ const { title, items} = Astro.props;
 
 const categoryTagNum = async(title, name) => {
   const allPosts = await getCollection('articles');
+  const nonDraftPosts = allPosts.filter((post) => !post.data.draft);
   switch (title) {
     case 'Category':
-      const filterCategory = allPosts.filter(item => item.data.category === name);
+      const filterCategory = nonDraftPosts.filter(item => item.data.category === name);
       return filterCategory.length;
     case 'Tag':
-      const filterTag = allPosts.filter(items => {
+      const filterTag = nonDraftPosts.filter(items => {
         return items.data.tags.some(item => item === name)
       })
       return filterTag.length;

@@ -1,0 +1,153 @@
+---
+title: Astroで個人ブログを作成しました
+slug: first-post
+pubDate: '2024-04-27'
+image: ../../assets/images/first-post.jpg
+category: ブログ
+tags:
+  - Astro
+  - Markdown
+description: Astroで個人ブログを作成しました。この記事ではこのブログの実装などをまとめています
+---
+import Note from '../../components/markdown/note.astro';
+import Tip from '../../components/markdown/tip.astro';
+import Import from '../../components/markdown/import.astro';
+import Warning from '../../components/markdown/warning.astro';
+import Caution from '../../components/markdown/caution.astro';
+
+## はじめに
+
+個人の備忘録としてブログを[Astro](https://astro.build)で作成した。
+このブログではフロントエンド技術やWebに関して書いていきたい。
+
+以下はこのブログのGitのリポジトリになります。
+未経験からWeb制作会社に転職して半年くらいでこのブログを作成したのだが、ブログの自作は非常に勉強になった。
+
+https://github.com/iwasaki-source/hypb-blog
+
+## デザインについて
+
+最近のモダンな技術（NextjsやAstro）で作られた個人ブログは洗練されていて格好いいのだが、どれも似たようなレイアウトに感じることもありポップで被らないようにと意識してデザインを作成した。
+
+結果、自作したことで愛着を持つことができたのでこれからコンテンツを増やしていきたい。
+
+## 機能一覧と実装まとめ
+
+以下はこのブログの機能と実装のまとめになる。
+
+### 検索機能
+
+[トップ](https://hypb.page.dev)のみになるがブログ記事のテキスト検索ができるようにした🔎
+検索ライブラリーとしては[Pagefind](https://pagefind.app/)を使った。
+
+PagefindではCSS（`@pagefind/default-ui/css/ui.css`）とJS（`@pagefind/default-ui.js`）を読み込むだけですぐに検索機能が使用できるようになった。
+
+`data-pagefind-body`を付けることで、その要素以下のコンテツを検索対象にすることができるのでこのサイトではブログ記事の本文以下を検索対象として指定した。
+
+### 目次機能
+
+画面幅960px以上で閲覧すると記事の左側に目次リンクが表示されるように実装した📔
+こちらは[TocBot](https://tscanlin.github.io/tocbot/)というライブラリーを使用した。
+
+以下:arrow_down:は実装方法になります。
+
+https://hypb.page.dev/articles/astrojs-tocbot
+
+### リンクカード
+
+自作で実装しようと思ったが大変だったので、remark用のプラグイン[remark-link-card](https://github.com/gladevise/remark-link-card?tab=readme-ov-file)を採用した。
+
+remark-link-cardを使うと、Markdown内のリンクに対して自動でリンクカードに変換してくれます。
+リンクカードにはサムネイル、タイトル、概要、favicon、リンク先のURLが表示されます。
+
+Astroの場合には、`astro.config.mjs`に以下のように追加するだけで実装できます。
+
+```js title="astro.config.mjs"
+import { defineConfig } from 'astro/config';
+import remarkLinkCard from 'remark-link-card';
+
+// https://astro.build/config
+export default defineConfig({
+  // ...
+  markdown: {
+    remarkPlugins: [
+      [
+        remarkLinkCard, {
+          cache: true,
+          shortenUrl: true,
+        }
+      ],
+    ]
+  }
+});
+```
+
+`remark-link-card`はデフォルトでは、コンパイル時にリンク情報を取得します。そこで`cache`をtrueにすることでリンク情報をキャッシュするようにしました。キャッシュは`/public/remark-link-card/`に保存されます。
+
+また、`shortenUrl`をtrueにすることでリンク先のURLを短縮して表示するようにしています。
+
+`remark-link-card`ではCSSは提供されないので、こちらは自分で実装する必要があります。
+👇のREADMEを参考にして実装しました。
+
+https://github.com/gladevise/remark-link-card
+
+### シンタックスハイライト
+
+Astroでは標準でシンタックスハイライトのShikiを使用しているが、ファイル名や行の強調表現などのやり方が分からなかったので[rehype-pretty-code](https://rehype-pretty.pages.dev/)を採用した🔮
+
+以下⬇️は実装方法になります。
+
+### 独自記法
+
+当初はZennやQiitaみたいなnote記法で書きたかったが、実装で断念してMDXのコンポーネントで対応した。
+使い方としてはMDXファイルでimportして使う事ができる。
+
+```md
+---
+title: Astroで個人ブログを作成しました
+slug: first-post
+pubDate: '2024-04-29'
+image: ../../assets/images/python.jpg
+category: ブログ
+tags:
+  - Astro
+  - Markdown
+description: Astroで個人ブログを作成しました。この記事ではこのブログの実装などをまとめています
+---
+import Note from '../../components/markdown/note.astro';
+import Tip from '../../components/markdown/tip.astro';
+import Import from '../../components/markdown/import.astro';
+import Warning from '../../components/markdown/warning.astro';
+import Caution from '../../components/markdown/caution.astro';
+
+<Note text="テキストが入りますテキストが入ります" />
+
+<Tip text="テキストが入りますテキストが入ります" />
+
+<Import text="テキストが入りますテキストが入ります" />
+
+<Warning text="テキストが入りますテキストが入ります" />
+
+<Caution text="テキストが入りますテキストが入ります" />
+```
+
+👇は確認用になります。
+
+<Note text="テキストが入りますテキストが入ります" />
+
+<Tip text="テキストが入りますテキストが入ります" />
+
+<Import text="テキストが入りますテキストが入ります" />
+
+<Warning text="テキストが入りますテキストが入ります" />
+
+<Caution text="テキストが入りますテキストが入ります" />
+
+## 実装予定の機能
+
+以下は今後実装したい機能です。
+
+- [ ] 数式（remark-math）
+- [ ] ページネーション
+- [ ] サイトマップ
+- [ ] Twitter,Youtubeの埋め込み
