@@ -9,15 +9,15 @@ export const siteMeta = {
 };
 
 export const category = [
-  { name: 'Web', slug: 'web' },
-  { name: 'Coding', slug: 'coding' },
+  // { name: 'Web', slug: 'web' },
+  // { name: 'Coding', slug: 'coding' },
   { name: 'ブログ', slug: 'blog' },
-  { name: '書籍紹介', slug: 'book' },
+  // { name: '書籍紹介', slug: 'book' },
 ];
 
 export const tags = [
-  { name: 'CSS', slug: 'css' },
-  { name: 'JavaScript', slug: 'javascript' },
+  // { name: 'CSS', slug: 'css' },
+  // { name: 'JavaScript', slug: 'javascript' },
   { name: 'Astro', slug: 'astro' },
   { name: 'Markdown', slug: 'markdown' },
 ];
