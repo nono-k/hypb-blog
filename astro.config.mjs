@@ -6,17 +6,19 @@ import remarkBreaks from 'remark-breaks';
 import remarkGemoji from 'remark-gemoji';
 import remarkLinkCard from 'remark-link-card';
 import rehypePrettyCode from 'rehype-pretty-code';
-
+import partytown from "@astrojs/partytown";
 const {
   siteUrl
 } = siteMeta;
-
 const codeOptions = {
   theme: 'one-dark-pro',
   defaultLang: 'plaintext',
   onVistitLine(node) {
     if (node.children.length === 0) {
-      node.children = [{ type: 'text', value: ' ' }];
+      node.children = [{
+        type: 'text',
+        value: ' '
+      }];
     }
   },
   onVisitHighlightedLine(node) {
@@ -27,8 +29,9 @@ const codeOptions = {
       node.properties.className = []; // classNameが定義されていない場合は初期化する
     }
     node.properties.className.push('highlighted');
-  },
+  }
 };
+
 
 // https://astro.build/config
 export default defineConfig({
@@ -47,22 +50,19 @@ export default defineConfig({
   },
   integrations: [
     mdx(),
-    react()
+    react(),
+    partytown({
+      config: {
+        forward: ["dataLayer.push"]
+      }
+    })
   ],
   markdown: {
     syntaxHighlight: false,
-    remarkPlugins: [
-      remarkBreaks,
-      remarkGemoji,
-      [
-        remarkLinkCard, {
-          cache: true,
-          shortenUrl: true,
-        }
-      ],
-    ],
-    rehypePlugins: [
-      [rehypePrettyCode, codeOptions],
-    ]
+    remarkPlugins: [remarkBreaks, remarkGemoji, [remarkLinkCard, {
+      cache: true,
+      shortenUrl: true
+    }]],
+    rehypePlugins: [[rehypePrettyCode, codeOptions]]
   }
 });

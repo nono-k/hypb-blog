@@ -5,7 +5,6 @@ import { format, formatISO } from "date-fns";
 import hero01 from '../../../assets/images/hero01.jpg';
 import hero02 from '../../../assets/images/hero02.jpg';
 import hero03 from '../../../assets/images/hero03.jpg';
-import hero04 from '../../../assets/images/hero04.jpg';
 ---
 <div class="swiper">
   <div class="swiper-wrapper">
@@ -13,7 +12,7 @@ import hero04 from '../../../assets/images/hero04.jpg';
       const { title, slug, img, color, data, category, tags } = list
       const pubDateISO = formatISO(data);
       const pubDateJA = format(data, 'yyyy.MM.dd');
-      const heroImages = [hero01, hero02, hero03, hero04]
+      const heroImages = [hero01, hero02, hero03];
       const heroImg = heroImages[i];
 
       return (
@@ -111,6 +110,9 @@ import hero04 from '../../../assets/images/hero04.jpg';
     }
     &[data-color='red'] {
       background-color: var(--red);
+    }
+    &[data-color='green'] {
+      background-color: var(--green);
     }
     .category {
       padding: 0.25rem 1rem;

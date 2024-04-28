@@ -7,48 +7,45 @@ export const lists = [
     data: '2024-04-27',
     category: 'ブログ',
     tags: [
-      'tag01',
-      'tag02',
-      'tag03'
+      'Astro',
+      'Markdown',
     ]
   },
   {
-    title: 'テキストが入りますテキストが入ります02',
-    slug: 'json-python',
+    title: 'Astroのブログに目次機能をつける',
+    slug: 'astrojs-tocbot',
     img: '../../assets/images/hero02.jpg',
-    color: 'blue',
-    data: '2024-04-28',
-    category: 'Web',
-    tags: [
-      'tag01',
-      'tag02',
-      'tag03'
-    ]
-  },
-  {
-    title: 'テキストが入りますテキストが入ります03',
-    slug: 'object-sort',
-    img: '../../assets/images/hero03.jpg',
     color: 'yellow',
     data: '2024-04-28',
-    category: 'CSS',
+    category: 'ブログ',
     tags: [
-      'tag01',
-      'tag02',
-      'tag03'
+      'Astro',
+      'Markdown',
     ]
   },
   {
-    title: 'テキストが入りますテキストが入ります04',
-    slug: 'python-loop-processing',
-    img: '../../assets/images/hero04.jpg',
-    color: 'blue',
-    data: '2024-04-27',
-    category: 'Vue',
+    title: 'rehype-pretty-codeを使ったコードハイライトの実装方法',
+    slug: 'astrojs-rehype-pretty-code',
+    img: '../../assets/images/hero03.jpg',
+    color: 'green',
+    data: '2024-04-29',
+    category: 'ブログ',
     tags: [
-      'tag01',
-      'tag02',
-      'tag03'
+      'Astro',
+      'Markdown',
     ]
-  }
+  },
+  // {
+  //   title: 'テキストが入りますテキストが入ります04',
+  //   slug: 'python-loop-processing',
+  //   img: '../../assets/images/hero04.jpg',
+  //   color: 'blue',
+  //   data: '2024-04-27',
+  //   category: 'Vue',
+  //   tags: [
+  //     'tag01',
+  //     'tag02',
+  //     'tag03'
+  //   ]
+  // }
 ]
