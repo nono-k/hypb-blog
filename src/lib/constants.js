@@ -10,14 +10,16 @@ export const siteMeta = {
 
 export const category = [
   // { name: 'Web', slug: 'web' },
-  // { name: 'Coding', slug: 'coding' },
+  { name: 'Coding', slug: 'coding' },
   { name: 'ブログ', slug: 'blog' },
   // { name: '書籍紹介', slug: 'book' },
 ];
 
 export const tags = [
-  // { name: 'CSS', slug: 'css' },
-  // { name: 'JavaScript', slug: 'javascript' },
   { name: 'Astro', slug: 'astro' },
+  // { name: 'JavaScript', slug: 'javascript' },
+  { name: 'GSAP', slug: 'gsap' },
+  { name: 'Swiper', slug: 'swiper' },
   { name: 'Markdown', slug: 'markdown' },
+  // { name: 'CSS', slug: 'css' },
 ];
