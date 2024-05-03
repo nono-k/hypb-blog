@@ -7,22 +7,28 @@ const { text } = Astro.props;
     <NoteIcon />
     Note
   </p>
-  <p class="text">{text}</p>
+  <p class="text" set:html={text}></p>
 </div>
 
-<style lang="scss">
+<style lang="scss" is:global>
   .note {
     width: 100%;
     margin-inline: auto;
     padding: 0.5rem 1rem 1rem 1.5rem;
     border-left: 4px solid var(--blue);
     background-color: rgba(0,133,242,.1);
-  }
-  .title {
-    color: var(--blue);
-    margin-bottom: 0.5rem;
-    line-height: 18px;
-    display: flex;
-    gap: 0.25rem;
+    .title {
+      color: var(--blue);
+      margin-bottom: 0.5rem;
+      line-height: 18px;
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+    }
+    ul {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
   }
 </style>

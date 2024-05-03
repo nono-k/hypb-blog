@@ -1,0 +1,226 @@
+---
+title: AstroでSwiperを使う
+slug: astrojs-swiper-01
+pubDate: '2024-05-03'
+image: ../../assets/images/astrojs-swiper-01.jpg
+category: Coding
+tags:
+  - Astro
+  - Swiper
+  - GSAP
+description: AstroでのSwiperの使い方。当ブログのトップのスライドアニメーションを解説します。
+---
+import Note from '../../components/markdown/note.astro';
+
+## はじめに
+
+このブログはAstroで作っているのですが、[トップ](https://hypb.dev)のスライダーでSwiperを使って実装したので解説します。また、テキストのフェードインはGSAPを使っているのでこちらも解説します。
+
+👇CodeSandboxでのデモ
+
+https://codesandbox.io/p/devbox/swiper-parallax-text-stagger-fadein-with-gsap-d2fg8y?file=%2Fsrc%2Fcomponents%2Fslider.astro
+
+結論としては、Astroファイル内でも問題なくSwiper、GSAPは使えます。
+ただし、Navigation、Autoplay、Parallaxなどを使うときに`swiper/modules`からimportする必要があります。
+それでは見ていきましょう
+
+### 環境
+
+<Note
+  text="<ul>
+          <li>Astro: 4.5.15</li>
+          <li>Swiper: 11.1.1</li>
+          <li>GSAP: 3.12.5</li>
+          </ul>"/>
+
+## 当ブログのスライダーの実装方法
+
+[トップ](https://hypb.dev)のスライダーでは、スライダー切り替わり時にパララックスさせテキストも下からフェードインする形になります。
+また、左側がテキストエリア、右側が画像となっていますのでこちらをマークアップしましょう。
+
+```js title="slider.astro"
+<div class="swiper">
+  <div class="swiper-wrapper">
+    {
+      Array.from({ length: 5 }, (_, index) => {
+        return (
+          <div class="swiper-slide">
+            <div class="swiper-container" data-swiper-parallax-x="100%">
+              <div class="image" data-swiper-parallax-scale="1.5">
+                <img src={`https://picsum.photos/800/400?random=${index}`} alt="" />
+              </div>
+              <div class=`bg bg-${index}`>
+                <div class="bg-title">
+                  <h2>{`Sample0${index}`}</h2>
+                </div>
+                <ul>
+                  <li class="item">tag01</li>
+                  <li class="item">tag02</li>
+                  <li class="item">tag03</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        );})
+      }
+  </div>
+  <div class="swiper-button-next"></div>
+  <div class="swiper-button-prev"></div>
+</div>
+
+<style lang="scss">
+  .swiper {
+    width: 70vw;
+    height: 500px;
+  }
+  .swiper-slide {
+    display: flex;
+    flex-direction: row-reverse;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  .swiper-container {
+    position: relative;
+    width: 100%;
+  }
+  .image {
+    width: 50%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+  .bg {
+    width: 50%;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    &.bg-0 {
+      background: orange;
+    }
+    &.bg-1 {
+      background: blue;
+    }
+    &.bg-2 {
+      background: purple;
+    }
+    &.bg-3 {
+      background: red;
+    }
+    &.bg-4 {
+      background: black;
+    }
+  }
+  .bg-title {
+    overflow: hidden;
+  }
+  ul {
+    display: flex;
+    gap: 8px;
+    overflow: hidden;
+  }
+  li {
+    list-style: none;
+  }
+</style>
+```
+
+ここでパララックスさせるため`swiper-container`に`data-swiper-parallax-x="100%"`を付けます。
+またスライダー切り替わり時に画像を拡大するために`image`にも`data-swiper-parallax-scale="1.5"`を付けます。Swiperのパララックスに関しての公式のドキュメントは[こちら](https://swiperjs.com/swiper-api#parallax)です。
+
+### scriptのコード
+
+scriptは以下になります。
+
+```js title="slider.astro"
+// ...
+<script>
+  import Swiper from "swiper";
+  import "swiper/css/bundle";
+  import { Autoplay, Parallax, Navigation } from "swiper/modules";
+  import { gsap } from "gsap";
+
+  const swiper = new Swiper(".swiper", {
+    modules: [Autoplay, Parallax, Navigation],
+    slidesPerView: 1,
+    spaceBetween: 0,
+    loop: true,
+    loopAdditionalSlides: 1,
+    parallax: true,
+    speed: 1500,
+     autoplay: {
+       delay: 5000,
+     },
+    navigation: {
+      nextEl: ".swiper-button-next",
+      prevEl: ".swiper-button-prev",
+    },
+    on: {
+      slideChangeTransitionStart: () => {
+        gsap.from(".bg h2", {
+          y: "100px",
+          duration: 1,
+        });
+        gsap.from(".item", {
+          y: "100px",
+          duration: 0.8,
+          delay: 0.1,
+          stagger: {
+            each: 0.1,
+          },
+        });
+      },
+    },
+  });
+</script>
+```
+
+はじめにで述べましたが、Navigation、Autoplay、Parallaxなどを使うときに`swiper/modules`からimportする必要があります。
+また、Swiperを初期化するときに`modules: [Autoplay, Parallax, Navigation]`を追加します。
+
+### GSAPについて
+
+スライダー切替時にテキストをフェードインさせたいので、`slideChangeTransitionStart`でGSAPでフェードインのコードを書いてます。
+
+```js title="slider.astro"
+// ...
+const swiper = new Swiper(".swiper", {
+    // ...
+    on: {
+      slideChangeTransitionStart: () => {
+        gsap.from(".bg h2", {
+          y: "100px",
+          duration: 1,
+        });
+        gsap.from(".item", {
+          y: "100px",
+          duration: 0.8,
+          delay: 0.1,
+          stagger: {
+            each: 0.1,
+          },
+        });
+      },
+    },
+  });
+```
+
+## まとめ
+
+当ブログのトップのスライダーを例にAstroでのSwiperの使い方を解説しました。
+Astroでも問題なくSwiperを使えることが確認でき良かったです。
+
+この記事が参考になれば幸いです。
