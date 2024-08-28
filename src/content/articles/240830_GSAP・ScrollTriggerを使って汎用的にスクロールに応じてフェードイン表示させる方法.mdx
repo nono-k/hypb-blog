@@ -1,0 +1,200 @@
+---
+title: GSAP・ScrollTriggerを使って汎用的にスクロールに応じてフェードイン表示させる方法
+slug: fadein-01
+pubDate: '2024-08-30'
+image: ../../assets/images/fadein-01.jpg
+category: Coding
+tags:
+  - JavaScript
+  - GSAP
+description: GSAP・ScrollTriggerを使って汎用的にスクロールに応じてフェードイン表示させる方法を解説します。
+---
+import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回は、GSAP・ScrollTriggerを使ってスクロールに応じてフェードイン表示させる方法を解説します。
+Class構文とJavaScriptのdata属性を使っているので汎用的に使えるかと思います。
+
+今回のフェードインの種類としては、最初は`opacity: 0`で非表示にさせ上下左右から表示されるようなものを作ります。
+
+👇は完成形のCodePenデモです！
+<CodePenEmbed penId="WNqKbEW" title="Inview Fade by ScrollTrigger" />
+
+## HTMLとCSS
+
+HTMLとCSSは下記になります。
+
+### HTML
+
+```html title="index.html"
+<body>
+  <section class="section-01">
+    <h1>↓SCROLL</h1>
+  </section>
+  <main class="l-main">
+    <div class="inview__img" data-inview="fade-left"><img src="https://picsum.photos/800/400?random=1" alt="" width="800" height="400"></div>
+    <div class="inview__img" data-inview="fade-right"><img src="https://picsum.photos/800/400?random=2" alt="" width="800" height="400"></div>
+    <div class="inview__img" data-inview="fade-up"><img src="https://picsum.photos/800/400?random=3" alt="" width="800" height="400"></div>
+    <div class="inview__img" data-inview="fade-down"><img src="https://picsum.photos/800/400?random=4" alt="" width="800" height="400"></div>
+  </main>
+</body>
+```
+
+ここでフェードインさせる方向を決めるために、data属性(`data-inview`)で決めます！
+こちらは後ほどCSSとJavaScriptで使います！
+
+### CSS
+
+CSSは長くなるので全てのコードはCodePenの方を見て下さい！
+
+```scss title="style.scss"
+[data-inview] {
+  opacity: 0;
+}
+
+[data-inview="fade-left"] {
+  translate: -80px 0;
+}
+
+[data-inview="fade-right"] {
+  translate: 80px 0;
+}
+
+[data-inview="fade-up"] {
+  translate: 0 80px;
+}
+
+[data-inview="fade-down"] {
+  translate: 0 -80px;
+}
+```
+
+フェードインで重要になるのは👆です。
+初期設定で`[data-inview]`のopacityを0にしておいて、それぞれの方向を`translate`で移動させておきます。
+
+こちらをJavaScriptで画像が画面に入ったかを監視して、opacityとtranslateを戻すことでフェードインが実現できます。それではJavaScriptのコードを見てみましょう！
+
+## JavaScript
+
+GSAPのScrollTriggerを使います。
+クラス構文で書いているので以下のような感じになります！
+
+```js title="inview.js"
+class Inview {
+  constructor() {
+    this.els = document.querySelectorAll('[data-inview]');
+    if (!this.els) return;
+    this.init();
+  }
+  init() {
+    this.els.forEach(el => {
+      const type = el.dataset.inview;
+      switch(type) {
+        case 'fade-left':
+        case 'fade-right':
+          this.inviewFadeSide(el);
+          break;
+        case 'fade-up':
+        case 'fade-down':
+          this.inviewFadeVertical(el);
+          break;
+      }
+    })
+  }
+  inviewFadeSide(el) {
+    gsap.to(el, {
+      scrollTrigger: {
+        trigger: el,
+        start: "top 80%",
+      },
+      onStart: () => {
+        gsap.to(el, {
+          x: 0, opacity: 1, duration: 0.6,
+          ease: Sine.easeOut,
+        })
+      }
+    })
+  }
+  inviewFadeVertical(el) {
+    gsap.to(el, {
+      scrollTrigger: {
+        trigger: el,
+        start: "top 80%",
+      },
+      onStart: () => {
+        gsap.to(el, {
+          y: 0, opacity: 1, duration: 0.6,
+          ease: Sine.easeOut,
+        })
+      }
+    })
+  }
+}
+
+const inview = new Inview();
+```
+クラス構文も含めてそれぞれ解説します！
+
+### constructor()
+
+ここでは、data属性の`[data-inview]`が存在するかを確認し、無ければ早期リターンさせています。
+
+```js
+constructor() {
+  this.els = document.querySelectorAll('[data-inview]');
+  if (!this.els) return;
+  this.init();
+}
+```
+
+### switch文
+
+ここでは先程、data-inviewを`querySelectorAll`で取得したので`forEach`で回します！
+HTMLの方に書いていたフェードインさせる方向を`type`で取得し、switch文でアニメーションを左右方向からの出現のときは`inviewFadeSide()`で、上下方向からの出現のときは`inviewFadeVertical()`で処理させます。
+
+```js
+this.els.forEach(el => {
+  const type = el.dataset.inview;
+  switch(type) {
+    case 'fade-left':
+    case 'fade-right':
+      this.inviewFadeSide(el);
+      break;
+    case 'fade-up':
+    case 'fade-down':
+      this.inviewFadeVertical(el);
+      break;
+  }
+})
+```
+
+### GSAP・ScrollTrigger
+
+最後にアニメーションをGSAPで書きます！
+ここでは左右方向からの出現の`inviewFadeSide()`を見ていきます。
+左右方向からの出現なので、単純にxを0にするだけ & opacityを0にするだけでフェードインアニメーションが実現できます✨
+
+```js
+inviewFadeSide(el) {
+  gsap.to(el, {
+    scrollTrigger: {
+      trigger: el,
+      start: "top 80%",
+    },
+    onStart: () => {
+      gsap.to(el, {
+        x: 0, opacity: 1, duration: 0.6,
+        ease: Sine.easeOut,
+      })
+    }
+  })
+}
+```
+
+## まとめ
+
+GSAP・ScrollTriggerを使用してのフェードインアニメーションを解説しました。
+今回はopacityとtranslateを使用してのアニメーションでしたがclip-pathを使用するともっとリッチなWebサイトになるかと思います。
+
+この記事が参考になれば幸いです。
