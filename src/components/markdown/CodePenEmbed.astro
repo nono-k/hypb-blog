@@ -1,0 +1,25 @@
+---
+const { penId, title = "CodePen Embed" } = Astro.props;
+---
+
+<div class="codepen-embed">
+  <iframe
+    style="width: 100%; height: 100%;"
+    scrolling="no"
+    title={title}
+    src=`https://codepen.io/kamenono/embed/${penId}?default-tab=&theme-id=dark`
+    frameborder="no"
+    loading="lazy"
+    allowtransparency="true"
+    allowfullscreen="true"
+  >
+  </iframe>
+</div>
+
+<style lang="scss">
+  .codepen-embed {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 16 / 9;
+  }
+</style>
