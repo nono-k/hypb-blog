@@ -7,6 +7,7 @@ const articleCollection = defineCollection({
     // pubDate: z.string().transform((str) => zonedTimeToUtc(str, 'Asia/Tokyo')),
     pubDate: z.string(),
     image: image().optional(),
+    ogp: z.string(),
     category: z.string(),
     tags: z.array(z.string()),
     description: z.string(),

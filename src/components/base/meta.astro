@@ -11,7 +11,7 @@ const {
 const title = pageTitle ? `${pageTitle} | ${siteTitle}` : siteTitle;
 
 const ogpImg = articleOgp ?
-  articleOgp.fsPath
+  articleOgp
   : siteImg;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
