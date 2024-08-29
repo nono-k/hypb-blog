@@ -7,9 +7,12 @@ import remarkGemoji from 'remark-gemoji';
 import remarkLinkCard from 'remark-link-card';
 import rehypePrettyCode from 'rehype-pretty-code';
 import partytown from "@astrojs/partytown";
+import sitemap from '@astrojs/sitemap';
+
 const {
   siteUrl
 } = siteMeta;
+
 const codeOptions = {
   theme: 'one-dark-pro',
   defaultLang: 'plaintext',
@@ -55,7 +58,8 @@ export default defineConfig({
       config: {
         forward: ["dataLayer.push"]
       }
-    })
+    }),
+    sitemap(),
   ],
   markdown: {
     syntaxHighlight: false,
