@@ -1,0 +1,221 @@
+---
+title: JavaScriptでホバー時にマウスに追従するリンクの作り方
+slug: sticky-js-01
+pubDate: '2024-08-31'
+image: ../../assets/images/sticky-js-01.jpg
+ogp: 'images/ogp/sticky-js-01.jpg'
+category: Coding
+tags:
+  - JavaScript
+  - GSAP
+description: JavaScriptでホバー時にマウスに追従するリンクの作り方を解説します。
+---
+import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回は、よく見かけるホバーした時にマウスに追従するような円のリンクをJavaScriptを使用して作成します。クラス構文を使って作成し、名称はStickyとします。また、アニメーションにはGSAPを使用します🍀
+
+👇は完成形のCodePenデモです！
+<CodePenEmbed penId="yLdqjQy" title="Mouse Sticky with GSAP" />
+
+CodePenを見てもらうと分かりますが、分かりやすいようにborderで赤枠を作成しており、赤枠に入ると円が追従します。
+なので、赤枠をターゲットとしてJavaScriptで入っているか出ているかの処理を書きます。
+
+その前にまずはHTMLとCSSを準備しましょう！
+
+## HTMLとCSS
+
+HTMLとCSSは下記になります。
+
+### HTML
+
+```html title="index.html"
+<a class="sticky" href="" data-sticky="target">
+  <div class="circle" data-sticky="circle"></div>
+  <div class="text" data-sticky="text">HOME</div>
+</a>
+```
+
+今回も後でJavaScriptで取得するために`data-sticky`で`target`と`circle`と`text`を書いときます。
+
+### CSS
+
+CSSはこんな感じになります💅
+
+```css title="style.scss"
+.sticky {
+  width: 250px;
+  height: 250px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border: 1px solid red;
+}
+
+.circle {
+  background: var(--circle);
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  z-index: -1;
+}
+
+.text {
+  color: var(--text);
+  font-weight: bold;
+  font-size: 22px;
+}
+
+```
+
+## JavaScript
+
+JavaScriptの全コードは👇になります。
+
+```js title="sticky.js"
+class Sticky {
+  constructor() {
+    this.el = document.querySelector('[data-sticky="target"]');
+    if (this.el) this.init();
+  }
+  init() {
+    this.circle = document.querySelector('[data-sticky="circle"]');
+    this.text = document.querySelector('[data-sticky="text"]');
+
+    this.el.addEventListener('mousemove', (e) => this.mouseMove(e))
+    this.el.addEventListener('mouseleave', (e) => this.mouseLeave())
+  }
+  mouseMove(e) {
+    const circleRect = this.circle.getBoundingClientRect();
+    const circleWidth = this.circle.clientWidth;
+    const circleHeight = this.circle.clientHeight;
+
+    const ex = e.offsetX;
+    const ey = e.offsetY;
+
+    const circleDamp = 50;
+    const textDamp = 80;
+
+    const cx = (ex - circleWidth/2) / circleWidth * circleDamp;
+    const cy = (ey - circleHeight/2) / circleHeight * circleDamp;
+    const tx = (ex - circleWidth/2) / circleWidth * textDamp;
+    const ty = (ey - circleHeight/2) / circleHeight * textDamp;
+
+    gsap.to(this.circle, 0.3, {
+      x: cx,
+      y: cy,
+      scale: 1.2,
+      ease: 'Power2.easeOut'
+    });
+    gsap.to(this.text, 0.3, {
+      x: tx,
+      y: ty,
+      ease: 'Power2.easeOut'
+    });
+  }
+  mouseLeave() {
+    gsap.to([this.circle, this.text], {
+      duration: params.duration,
+      x: 0,
+      y: 0,
+      scale: 1,
+      ease: 'Power2.easeOut',
+    });
+  }
+}
+
+new Sticky();
+```
+
+まずは`querySelector`で`data-sticky="target"`を取得し、存在する時は次に進みます。
+`init()`では円とテキストを取得するのと、赤枠(this.el)に入って動いたとき・出たときの処理を`this.mouseMove()`と`this.mouseLeave()`とします。このとき入った時にマウスの位置が必要になるのでイベントオブジェクト(e)を渡してあげます。
+
+```js
+init() {
+  this.circle = document.querySelector('[data-sticky="circle"]');
+  this.text = document.querySelector('[data-sticky="text"]');
+
+  this.el.addEventListener('mousemove', (e) => this.mouseMove(e))
+  this.el.addEventListener('mouseleave', (e) => this.mouseLeave())
+}
+```
+
+### mouseMove()
+
+赤枠内でマウスを動かしたときの処理を解説します。
+
+```js
+mouseMove(e) {
+  const circleRect = this.circle.getBoundingClientRect();
+  const circleWidth = this.circle.clientWidth;
+  const circleHeight = this.circle.clientHeight;
+
+  const ex = e.offsetX;
+  const ey = e.offsetY;
+}
+```
+
+円の寸法が欲しいので`getBoundingClientRect()`で取得し、横と縦を変数に入れておきます。
+マウス位置については赤枠内での位置が知りたいので`offsetX`・`offsetY`で取得します。
+
+アニメーションの該当コードは以下です。
+
+```js
+const circleDamp = 50;
+const textDamp = 80;
+
+const cx = (ex - circleWidth/2) / circleWidth * circleDamp;
+const cy = (ey - circleHeight/2) / circleHeight * circleDamp;
+const tx = (ex - circleWidth/2) / circleWidth * textDamp;
+const ty = (ey - circleHeight/2) / circleHeight * textDamp;
+
+gsap.to(this.circle, 0.3, {
+  x: cx,
+  y: cy,
+  scale: 1.2,
+  ease: 'Power2.easeOut',
+});
+gsap.to(this.text, 0.3, {
+  x: tx,
+  y: ty,
+  ease: 'Power2.easeOut',
+});
+```
+
+円とテキストはずらして移動させたいのでそれぞれ分けます。
+また、移動量等を調整するために`circleDamp`と`textDamp`を定義しておきます。
+値が大きくなるほど移動量が多くなります。
+
+最後に最終的な移動位置をGSAPで移動させてあげます🍀
+円に関しては`scale`で大きくさせてあげましょう！
+
+### mouseLeave()
+
+赤枠を出たときの処理は👇になります。
+位置とscaleを元に戻すだけになりますね！
+
+```js
+mouseLeave() {
+  gsap.to([this.circle, this.text], {
+    duration: params.duration,
+    x: 0,
+    y: 0,
+    scale: 1,
+    ease: 'Power2.easeOut',
+  });
+}
+```
+
+## まとめ
+
+ホバーした時にマウスに追従するような円を解説しました。
+GSAPを使用することで簡単に実装できますね！
+
+この記事が参考になれば幸いです。
