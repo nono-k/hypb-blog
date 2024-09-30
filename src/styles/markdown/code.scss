@@ -1,3 +1,5 @@
+@use '/src/styles/mixin';
+
 [data-rehype-pretty-code-figure] {
   position: relative;
   [data-rehype-pretty-code-title] {
@@ -14,6 +16,8 @@
     }
   }
   pre {
+    background: #0d1117 !important;
+    border: 8px solid #3d444d;
     border-radius: 0.5rem;
     overflow-x: auto;
   }
@@ -31,6 +35,21 @@
     .highlighted {
       background-color: #2e4c35;
       border-color: #469458;
+    }
+  }
+}
+
+@include mixin.phone {
+  [data-rehype-pretty-code-figure] {
+    pre {
+      border: 4px solid #3d444d;
+    }
+
+    pre > code {
+      padding: 1rem 0 1.5rem;
+      [data-line] {
+        padding: 0 0.5rem;
+      }
     }
   }
 }
