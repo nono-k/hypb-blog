@@ -1,0 +1,260 @@
+---
+title: JavaScriptで画像とテキストが横に流れ続ける無限ループの作り方
+slug: marquee-js-01
+pubDate: '2024-10-02'
+image: ../../assets/images/marquee-js-01.jpg
+ogp: 'images/ogp/marquee-js-01.jpg'
+category: Coding
+tags:
+  - JavaScript
+description: JavaScriptで画像とテキストが横に流れ続ける無限ループの作り方を解説します。
+---
+import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回は、よく見かける無限ループで横に流れ続ける画像とテキストの実装をJavaScriptを使用して作成します。毎回実装の方法をググってコピペで対応していた＆無限ループだけならCSSのみでも実装できますが、上手くループが繋がらなかったり、手動でCSS調整するのが面倒くさいので汎用的に使えるようクラス構文を使って作成し、名称をMarqueeとします。💬
+また、Web Animations ApiとIntersection Observer APIを使います！
+
+👇は完成形のCodePenデモです！
+<CodePenEmbed penId="abevVXW" title="Marquee by JavaScript" />
+
+JSファイルは長くなってしまったのでCodePenを参照するかGitHub Gistに置いてるので⬇️コチラを参照ください
+
+https://gist.github.com/iwasaki-source/c5c40321fbae1f218153e8b31475b0bb
+
+無限ループをJavaScriptで実装する利点としては下記になります✨
+
+- 決められたクラスを付けるだけで無限ループが可能になる
+- 無限ループのスピード調整・流れる方向・ホバーした時の動作をHTML上で汎用的に決められる
+- 画面に入った時のみアニメーションさせることができるのでCSSのみよりパフォーマンスが良い
+
+それでは実装方法を見てみましょう！
+
+## HTMLとCSS
+
+HTMLとCSSは今回のクラスを使う部分のみ載せます！
+
+### HTML
+
+```html title="index.html"
+<div class="marquee"
+  data-marquee-speed="60"
+  data-marquee-direction="right"
+  data-marquee-hover="true"
+  >
+  <div class="marquee-wrapper">
+    <div class="marquee-content">
+      <div class="marquee-item"></div>
+      ...
+    </div>
+  </div>
+</div>
+```
+
+HTMLはSwiperみたくmarquee -> marquee-wrapper -> marquee-contentの順に書きます。
+`.marquee-item`の中に画像かテキストを入れる感じになります🏞️
+JavaScriptでスピード調整・流れる方向・ホバーした時に無限ループを止めるかを実装するために、今回もdata属性でそれぞれの項目を決めることができます！
+
+上記コードを例に無限ループの原理を軽く説明すると、横方向に動かす部分は`.marquee-wrapper`になります。アニメーションループの終わりは`.marquee-wrapper`の横幅分移動した時に終了させます。
+ループを繋げるためには`.marquee-content`が2個以上必要になります。`.marquee-content`が何個必要なのかはデバイスサイズと`.marquee-content`の横幅の関係で決まるのでこの複製等をJavaScriptで行います！
+あとで、詳しく見てみましょう🔎
+
+### CSS
+
+CSSは参考程度にこんな感じになります💅
+
+```css title="style.scss"
+.marquee {
+  overflow-x: hidden;
+}
+
+.marquee-wrapper {
+  display: flex;
+  gap: 24px;
+}
+
+.marquee-content {
+  display: flex;
+  gap: 24px;
+}
+
+.content-img {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.content-text {
+  font-weight: 700;
+  font-size: 60px;
+  white-space: nowrap;
+}
+```
+
+はみ出ないように`overflow-x: hidden;`を設定するのとテキストは改行しないように`white-space: nowrap;`を指定します。
+
+## JavaScript
+
+最後にJavaScriptのコードについて解説したいと思います。
+
+### init()
+
+👇はクラスの初期化のコードです。
+
+```js
+class Marquee {
+  constructor() {
+    this.els = document.querySelectorAll('.marquee');
+    if (!this.els) return;
+
+    this.init()
+  }
+  init() {
+    this.els.forEach(el => {
+      const options = {
+        speed: el.dataset.marqueeSpeed || 60,
+        direction: el.dataset.marqueeDirection || 'left',
+        pauseOnHover: el.dataset.marqueeHover === 'true'
+      };
+      this.Marquee(el, options);
+    })
+  }
+  // ...
+}
+```
+
+ここではdata属性に付与されてない時のスピード調整・流れる方向・ホバーした時の動作の初期値を設定しています。そしてMarqueeメソッドに要素とオプションを渡します。
+
+### コンテンツの複製
+
+Marqueeメソッドはこんな感じになります。オプションを分割代入で受け取っておきます。
+
+```js
+
+class Marquee {
+  // ...
+  Marquee(el, options) {
+    const { speed, direction, pauseOnHover } = options;
+    const wrapper = el.querySelector('.marquee-wrapper');
+    const content = el.querySelector('.marquee-content');
+    this.appendContent(content, wrapper);
+    this.updateWrapperWidth(content, wrapper);
+    const animation = this.Animation(wrapper, speed, direction);
+
+    this.hoverEvent(el, animation, pauseOnHover);
+    this.observerEvent(el, animation);
+  }
+  // ...
+}
+```
+
+ループを繋げるための複製をしているメソッドが以下の`appendContent`になります。
+
+```js
+appendContent(content, wrap) {
+  const innerWidth = window.innerWidth;
+  const contentWidth = content.getBoundingClientRect().width;
+
+  this.appendClone(content, wrap);
+
+  if (contentWidth < innerWidth) {
+    const numClones = Math.ceil(innerWidth / contentWidth);
+    for (let i = 0; i < numClones; i++) {
+      this.appendClone(content, wrap);
+    }
+  }
+}
+appendClone(content, wrap) {
+  const clone = content.cloneNode(true);
+  wrap.appendChild(clone);
+}
+```
+
+ループを繋げるためには最低でもcontentが2つ必要になるのでappendCloneで最初に複製してます。
+あとは画面幅が埋まるまでcontentが何個必要かは、画面幅 / コンテンツ幅で計算してMath.ceilで小数点以下を切り上げて必要な個数分を複製してます。
+
+
+ループがちゃんと繋がるようにwrapperのサイズをJavaScriptで指定します！
+
+```js
+updateWrapperWidth(content, wrap) {
+  const contentWidth = content.getBoundingClientRect().width;
+  const gap = parseInt(getComputedStyle(content).columnGap);
+  wrap.style.width = `${contentWidth + gap}px`;
+}
+```
+
+こちらは実際にDevToolsとかで動かしてみるとループが繋がる意味などが分かりやすいかと思います！
+
+### アニメーション
+
+アニメーションに関して書いていきます。👇️該当コードです。
+
+```js
+Marquee(el, options) {
+  const { speed, direction, pauseOnHover } = options;
+  // ...
+
+  const animation = this.Animation(wrapper, speed, direction);
+
+  this.hoverEvent(el, animation, pauseOnHover);
+  this.observerEvent(el, animation);
+}
+Animation(wrap, speed, direction) {
+  const wrapWidth = wrap.getBoundingClientRect().width;
+  const keyframes = direction === 'left' ?
+    [{ translate: '0 0' }, { translate: '-100% 0' }] :
+    [{ translate: '-100% 0' }, { translate: '0 0' }];
+  const options = {
+    duration: (wrapWidth / speed) * 1000,
+    iterations: Infinity,
+  }
+  return wrap.animate(keyframes, options);
+}
+```
+
+無限ループのアニメーションは冒頭で述べた通りWeb Animations Apiを使ってアニメーションさせています🎥
+ここでdirectionオプションで左に流れるか右に流れるかを決めています。
+また、アニメーション時間は距離 / 速度で求まるのとms単位になるので1000を掛けています。こうすることで画像の枚数が変化しても指定した一定の速度でアニメーションさせることができるかと思います！
+
+### ホバー動作
+
+ホバーした時にアニメーションを止めるかのコードは以下になります⏱️
+
+```js
+hoverEvent(el, animation, hasOpt) {
+  if (!hasOpt) return;
+  el.addEventListener('mouseenter', () => animation.pause());
+  el.addEventListener('mouseleave', () => animation.play());
+}
+```
+
+Web Animations Apiを使っているので`pause()`と`play()`だけで良さそうですね！
+
+### アニメーションさせる範囲
+
+最後に画面に入っているときだけアニメーションさせて、画面外だと止めるコードになります。
+
+```js
+observerEvent(el, animation) {
+  const observerOptions = {
+    root: null,
+    threshold: 0,
+  };
+
+  const observer = new IntersectionObserver((entry) => {
+    entry[0].isIntersecting ? animation.play() : animation.pause();
+  }, observerOptions);
+
+  observer.observe(el);
+}
+```
+
+こちらもIntersection Observer APIを使って画面内か判断し無限ループさせるかを決めてます！
+
+## まとめ
+
+JavaScriptで画像とテキストが横に流れ続ける無限ループの作り方を解説しました。
+CSSだけではなくJavaScriptで実装したので汎用的に使えて今後の実装はググらずにコピペだけでやっていけそうです！
+
+この記事が参考になれば幸いです。
