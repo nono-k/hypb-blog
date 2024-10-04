@@ -1,0 +1,173 @@
+---
+title: JavaScriptでパララックス効果を備えた画像ホバーアニメーション【CSS変数（カスタムプロパティ）を使用】
+slug: image-hover-parallax-js-01
+pubDate: '2024-10-05'
+image: ../../assets/images/image-hover-parallax-js-01.jpg
+ogp: 'images/ogp/image-hover-parallax-js-01.jpg'
+category: Coding
+tags:
+  - JavaScript
+description: JavaScriptでパララックス効果を備えた画像ホバーアニメーションの作り方を解説します。またアニメーションを制御するのに便利なCSS変数（カスタムプロパティ）の使い方も解説します。
+---
+import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回は、画像内でホバーした時にマウスに連動したパララックス効果があるアニメーションを作成しました🪂
+また、マウスに連動したアニメーションなので数値を管理しやすいようにCSS変数（カスタムプロパティ）を使ったのでこちらも解説します！
+
+👇は完成形のCodePenデモです！
+<CodePenEmbed penId="mdNPJje" title="Image Hover Parallax by JavaScript" />
+
+以前、似たようなマウス連動のアニメーションを↓でも作ってたのでこちらも合わせてご覧ください。
+
+https://hypb.dev/articles/sticky-js-01/
+
+## CSS変数（カスタムプロパティ）の使い方
+
+カスタムプロパティを使うにはまず変数名と値を定義する必要があります。定義するには`--`から始め、変数名を書き、コロンで区切って値を記述します。
+定義したカスタムプロパティを使うには`var(--変数名)`と記述すると使うことができます！
+今回はマウスの位置をJavaScriptで操作するので変数名は`x`と`y`としました。
+
+```css title="カスタムプロパティの使用例"
+hoge {
+  --x: 0;
+  --y: 0;
+  translate: calc(var(--x) * 1px) calc(var(--y) * 1px);
+}
+```
+
+カスタムプロパティをJavaScriptで使用するには`setProperty()`を使います！
+
+```js title="JavaScriptでカスタムプロパティを使う例"
+element.style.setProperty('--my-var', jsValue);
+```
+
+それでは実装方法を見てみましょう！
+
+## HTMLとCSS
+
+HTMLとCSSは下記になります。
+
+### HTML
+
+```html title="index.html"
+<div class="card js-hover-parallax">
+  <div class="hover-image"><img src="" alt=""></div>
+  <div class="text">Pallax<br>Hover Effect</div>
+</div>
+```
+
+ホバーでパララックス効果を与える要素に`js-hover-parallax`を追加します。
+適宜、cardコンポーネントの中にテキストなど入れてみてください。
+
+### CSS
+
+今回のレイアウトに関係がありそうな箇所は以下のコードになります
+
+```css title="style.scss"
+.card {
+  width: 400px;
+  height: 400px;
+  position: relative;
+}
+
+.hover-image {
+  border-radius: 8px;
+  overflow: hidden;
+  object-fit: cover;
+  pointer-events: none;
+  transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.84);
+  img {
+    border-radius: 8px;
+    transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.84);
+  }
+}
+
+.text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  color: #eee;
+  font-weight: 700;
+  font-size: 40px;
+  width: 100%;
+  text-align: center;
+  mix-blend-mode: difference;
+}
+```
+
+`.hover-image`に`pointer-events: none`を指定しているのはJavaScriptのmousemouveで拾わないように設定しています。
+今回重要なホバー関係のCSSは下記になります。
+
+```css title="style.css"
+// hover
+.card {
+  --x: 0;
+  --y: 0;
+  --d: 50;
+  &:hover {
+    .hover-image {
+      scale: 1.025;
+      translate: calc(var(--x) / var(--d) * 1px)
+                  calc(var(--y) / var(--d) * 1px);
+    }
+  }
+}
+
+.hover-image img {
+  --d: 30;
+  translate: calc(var(--x) / var(--d) * 1px)
+              calc(var(--y) / var(--d) * 1px);
+}
+```
+
+ホバー関係のところでカスタムプロパティを使います。ここで割っている`--d`の値が小さいほど画像の中心がマウスに吸い付けられる力が強くなります。`--d`の値をいろいろ試してみてください！
+
+最後にJavaScriptの実装になります！
+
+## JavaScript
+
+👇は今回のJavaScriptの全コードになります。
+
+```js title="script.js"
+class HoverParallax {
+  constructor() {
+    this.els = document.querySelectorAll('.js-hover-parallax');
+    if (!this.els) return;
+
+    this.init();
+  }
+  init() {
+    this.els.forEach(card => {
+      card.addEventListener('mousemove', (e) => this.MouseMoveEvent(e, card));
+      card.addEventListener('mouseleave', () => this.MouseLeaveEvent(card));
+    })
+  }
+  MouseMoveEvent(e, card) {
+    const target = e.target;
+    const r = target.getBoundingClientRect();
+
+    card.style.setProperty('--x', e.clientX - (r.left + Math.floor(r.width / 2)));
+    card.style.setProperty('--y', e.clientY - (r.top + Math.floor(r.height / 2)));
+  }
+  MouseLeaveEvent(card) {
+    card.style.setProperty('--x', 0);
+    card.style.setProperty('--y', 0);
+  }
+}
+
+new HoverParallax();
+```
+
+画像内でマウスを動かした時のイベント処理が`MouseMoveEvent()`になります。
+こちらの諸々の計算は画像の中心がxy座標で(0, 0)になるように計算しており動いたマウス座標x,yを`setProperty`でカスタムプロパティに入れています。そしてマウスが画像内からでたらx,yを0にしてます。
+これだけでパララックス効果を実現することができました⛱️
+
+## まとめ
+
+JavaScriptでパララックス効果を備えた画像ホバーアニメーションの作り方を解説しました。
+またアニメーションを制御するのに便利なCSS変数（カスタムプロパティ）の使い方も解説しました！
+
+この記事が参考になれば幸いです。
