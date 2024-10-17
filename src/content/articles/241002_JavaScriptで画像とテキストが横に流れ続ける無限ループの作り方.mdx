@@ -111,6 +111,9 @@ class Marquee {
   }
   init() {
     this.els.forEach(el => {
+      // 要素が非表示の場合は処理をスキップ
+      if (getComputedStyle(el).display === 'none') return;
+
       const options = {
         speed: el.dataset.marqueeSpeed || 60,
         direction: el.dataset.marqueeDirection || 'left',
@@ -124,6 +127,7 @@ class Marquee {
 ```
 
 ここではdata属性に付与されてない時のスピード調整・流れる方向・ホバーした時の動作の初期値を設定しています。そしてMarqueeメソッドに要素とオプションを渡します。
+また、`.marquee`にdisplay: noneがあると、要素のサイズを取得して計算するときにエラーが起きてしまうので、処理をスキップさせます。
 
 ### コンテンツの複製
 
