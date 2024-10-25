@@ -91,35 +91,47 @@ const description = 'お問い合わせ';
   }
 </style>
 
+<script
+  is:inline
+  src="https://www.google.com/recaptcha/api.js?render=6Lfnv2sqAAAAABpAtO4wGpvVgl7Yua0Ubo5_GI2x&hl=ja"
+></script>
+
 <script>
   const form = document.getElementById('form');
   form?.addEventListener('submit', submitFormData);
 
   async function submitFormData(event) {
     event.preventDefault();
-    const target = event.target;
+    grecaptcha.ready(() => {
+      grecaptcha
+        .execute('reCAPTCHA_site_key', { action: 'submit'})
+        .then(async (token) => {
+          const target = event.target;
 
-    const data = {
-      name: target.name.value,
-      email: target.email.value,
-      message: target.message.value,
-    };
+          const data = {
+            name: target.name.value,
+            email: target.email.value,
+            message: target.message.value,
+            googleReCaptchaToken: token,
+          };
 
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      formData.append(key, value);
+          const formData = new FormData();
+          Object.entries(data).forEach(([key, value]) => {
+            formData.append(key, value);
+          })
+
+          try {
+            const response = await sendRequest(formData);
+            if (response.ok) {
+              location.href = '/thanks'
+            } else {
+              location.href = '/error'
+            }
+          } catch (err) {
+            location.href = '/error'
+          }
+        })
     })
-
-    try {
-      const response = await sendRequest(formData);
-      if (response.ok) {
-        location.href = '/thanks'
-      } else {
-        location.href = '/error'
-      }
-    } catch (err) {
-      location.href = '/error'
-    }
   }
 
   async function sendRequest(formData) {
