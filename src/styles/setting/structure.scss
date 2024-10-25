@@ -48,3 +48,8 @@ summary::-webkit-details-marker {
 summary {
   display: block;
 }
+
+// reCAPTCHAバッジ非表示
+.grecaptcha-badge {
+  visibility: hidden;
+}
