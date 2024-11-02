@@ -1,0 +1,292 @@
+---
+title: 【JS・GSAP】ホバーで画像を分割するアニメーション
+slug: image-hover-slice-js-01
+pubDate: '2024-11-02'
+image: ../../assets/images/image-hover-slice-js-01.jpg
+ogp: 'images/ogp/image-hover-slice-js-01.jpg'
+category: Coding
+tags:
+  - JavaScript
+  - GSAP
+description: JavaScriptでGSAPとclip-pathを使って、画像ホバーで画像を分割するアニメーションを解説します。JavaScriptを使用しているので分割数とアニメーションの方向も簡単に決めることができます。
+---
+import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回は、ホバーした時に画像が分割して出現するアニメーションの作成方法を解説します🍕
+画像の分割数や縦横の出現方向もHTML内でdata属性を使って決められます！
+
+👇は完成形のCodePenデモです！
+<CodePenEmbed penId="BaXVBvO" title="Slice Image Hover Effect with Clip-Path" />
+
+結論としては、画像の分割はclip-pathでやりホバー前にtranslateで移動させてたものをホバーしたら戻すことでこのような表現ができます！アニメーションはJavaScriptでGSAPを利用しています🍀
+それでは見ていきましょう！
+
+## HTMLとCSS
+
+まずは基本的なHTMLとCSSを見ていきましょう！
+
+### HTML
+
+```html title="index.html"
+<div class="card"
+  data-img-hover="slice"
+  data-slice-number="5"
+  data-slice-direction="vertical"
+  >
+  <div class="card-img-wrap">
+    <div class="card-img">
+      <img src="https://picsum.photos/300/300?random=0" alt="">
+    </div>
+  </div>
+  <div class="card-title">sample title</div>
+</div>
+```
+
+ここで分割数を`data-slice-number`で、出現方向を`data-slice-direction`でdata属性を利用して決められます。縦からの出現はverticalで、横からはhorizonになります！
+また、JavaScript側で分割数に応じた画像の数を`.card-img-wrap`に入れていきます。
+
+それではCSSを見ていきましょう！
+
+### CSS
+
+今回のレイアウトに関係がありそうな箇所は以下のコードになります
+
+```css title="style.scss"
+.card {
+  position: relative;
+  min-height: 200px;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 1px solid #ffffff4c;
+  display: grid;
+  place-items: center;
+}
+
+.card-img-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.card-img {
+  --slice-num: 5;
+  width: calc(100% + (var(--slice-num) - 1) * 1px);
+  height: calc(100% + (var(--slice-num) - 1) * 1px);
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: -1;
+  filter: brightness(5);
+}
+
+.card-title {
+  color: #fff;
+  text-align: center;
+  font-size: 40px;
+  font-weight: 700;
+}
+```
+
+画像自体は`position: absolute`と`inset: 0`でカード内に位置させ、JavaScriptで上下か左右に移動させます。
+`.card-img`のwidthとheightに関しては画像分割でclip-pathを使う都合上、隙間ができてしまうのでその対策です！こちらはJavaScriptの方で詳しく見ていきます。
+
+
+## JavaScript
+
+👇は今回のJavaScriptの全コードになります。
+
+```js title="script.js"
+class SliceImageHover {
+  constructor() {
+    this.els = document.querySelectorAll('[data-img-hover="slice"]');
+    if(!this.els.length) return
+    this.init();
+  }
+  init() {
+    this.els.forEach(el => {
+
+      const option = {
+        number: el.dataset.sliceNumber || 5,
+        direction: el.dataset.sliceDirection || 'vertical',
+      }
+
+      this.imageWrap = el.querySelector('.card-img-wrap');
+      this.image = this.imageWrap.querySelector('.card-img');
+
+      this.setUpImage(option.number);
+      this.setClipPath(option);
+      this.animation(el, option.direction);
+    })
+  }
+  setUpImage(number) {
+    for (let i = 0; i < number-1; i++) {
+      const clone = this.image.cloneNode(true);
+      this.imageWrap.appendChild(clone);
+    }
+    this.images = this.imageWrap.querySelectorAll('.card-img');
+  }
+  setClipPath(option) {
+    const number = option.number;
+    const direction = option.direction;
+
+    this.images.forEach((img, i) => {
+      let a1 = i * 100 / number;
+      let b1 = a1 + 100 / number;
+
+      if (direction === 'vertical') {
+        img.style.clipPath = `polygon(${a1}% 0%, ${b1}% 0%, ${b1}% 100%, ${a1}% 100%)`;
+        img.style.translate = i % 2 === 1 ? '0 -80%' : '0 80%';
+        img.style.left = `-${i}px`;
+      } else {
+        img.style.clipPath = `polygon(0% ${a1}%, 100% ${a1}%, 100% ${b1}%, 0% ${b1}%)`;
+        img.style.translate = i % 2 === 1 ? '-80% 0' : '80% 0';
+        img.style.top = `-${i}px`;
+      }
+
+      img.style.setProperty('--slice-num', number);
+    });
+  }
+  animation(el, direction) {
+    const tl = gsap.timeline({ paused: true });
+    const isVertical = direction === 'vertical';
+
+    tl.to(this.images, {
+      [isVertical ? 'y' : 'x']: 0,
+      opacity: 1,
+      filter: 'brightness(1)',
+      duration: 0.6,
+      ease: 'power2.inOut',
+    });
+
+    el.addEventListener('mouseenter', () => tl.play());
+    el.addEventListener('mouseleave', () => tl.reverse());
+  }
+}
+
+new SliceImageHover();
+```
+
+冒頭に述べたようにアニメーションにはGSAPを使用します！
+それでは詳しく見ていきましょう！
+
+### init()
+
+```js
+init() {
+  this.els.forEach(el => {
+
+    const option = {
+      number: el.dataset.sliceNumber || 5,
+      direction: el.dataset.sliceDirection || 'vertical',
+    }
+
+    this.imageWrap = el.querySelector('.card-img-wrap');
+    this.image = this.imageWrap.querySelector('.card-img');
+
+    this.setUpImage(option.number);
+    this.setClipPath(option);
+    this.animation(el, option.direction);
+  })
+}
+```
+
+ここではオプションとしてdata属性で決めた分割数と出現方向を変数に入れます。
+このオプションを画像を複製する`setUpImage()`、分割する`setClipPath()`、アニメーションさせる`animation()`メソッドに引数で渡してあげます。
+
+### setUpImage()
+
+ここでは分割数に応じて画像を複製していきます。
+
+```js
+setUpImage(number) {
+  for (let i = 0; i < number-1; i++) {
+    const clone = this.image.cloneNode(true);
+    this.imageWrap.appendChild(clone);
+  }
+  this.images = this.imageWrap.querySelectorAll('.card-img');
+}
+```
+
+すでに画像は1つありますので、1引いてforループを回して`cloneNode()`で複製して`appendChild()`で`..card-img-wrap`の中に入れていきます。this.imagesはアニメーションで使います。
+
+### setClipPath()
+
+setClipPath()では画像をclip-pathで分割します。
+
+```js
+setClipPath(option) {
+  const number = option.number;
+  const direction = option.direction;
+
+  this.images.forEach((img, i) => {
+    let a1 = i * 100 / number;
+    let b1 = a1 + 100 / number;
+
+    if (direction === 'vertical') {
+      img.style.clipPath = `polygon(${a1}% 0%, ${b1}% 0%, ${b1}% 100%, ${a1}% 100%)`;
+      img.style.translate = i % 2 === 1 ? '0 -80%' : '0 80%';
+      img.style.left = `-${i}px`;
+    } else {
+      img.style.clipPath = `polygon(0% ${a1}%, 100% ${a1}%, 100% ${b1}%, 0% ${b1}%)`;
+      img.style.translate = i % 2 === 1 ? '-80% 0' : '80% 0';
+      img.style.top = `-${i}px`;
+    }
+
+    img.style.setProperty('--slice-num', number);
+  });
+}
+```
+
+img.style.clipPathのところは[Clippy](https://bennettfeely.com/clippy/)などのジェネレーターで実際に自分で触ってみると理解できるかと思います。出現方向によって変えているって感じですね！
+
+ホバー前にtranslateで位置を移動させておくのですが、縦方向のときは偶数は下から、奇数は上から出現するように実装しています。
+
+また、先述したようにclip-pathで分割しているので隙間が出てきてしまいます。
+なのでleftなどでずらしてあげます。その上でCSSも調整します。
+↓はCSSの対策箇所の再掲です！
+
+```css
+.card-img {
+  --slice-num: 5;
+  width: calc(100% + (var(--slice-num) - 1) * 1px);
+  height: calc(100% + (var(--slice-num) - 1) * 1px);
+}
+```
+
+隙間が出ないようにCSSプロパティの`--slice-num`で分割数の個数をセットしてCSSでその個数分をwidthとheightで広げてあげていました。これによりclip-pathで分割しても隙間が出なくなります！
+ぜひ対策してないバージョンでも試してみてください！
+
+### animation()
+
+最後にホバー時のアニメーションになります。
+
+```js
+animation(el, direction) {
+  const tl = gsap.timeline({ paused: true });
+  const isVertical = direction === 'vertical';
+
+  tl.to(this.images, {
+    [isVertical ? 'y' : 'x']: 0,
+    opacity: 1,
+    filter: 'brightness(1)',
+    duration: 0.6,
+    ease: 'power2.inOut',
+  });
+
+  el.addEventListener('mouseenter', () => tl.play());
+  el.addEventListener('mouseleave', () => tl.reverse());
+}
+```
+
+ホバー前にずらしていた位置を元に戻すだけですね！
+
+マウスが入ったか出たのかの制御はGSAPの`timeline()`を使います。
+マウスが入れば`play()`を、出れば`reverse()`で戻すことで実現できてます！
+
+## まとめ
+
+GSAPとclip-pathを使ってホバーした時に画像が分割して出現するアニメーションのの作り方を解説しました。
+clip-pathのプロパティの箇所が分かりづらいかとは思いますが、ぜひジェネレーターなどを使ってどうなっているのか確認してみてください！
+
+この記事が参考になれば幸いです。
