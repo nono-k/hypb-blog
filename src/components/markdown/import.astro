@@ -7,13 +7,14 @@ const { text } = Astro.props;
     <ImportIcon />
     Important
   </p>
-  <p class="text">{text}</p>
+  <p class="text" set:html={text}></p>
 </div>
 
 <style lang="scss">
   .import {
     width: 100%;
     margin-inline: auto;
+    margin-bottom: 2.5rem;
     padding: 0.5rem 1rem 1rem 1.5rem;
     border-left: 4px solid #8957e5;
     background-color: #8957e511;

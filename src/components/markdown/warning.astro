@@ -7,13 +7,14 @@ const { text } = Astro.props;
     <WarningIcon />
     Warning
   </p>
-  <p class="text">{text}</p>
+  <p class="text" set:html={text}></p>
 </div>
 
 <style lang="scss">
   .warning {
     width: 100%;
     margin-inline: auto;
+    margin-bottom: 2.5rem;
     padding: 0.5rem 1rem 1rem 1.5rem;
     border-left: 4px solid var(--yellow);
     background-color: #FCBB0311;

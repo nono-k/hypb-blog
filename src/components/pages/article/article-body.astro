@@ -7,7 +7,7 @@
 
 <style lang="scss" is:global>
   .stack > * + * {
-    margin-top: var(--stack-space, 1.25em);
+    margin-top: var(--stack-space, 1.5em);
   }
   .stack h2,
   .stack h3 {
@@ -15,12 +15,18 @@
     &::before {
       display: inline-block;
       margin-right: 0.2rem;
-      color: #202123ee;
+      color: var(--red);
+    }
+  }
+  .stack h3 {
+    letter-spacing: 0.05em;
+    &::before {
+      color: var(--green);
     }
   }
   .stack h2 + *,
   .stack h3 + * {
-    --stack-space: 0.8em;
+    --stack-space: 1em;
   }
   .stack p {
     line-height: 1.8;
@@ -30,6 +36,7 @@
     padding: 0 2.5rem 3.125rem;
     border-bottom-left-radius: 38px;
     border-bottom-right-radius: 38px;
+    color: #000;
     h2 {
       --stack-space: 2em;
       padding-bottom: 0.75rem;
@@ -42,6 +49,7 @@
     h3 {
       --stack-space: 1.8em;
       font-weight: 600;
+      font-size: 1.25rem;
       &::before {
         content: '##';
         margin-right: 0.35rem;
@@ -63,10 +71,15 @@
       color: var(--black);
     }
     span code {
-      padding: 0.2em 0.4em;
-      background-color: rgba(145,145,145,.2) !important;
-      color: var(--black) !important;
+      padding: 0.2em 0.5em;
+      margin-inline: 0.2em;
+      border-radius: 0.25rem;
+      background-color: #0d1117 !important;
+      color: #ddd !important;
       font-size: 0.875rem;
+    }
+    figure {
+      margin-bottom: 2.5rem;
     }
   }
   @include mixin.phone {
