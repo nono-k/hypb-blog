@@ -9,7 +9,9 @@
     padding: 0.5rem 1rem;
     background-color: var(--yellow);
     border-top-left-radius: 0.5rem;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #000;
     line-height: 1;
     & + pre > code {
       padding-top: 2.5rem;
