@@ -10,6 +10,7 @@ import { compareDesc, format, formatISO } from 'date-fns';
 import BatchCategory from "@/components/ui/batch-category.astro";
 import ArticleBody from "@/components/pages/article/article-body.astro";
 import PaginationBox from "@/components/pages/article/pagination-box.astro";
+import Figure from "@/components/markdown/Figure.astro";
 
 export async function getStaticPaths({}) {
   const articlePosts = await getCollection('articles');
@@ -72,7 +73,7 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
           </ul>
         </header>
         <ArticleBody>
-          <Content />
+          <Content components={{ img: Figure }} />
         </ArticleBody>
         <PaginationBox {...url} />
       </div>
