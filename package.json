@@ -15,6 +15,7 @@
     "@astrojs/react": "^3.3.0",
     "@astrojs/sitemap": "^3.1.6",
     "@fontsource-variable/inter": "^5.0.17",
+    "@fontsource-variable/noto-sans-jp": "^5.1.0",
     "@fontsource-variable/noto-serif-display": "^5.0.20",
     "@fontsource/shippori-mincho": "^5.0.12",
     "@pagefind/default-ui": "^1.1.0",
