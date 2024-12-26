@@ -1,6 +1,8 @@
 ---
 // Supports weights 100-900
 import '@fontsource-variable/inter';
+// Supports weights 100-900
+import '@fontsource-variable/noto-sans-jp';
 import '../styles/styles.scss';
 
 import Meta from "../components/base/meta.astro";
@@ -28,7 +30,7 @@ const { home } = Astro.props
 
 <style>
   body {
-  font-family: 'Inter Variable', sans-serif;
+  font-family: 'Inter Variable', 'Noto Sans JP Variable', sans-serif;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
