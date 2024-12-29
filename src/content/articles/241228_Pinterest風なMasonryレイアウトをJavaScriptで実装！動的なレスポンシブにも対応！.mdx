@@ -1,0 +1,274 @@
+---
+title: Pinterest風なMasonryレイアウトをJavaScriptで実装！動的なレスポンシブにも対応！
+slug: masonry-layout-javascript
+pubDate: '2024-12-29'
+image: ../../assets/images/masonry-layout-javascript.jpg
+ogp: 'images/ogp/masonry-layout-javascript.jpg'
+category: Coding
+tags:
+  - JavaScript
+description: GSAPのScrollTriggerとposition stickyでスクロール連動の固定アニメーションの作り方をまとめました。案件で遭遇した時は随時この記事で追加していく予定です。
+---
+import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回は、Pinterest風なMasonryレイアウトを汎用的に使うためにJavaScriptで実装してみました🖼️
+Masonryレイアウトについては実装するだけならCSSだけでも可能ですが、実用するにはまだ厳しいところもあるのでJavaScriptで実装してます。
+また、画面幅によって画像の並びが変わるように実装してるのでぜひCodePen上でも確認してみてください！
+
+👇は完成形のCodePenデモです！
+<CodePenEmbed penId="PwYKpjb" title="Masonry Layout with JavaScript" />
+
+それでは見ていきましょう！
+
+## Masonryレイアウトの課題
+
+まず現状の課題としてCSSのみでMasonryレイアウトを実現させるには、[この記事](https://engineering.webstudio168.jp/2022/09/pinterest-like-css/)にあるようにCSSプロパティの`column-count`と`break-inside: voide`を使う方法があります。
+
+ですが、下記画像のように要素の並びが左から縦に並べられてしまいます。これだと新着情報などが左から並べられてしまうなどCSSのみでは使えないなという印象です。。
+
+!['column-count: 3とbreak-inside: voideを使用した実装'](../../assets/images/post/masonry-layout-javascript-01.jpg 'column-count: 3とbreak-inside: voideを使用した実装')
+
+また、[この記事](https://dev.to/hungle00/build-a-masonry-layout-pinterest-layout-3glp)にあるようにgridを使ってMasonryレイアウトを上から順番に並べる方法も見つけましたが、こちらはgird-rowで高さを指定する都合上、要素の高さが固定の場合のみ実装でき要素の高さが揃ってない場合は厳しい感じでした。
+
+いずれにしてもMasonryレイアウトを今後実装する時に、汎用的に使いたい場合CSSのみで実装するのは現時点では無理そうなのでJavaScriptを使う必要があります。Masonryレイアウトのライブラリーとしては、[Masonry.js](https://masonry.desandro.com/)がありますが、jQueryプラグインとのことなので今回は使わずに自作しました。
+
+それでは実装方法を見ていきましょう！
+
+## HTML
+
+Masonryレイアウトを実現させるために必要な箇所だけ抜粋します。
+
+```pug title="index.pug"
+.masonry
+  - for (var i = 0; i < 20; i++)
+    .masonry-item.c-card
+      - const random_height = Math.floor(Math.random() * (600 - 200 + 1)) + 200;
+      .c-card__img
+        img(src=`https://picsum.photos/400/${random_height}?random=${i}`, alt="")
+      .c-card__title
+        |title!{i+1}
+
+```
+
+Masonryレイアウトなので高さが異なる要素を入れるのが分かりやすいようにPugで書いてます。
+`random_height`でやっていることは画像高さを600pxから200pxの範囲でランダムに取得できるようにしてます。これで高さが異なる画像が子要素に入るのでMasonryレイアウトを実現できます。
+あとでJavaScriptで取得するために親クラスは`.masonry`とし要素をその中に20個入れています。
+
+
+## CSS
+
+レイアウトはJavaScriptで操作するのでCSSで解説する箇所は無いのですが1点、JavaScriptで操作する都合上初回非表示に崩れてしまうので`.masonry`をopacity: 0で非表示にしておく必要があります。
+
+```scss title="style.scss"
+.masonry {
+  opacity: 0;
+}
+```
+
+JavaScriptでレイアウトが決まったら表示させるようにします。
+それでは最後にMasonryレイアウトを実現させるJavaScriptのコードを見ていきましょう！
+
+## JavaScript
+
+👇は今回のJavaScriptの全コードになります。
+
+```js title="masonry.js"
+class Masonry {
+  constructor() {
+    this.el = document.querySelector('.masonry');
+    if(!this.el) return
+    this.init();
+  }
+  init() {
+    this.setupGrid();
+    this.loadImage();
+
+    window.addEventListener('resize', this.onResize.bind(this));
+  }
+  setupGrid() {
+    this.masonryItems = this.el.querySelectorAll('.masonry-item');
+    this.columns = parseInt(this.el.dataset.masonryColumns, 10) || 3;
+    this.columnGap = parseInt(this.el.dataset.masonryColumnGap, 10) || 20;
+    this.rowGap = parseInt(this.el.dataset.masonryRowGap, 10) || 20;
+    this.elWidth = this.el.getBoundingClientRect().width;
+    this.updateColumns();
+  }
+  updateColumns() {
+    if (this.elWidth >= 1000) {
+      this.columns = 4;
+    } else if (this.elWidth >= 700) {
+      this.columns = 3;
+    } else if (this.elWidth >= 568) {
+      this.columns = 2;
+    } else {
+      this.columns = 1;
+    }
+    this.columnWidth = this.elWidth / this.columns;
+    this.columnHeights = Array(this.columns).fill(0);
+  }
+  onResize() {
+    this.elWidth = this.el.getBoundingClientRect().width;
+    this.updateColumns();
+    this.calculateLayout();
+  }
+  loadImage() {
+    const imagePromises = [];
+    this.masonryItems.forEach(item => {
+      const img = item.querySelector('img');
+      if (img) {
+        const imageLoadPromise = new Promise(resolve => {
+          img.onload = resolve;
+        });
+        imagePromises.push(imageLoadPromise);
+      }
+    });
+
+    Promise.all(imagePromises).then(() => {
+      this.el.style.opacity = '1';
+      this.calculateLayout();
+    })
+  }
+  calculateLayout() {
+    this.masonryItems.forEach((item, index) => {
+      const columnIndex = index % this.columns;
+      const x = columnIndex * this.columnWidth;
+      const y = this.columnHeights[columnIndex];
+
+      item.style.width = `${this.columnWidth - this.columnGap}px`;
+      item.style.translate = `${x}px ${y}px`;
+
+      this.columnHeights[columnIndex] += item.getBoundingClientRect().height + this.rowGap;
+    });
+
+    this.el.style.height = `${Math.max(...this.columnHeights)}px`
+  }
+}
+```
+
+コードを見てもらえれば分かるかと思いますが、Masonryレイアウトを実現させるのにそこまで難しいことはしてませんね。ざっくりとやってることは、要素を列数分（今回の場合は3列）並べるために横幅を計算してtranslateで移動させてあげるだけです。
+それでは詳しく見ていきましょう！
+
+### グリッドの設定（setupGrid）
+
+setupGridでは初期のグリッド設定を行います（列数や間隔の設定）。
+
+```js title="setupGrid()"
+setupGrid() {
+  this.masonryItems = this.el.querySelectorAll('.masonry-item');
+  this.columns = parseInt(this.el.dataset.masonryColumns, 10) || 3;
+  this.columnGap = parseInt(this.el.dataset.masonryColumnGap, 10) || 20;
+  this.rowGap = parseInt(this.el.dataset.masonryRowGap, 10) || 20;
+  this.elWidth = this.el.getBoundingClientRect().width;
+  this.updateColumns();
+}
+```
+
+汎用的に使えるように列数や間隔をdata属性で決められるようにしてます。今回はdata属性を指定してないので3列と間隔は20pxになります。this.elWidthは全体の幅になります。
+
+### 列数の動的調整（updateColumns）
+
+updateColumnsでは列数を動的に計算します。リサイズ処理が走ったときもこのメソッドが動くことになるので画面幅に応じて列数を切り替えられるようになります。
+
+```js title="updateColumns()"
+updateColumns() {
+  if (this.elWidth >= 1000) {
+    this.columns = 4;
+  } else if (this.elWidth >= 700) {
+    this.columns = 3;
+  } else if (this.elWidth >= 568) {
+    this.columns = 2;
+  } else {
+    this.columns = 1;
+  }
+  this.columnWidth = this.elWidth / this.columns;
+  this.columnHeights = Array(this.columns).fill(0);
+}
+```
+
+this.columnWidthでは全体の要素幅から列数を割ることでアイテムの横幅を決めています。
+this.columnHeightsはレイアウトの高さを保持するために列数分配列を用意しておきます。初期値は0で今回の場合は[0, 0, 0]となります。
+
+### 画像の読み込み(loadImage)
+
+画像が完全に読み込まれないとレイアウトを計算することができないので、各画像にonloadイベントを設定して画像が読み込まれるまで待機する処理を書いてます。
+
+
+```js title="loadImage()"
+loadImage() {
+  const imagePromises = [];
+  this.masonryItems.forEach(item => {
+    const img = item.querySelector('img');
+    if (img) {
+      const imageLoadPromise = new Promise(resolve => {
+        img.onload = resolve;
+      });
+      imagePromises.push(imageLoadPromise);
+    }
+  });
+
+  Promise.all(imagePromises).then(() => {
+    this.el.style.opacity = '1';
+    this.calculateLayout();
+  })
+}
+```
+
+全ての画像が読み込まれたらレイアウトを計算(`calculateLayout`)して要素を表示します。
+また最初にopacity: 0で非表示にしてたのをここで1にして表示してあげます。
+
+### レイアウト計算（calculateLayout）
+
+今回の肝となる実装がこのcalculateLayoutメソッドになります。
+
+```js title="calculateLayout()"
+calculateLayout() {
+  this.masonryItems.forEach((item, index) => {
+    const columnIndex = index % this.columns;
+    const x = columnIndex * this.columnWidth;
+    const y = this.columnHeights[columnIndex];
+
+    item.style.width = `${this.columnWidth - this.columnGap}px`;
+    item.style.translate = `${x}px ${y}px`;
+
+    this.columnHeights[columnIndex] += item.getBoundingClientRect().height + this.rowGap;
+  });
+
+  this.el.style.height = `${Math.max(...this.columnHeights)}px`
+}
+```
+
+各アイテムをforEachで回してます。
+columnIndexはindexを列数で割った余りをつかって配置先の列を決定してます。
+例えば列数が3の場合には以下のようになります。
+
+- index = 0, 1, 2 → columnIndex = 0, 1, 2
+- index = 3, 4, 5 → columnIndex = 0, 1, 2(繰り返し)
+
+こうすることで各列にアイテムが均等に分配させます。
+
+アイテムの横幅に関してはGapがあるのでupdateColumnsで計算したアイテムの幅からGap分を引いてあげます。
+高さの配置に関しては逆にGap分を足したものを配列(columnHeights)に代入してあげます。
+
+あとはCSSスタイルを適用してあげることでMasonryレイアウトが実現できることになります！
+
+最後にこのままだと全体(.masonry)の高さがない状態になっているので`Math.max(...this.columnHeights)`で最後の列で最も高い列の高さを取得して、その高さを設定してあげることで全てのアイテムが収まるように調整されます。
+
+以上が、JavaScriptでMasonryレイアウトを実現させるコードの解説になりました📓
+
+## この実装の問題点
+
+MasonryレイアウトをJavaScriptで実装しましたが問題点がないわけではありません💦
+デモのCodePenを見てもらえると分かりますが、画像の配置を剰余で決めてる関係で最後の列の画像が中途半端な位置になるかと思います。
+
+今回は面倒だったので実装してないですが、実際の案件で使う場合は最後の列の画像の位置も計算して配置してあげる必要がありますね、、
+
+## まとめ
+
+Pinterest風なMasonryレイアウトをJavaScriptで実装する方法を解説しました。
+
+最後の列の画像の配置位置の問題はありますが、以外に簡単に実装できることが分かって良かったです。
+コードだけでは分かりづらい箇所もあるかと思いますので、ぜひログを見たりで実際に手を動かして実装してみてください！
+
+この記事が参考になれば幸いです。
