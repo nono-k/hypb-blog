@@ -1,0 +1,400 @@
+---
+title: GSAPのScrollTriggerとposition stickyで実装する、スクロール連動の固定アニメーションの作り方まとめ
+slug: scrolltrigger-sticky-demo
+pubDate: '2025-01-04'
+image: ../../assets/images/scrolltrigger-sticky-demo.jpg
+ogp: 'images/ogp/scrolltrigger-sticky-demo.jpg'
+category: Coding
+tags:
+  - JavaScript
+  - GSAP
+description: GSAPのScrollTriggerとposition stickyでスクロール連動の固定アニメーションの作り方をまとめました。案件で遭遇した時は随時この記事で追加していく予定です。
+---
+import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回は、GSAPのScrollTriggerとposition stickyでスクロール連動の固定アニメーションの作り方をまとめました。案件で遭遇した時は随時この記事で追加していく予定です。
+
+デモ数が多くコードの解説は少なめなので実際のCodePen上でコードを見てほしいのと、左の目次に実装例が載っていますので気になる実装がありましたら飛んでみてください🚀
+
+## 全体
+
+JavaScriptで操作するクラスとして固定させる要素を`.js-sticky`、画像などを`.js-sticky-img`としています。
+
+```html title="index.html"
+<div class="js-sticky">
+  <div class="js-sticky-img">
+    <img src="https://picsum.photos/800/400?random=0" alt="">
+  </div>
+</div>
+```
+
+また、スクロール連動アニメーションを使う際に素のままだとアニメーションに違和感が出るので全てのデモで慣性スクロールライブラリーのLenisを使って実装しています。
+
+👇️全てで使っているLenisのコード
+
+```js title="stickyScroll.js"
+// 慣性スクロールさせるコード
+initSmoothScrolling() {
+  const lenis = new Lenis({ lerp: 0.2, smoothWheel: true });
+  lenis.on('scroll', () => ScrollTrigger.update());
+
+  const scrollFn = (time) => {
+    lenis.raf(time);
+    requestAnimationFrame(scrollFn);
+  };
+
+  requestAnimationFrame(scrollFn);
+}
+```
+
+それぞれのデモの表現はscroll()メソッドに記述しています。
+
+それではデモを見ていきましょう！
+
+## 【デモ01】画像が重なる表現
+
+最初はヒーローセクションでスクロールすると画像が重なる表現になります。
+
+<CodePenEmbed penId="NPKvKYJ" title="Full Image Parallax ScrollTrigger & Sticky" />
+
+### HTML
+
+```html title="index.html"
+<div class="wrap">
+  <div class="js-sticky">
+    <div class="js-sticky-img">
+      <img src="https://picsum.photos/800/400?random=0" alt="">
+    </div>
+  </div>
+  // ...以降同様な要素が続く
+</div>
+```
+
+最初に書いたように固定させる要素を`.js-sticky`で囲って、重なる画像には`.js-sticky-img`クラスを付けて中に入れてます。
+
+### CSS
+
+```scss title="style.scss"
+.wrap {
+  position: relative;
+}
+
+.js-sticky {
+  position: sticky;
+  top: 0;
+  overflow: hidden;
+  height: 100vh;
+  .js-sticky-img {
+    height: 100%;
+    img {
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+```
+
+画像が重なるように`.js-sticky`にposition: stickyを設定しています。
+
+### JavaScript
+
+```js title="stickyScroll.js"
+scroll() {
+  this.els.forEach(el => {
+    const gl = gsap.timeline({
+      scrollTrigger: {
+        trigger: el,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true,
+        markers: true,
+      }
+    });
+
+    gl.to(el.querySelector('.js-sticky-img'), {
+      y: -100,
+      ease: 'none',
+    })
+  })
+}
+```
+
+これだけで画像が重なる表現が実現できます！
+画像がパララックスみたいになるように`.js-sticky-img`にy: -100を設定しscrollTriggerのendの位置までに100px上に動くようにしています！
+
+---
+
+## 【デモ02】画像が途中で重なる表現
+
+文章で説明するのが難しいのですが、2つ目のデモは画像が途中で重なる表現になります。
+
+<CodePenEmbed penId="VYZMKKO" title="Image Stack ScrollTrigger Sticky" />
+
+こちらは最初のデモと似たような表現になるので最初のデモのコードの変更点は少ないです。
+HTMLは変わらずなのでCSSとJavaScriptを見ていきましょう！
+
+### CSS
+
+CSSは以下が変更点になります。
+
+
+```scss title="style.scss"
+.js-sticky {
+  top: var(--offset);
+  height: calc(100vh - var(--offset));
+  // ...
+}
+```
+
+画像が途中で重なるのでtopで画像を固定する位置を決めます。ここではCSSカスタムプロパティを使いJavaScriptで操作するようにします。
+heightに関しては100vhからoffsetの値を引くことで最後の画像に到達したらスクロールできるようになります。
+
+### JavaScript
+
+JavaScriptはScrollTrigger部分は最初のと変更はありません。
+画像を固定する位置をCSSカスタムプロパティで設定するのでその部分だけ追加します。
+
+```js title="stickyScroll.js"
+scroll() {
+  this.els.forEach((el, index) => {
+    // 画像を固定する位置を設定
+    el.style.setProperty('--offset', `${index * 40}px`);
+  })
+}
+```
+
+---
+
+## 【デモ03】カードコンポーネントがスクロールに応じて奥に移動する表現
+
+デモ03はカードコンポーネントがスクロールに応じて奥に移動する表現になります。
+
+<CodePenEmbed penId="bNborQR" title="Card Stack ScrollTrigger Sticky 01" />
+
+ScrollTriggerでスクロールに応じてscaleを小さくすることで実現してます。
+それでは見ていきましょう！
+
+### HTML
+
+```html title="index.html"
+<div class="wrap">
+  <div class="js-sticky c-card">
+    <div class="c-card__title">title1</div>
+    <div class="c-card__desc">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Voluptatibus nesciunt ab repudiandae officiis. Suscipit vero cumque perspiciatis provident debitis, praesentium accusantium illum consectetur cupiditate ipsa, quod consequatur, alias veniam doloribus?</div>
+    <div class="js-sticky-img c-card_img"><img src="https://picsum.photos/800/400?random=0" alt=""></div>
+  </div>
+  // ...以降同様な要素が続く
+</div>
+```
+
+カードコンポーネントになりますので、`.c-card`クラスを付けています。
+
+### CSS
+
+```scss title="style.scss"
+.js-sticky {
+  position: sticky;
+  top: 0;
+}
+```
+
+CSSに関しては最初のデモと変わりはないです。カードコンポーネントのスタイルについてはCodePenのコードを見てください。
+
+### JavaScript
+
+```js title="stickyScroll.js"
+scroll() {
+  // 要素数を取得
+  const elsCount = this.els.length;
+
+  this.els.forEach((el, index) => {
+    // 最後の要素かどうかを判定
+    const isLastIndex = index === elsCount - 1;
+
+    const gl = gsap.timeline({
+      scrollTrigger: {
+        trigger: el,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true,
+        markers: true,
+      }
+    })
+
+    // 最後の要素以外はスクロールに応じて奥行きに移動する
+    if (!isLastIndex) {
+      gl.to(el, {
+        scale: 0.6,
+        yPercent: -20,
+      });
+    }
+  })
+}
+```
+
+最初に書いたようにscaleとyPercentを変更することでカードコンポーネントが奥に移動するようにしています。また、`isLastIndex`で最後の要素かどうかを判定し、最後の要素以外のカードコンポーネントを奥に移動させています。
+
+---
+
+## 【デモ04】フッターが隠れながら表示する表現
+
+デモ04はフッターが隠れながら表示する表現になります。
+フッターが隠れながら表示するだけならposition: stickyだけで実現できます！フッターが見えた時にフェードインするようにScrollTriggerを使っている感じですね！
+
+<CodePenEmbed penId="LEPzmKP" title="Fixed Footer Sticky" />
+
+### HTML
+
+HTMLはfooter要素に`.js-sticky`クラスを付け、テキストをJSでフェードインさせるために`.js-sticky-text`クラスを付けています。
+
+```html title="index.html"
+<footer class="footer js-sticky">
+  <h2 class="js-sticky-text">Footer</h2>
+</footer>
+```
+
+### CSS
+
+フッターが隠れながら表示するようにするにはposition: stickyを設定してbottom: 0を設定します！
+
+```scss title="style.scss"
+.js-sticky {
+  position: sticky;
+  bottom: 0;
+}
+```
+
+### JavaScript
+
+JavaScriptはテキストをフェードインさせるだけなので👇️のようになります！
+
+```js title="stickyScroll.js"
+scroll() {
+  const text = document.querySelector('.js-sticky-text');
+  gsap.timeline({
+    scrollTrigger: {
+      trigger: text,
+      start: 'top top+=100',
+      end: 'bottom top',
+      scrub: 1,
+      markers: true,
+    },
+  }).fromTo(text, {
+    opacity: 0,
+    y: 200,
+    duration: 3,
+  }, {
+    opacity: 1,
+    y: 0,
+  })
+}
+```
+
+これだけで簡単にフッターが隠れながら表示する表現になりますね！
+
+---
+
+## 【デモ05】横にある画像がスクロールに応じて切り替わる表現
+
+デモ05は横にある画像がスクロールに応じて切り替わる表現になります。
+
+<CodePenEmbed penId="VYZrwWQ" title="Image ScrollTrigger Sticky" />
+
+### HTML
+
+HTMLはテキストと画像を左右で分けます。テキストの子要素には`.js-sticky-text`クラスを付け、画像には`.js-sticky-img`クラスを付けて個数分用意します。
+
+```html title="index.html"
+<div class="wrap js-sticky">
+  <div class="text-wrap">
+    <div class="text-body js-sticky-text">
+      <h2>タイトル1</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Modi enim facere qui rem at, ipsum provident dolorem, quis neque esse tempore facilis nemo sapiente! Exercitationem quaerat sapiente culpa est dolore.</p>
+    </div>
+    <div class="text-body js-sticky-text">
+      <h2>タイトル2</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Modi enim facere qui rem at, ipsum provident dolorem, quis neque esse tempore facilis nemo sapiente! Exercitationem quaerat sapiente culpa est dolore.</p>
+    </div>
+    // ...以降同様な要素が続く
+  </div>
+  <div class="img-wrap">
+    <div class="img js-sticky-img"><img src="https://picsum.photos/200/300?random=0" alt=""></div>
+    <div class="img js-sticky-img"><img src="https://picsum.photos/200/300?random=1" alt=""></div>
+    // ...以降同様な要素が続く
+  </div>
+</div>
+```
+
+### CSS
+
+重要な箇所のみ抜粋します。
+
+```scss title="style.scss"
+.wrap {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: 80px;
+}
+
+.text-wrap {
+  > * + * {
+    margin-top: 200px;
+  }
+}
+
+.img-wrap {
+  position: relative;
+  .img {
+    position: sticky;
+    top: 20%;
+    opacity: 0;
+    aspect-ratio: 4 / 3;
+    img {
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+```
+
+画像`.img`にposition: stickyを設定し固定するようにしてます。
+また、任意のテキストで画像が切り替わるようにするために最初にopacity: 0を設定し非表示にします。
+
+### JavaScript
+
+```js title="stickyScroll.js"
+scroll() {
+  const texts = document.querySelectorAll('.js-sticky-text');
+  const images = document.querySelectorAll('.js-sticky-img');
+
+  texts.forEach((text, index) => {
+    gsap.timeline({
+      scrollTrigger: {
+        trigger: text,
+        start: 'top center',
+        end: 'bottom center',
+        scrub: 1,
+        markers: true,
+      },
+    })
+    .to(images[index], {
+      opacity: 1,
+    });
+  });
+}
+```
+
+テキストの位置によって画像を切替えるようにするので、textsをforEachで回しscrollTriggerでトリガーを設定して、設定した位置に来たら画像のopacityを1にして表示させます。
+こうすることで、スクロールに応じて画像が切り替わるようになります！
+
+---
+
+## まとめ
+
+GSAPのScrollTriggerとposition stickyでスクロール連動の固定アニメーションの作り方を何種類かまとめました。position: stickyを使うことでGSAPのpinを使用せずに固定アニメーションを実現することが確認できたかと思います！
+
+スクロール連動の固定アニメーションを実装する機会は多いかと思いますので、ぜひ試してみてください！
+
+この記事が参考になれば幸いです。

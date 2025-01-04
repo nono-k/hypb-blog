@@ -81,6 +81,20 @@
     figure {
       margin-bottom: 2rem;
     }
+    hr {
+      border: 0;
+      margin-block: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &::before {
+        content: '•••';
+        font-size: 1.25em;
+        letter-spacing: .2em;
+        color: var(--black);
+      }
+    }
   }
   @include mixin.phone {
     .stack {
