@@ -1,0 +1,93 @@
+---
+const { page } = Astro.props;
+
+const generatePaginationLinks = (page) => {
+  const { currentPage, lastPage } = page;
+  const range = 2;
+  const links = [];
+
+  for (let i = 1; i <= lastPage; i++) {
+    if (i === 1) {
+      links.push({ page: i, url: `/articles` });
+    } else if (
+      i === lastPage ||
+      (i >= currentPage - range && i <= currentPage + range)
+    ) {
+      links.push({ page: i, url: `/articles/${i}` });
+    }  else if (links[links.length - 1] !== "...") {
+      links.push("...");
+    }
+  }
+
+  return links;
+}
+---
+<nav class="pagination__nav">
+  {page.currentPage > 1 && (
+    <a href={page.url.prev} class="pagination prev"></a>
+  )}
+  {generatePaginationLinks(page).map((link) => (
+    link === "..." ? (
+      <span class="pagination dots">...</span>
+    ) : (
+      <a href={link.url} class:list={["pagination", link.page === page.currentPage ? "active" : ""]}>{link.page}</a>
+    )
+    )
+  )}
+  {page.currentPage < page.lastPage && (
+    <a href={page.url.next} class="pagination next"></a>
+  )}
+</nav>
+
+<style lang="scss">
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 3rem;
+    height: 3rem;
+    background: var(--gray-10);
+    border-radius: 0.85rem;
+    color: var(--black);
+    font-size: 1.125rem;
+    transition: background .3s;
+    &.active {
+      background: var(--yellow);
+    }
+    &.dots {
+      pointer-events: none;
+    }
+    &.prev, &.next {
+      &::before {
+        content: '';
+        width: 0.5rem;
+        height: 0.5rem;
+        border-right: 2px solid var(--black);
+        border-bottom: 2px solid var(--black);
+      }
+    }
+    &.prev {
+      &::before {
+        rotate: 135deg;
+      }
+    }
+    &.next {
+      &::before {
+        rotate: -45deg;
+      }
+    }
+    &__nav {
+      grid-column: 2 / 3;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+  }
+  @media (hover: hover) {
+    .pagination {
+      &:hover {
+        background: var(--yellow);
+      }
+    }
+  }
+</style>

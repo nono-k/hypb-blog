@@ -3,6 +3,7 @@ import Layout from "@/layouts/layout";
 import Container from "@/components/container.astro";
 import ArticleContainer from "@/components/pages/article/article-container.astro";
 import Sidebar from "@/components/sidebar.astro";
+import Pagination from "@/components/ui/pagination.astro";
 
 import { getCollection } from "astro:content";
 import { compareDesc } from 'date-fns';
@@ -10,11 +11,17 @@ import ArticleList from "@/components/pages/article/article-list.astro";
 import Card from "@/components/card.astro";
 import ListTitle from "@/components/pages/list-title.astro";
 
-const articlePosts = await getCollection('articles');
-const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
-const sortedArticlePosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
 
-const allPostsNum = nonDraftPosts.length;
+export async function getStaticPaths({ paginate }) {
+  const articlePosts = await getCollection('articles');
+  const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
+  const sortedArticlePosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+  const postsPerPage = 10;
+  return paginate(sortedArticlePosts, { pageSize: postsPerPage });
+}
+
+const { page } = Astro.props;
+const allPostsNum = page.total;
 const pageTitle = 'Articles';
 const description = 'ブログの記事一覧';
 ---
@@ -26,7 +33,7 @@ const description = 'ブログの記事一覧';
       <Sidebar />
       <ArticleList>
       {
-        sortedArticlePosts.map((post) => {
+        page.data.map((post) => {
           const { slug, data: { image, title, pubDate, category, tags }} = post;
           return (
             <Card url={`/articles/${slug}`} src={image} title={title} time={pubDate} category={category} tags={tags} />
@@ -34,6 +41,7 @@ const description = 'ブログの記事一覧';
         })
       }
       </ArticleList>
+      <Pagination page={page} />
     </ArticleContainer>
   </Container>
 </Layout>
