@@ -77,10 +77,12 @@ const generatePaginationLinks = (page) => {
       }
     }
     &__nav {
-      grid-column: 2 / 3;
       display: flex;
       justify-content: center;
       gap: 1rem;
+      @include mixin.large {
+        grid-column: 2 / 3;
+      }
     }
   }
   @media (hover: hover) {
