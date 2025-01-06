@@ -19,7 +19,7 @@ import hero03 from '../../../assets/images/hero03.jpg';
         <div class="swiper-slide">
           <a href={`articles/${slug}`} class="swiper-container" data-swiper-parallax-x="100%">
             <div class="image">
-              <Image src={heroImg} alt="" width="1300" height="800" />
+              <Image src={heroImg} alt="" width="1300" height="800" loading="eager" />
             </div>
             <div class="bg" data-color={color}>
               <div class="category">{category}</div>
@@ -327,10 +327,10 @@ import hero03 from '../../../assets/images/hero03.jpg';
     loop: true,
     loopAdditionalSlides: 1,
     parallax: true,
-    speed: 1500,
-    // autoplay: {
-    //   delay: 3000,
-    // }
+    speed: 2000,
+    autoplay: {
+      delay: 6000,
+    },
     navigation: {
       prevEl: '#hero_button_prev',
       nextEl: '#hero_button_next',
