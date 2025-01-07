@@ -80,8 +80,9 @@ import SearchButton from "./ui/search-button.astro";
     border-top: 1px solid var(--black);
   }
   .link {
-    padding-top: 6.5rem;
+    padding-top: 5rem;
     a {
+      position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -91,9 +92,23 @@ import SearchButton from "./ui/search-button.astro";
       height: 12rem;
       background-color: var(--yellow);
       border-radius: 50%;
-      font-size: 1.4rem;
       color: var(--black);
+      font-size: 1.125rem;
       font-weight: bold;
+      letter-spacing: 0.1em;
+      animation: 3s pulse ease-in-out forwards infinite;
+      transition: 0.4s;
+      &::after {
+        content: '';
+        display: block;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        z-index: 1;
+        animation: 3.5s pulse ease-in-out forwards infinite;
+      }
     }
   }
   .list {
@@ -103,6 +118,40 @@ import SearchButton from "./ui/search-button.astro";
     row-gap: 1.5rem;
     li {
       margin-top: 0.5rem;
+    }
+  }
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(252, 187, 3, 0.5);
+    }
+    75% {
+      box-shadow: 0 0 0 2.5rem rgba(252, 187, 3, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(252, 187, 3, 0);
+    }
+  }
+  @keyframes pulse_black {
+    0% {
+      box-shadow: 0 0 0 0 rgba(32, 33, 35, 0.5);
+    }
+    75% {
+      box-shadow: 0 0 0 2.5rem rgba(32, 33, 35, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(32, 33, 35, 0);
+    }
+  }
+  @media (hover: hover) {
+    .link {
+      a:hover {
+        background-color: var(--black);
+        color: var(--gray-10);
+        animation: 3s pulse_black ease-in-out forwards infinite;
+        &::after {
+          animation: 3.5s pulse_black ease-in-out forwards infinite;
+        }
+      }
     }
   }
   @include mixin.mobile {
@@ -127,7 +176,6 @@ import SearchButton from "./ui/search-button.astro";
       a {
         width: 9rem;
         height: 9rem;
-        font-size: 1.25rem;
       }
     }
     .list {
@@ -138,7 +186,7 @@ import SearchButton from "./ui/search-button.astro";
   @include mixin.phone {
     .inner {
       padding: 1rem;
-      padding-bottom: 2rem;
+      padding-bottom: 2.5rem;
       border-radius: 20px;
     }
     .title {
@@ -155,7 +203,7 @@ import SearchButton from "./ui/search-button.astro";
       padding-top: 1.5rem;
     }
     .link {
-      padding-top: 3.5rem;
+      padding-top: 3rem;
     }
   }
 </style>
