@@ -4,20 +4,24 @@ import Logo from "./logo.astro";
 
 const lists = [
   [
-    {text: 'トップページ', link: '/'},
-    {text: '記事一覧', link: '/articles'},
-    {text: 'このサイトについて', link: '/about'},
+    {text: 'Top', link: '/'},
+    {text: 'Articles', link: '/articles'},
+    {text: 'About', link: '/about'},
   ],
   [
-    {text: 'お問い合わせ', link: '/contact'},
-    {text: 'サイトポリシー', link: '/site-policy'},
-    {text: 'プライバシーポリシー', link: '/privacy-policy'},
+    {text: 'Contact', link: '/contact'},
+    {text: 'Site Policy', link: '/site-policy'},
+    {text: 'Privacy Policy', link: '/privacy-policy'},
   ]
 ]
 ---
 <footer class="footer">
   <div class="inner">
-    <Logo class="logo-footer" />
+    <!-- <Logo class="logo-footer" /> -->
+    <div class="titleSub">
+      <Logo class="logo-head" />
+      <p class="sub">Web技術を<br />知る・試す・楽しむ<br />ためのテックブログ</p>
+    </div>
     <nav class="nav">
       {lists.map((list) => {
         return (
@@ -49,6 +53,15 @@ const lists = [
     grid-template-rows: 1fr auto;
     gap: 4rem;
   }
+  .titleSub {
+    display: flex;
+  }
+  .sub {
+    font-size: 0.875rem;
+    margin-left: 25px;
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 800;
+  }
   .nav {
     display: flex;
     gap: 4rem;
@@ -62,7 +75,7 @@ const lists = [
     a {
       color: var(--black);
       font-size: 1.125rem;
-      font-weight: bold;
+      font-weight: 600;
     }
   }
   .copy {
