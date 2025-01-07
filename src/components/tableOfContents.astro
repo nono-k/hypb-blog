@@ -16,10 +16,11 @@
     margin-top: 32px;
     position: sticky;
     top: 32px;
+    overflow: hidden;
     .toc-title {
       background-color: var(--yellow);
       padding: 0.5rem 1rem;
-      border-radius: 1rem;
+      border-bottom: 2px solid var(--gray-10);
       h2 {
         font-size: 1rem;
         font-weight: normal;
@@ -30,14 +31,15 @@
       max-height: 240px;
       overflow-y: auto;
       &::-webkit-scrollbar {
-        width: 0.3rem;
+        width: 0.75rem;
       }
       &::-webkit-scrollbar-track {
         margin-block: 0.5rem;
       }
       &::-webkit-scrollbar-thumb {
         background-color: var(--gray-10);
-        border-radius: 0.5rem;
+        border: 2px solid var(--black);
+        border-radius: 1rem;
       }
     }
     .toc-list {
