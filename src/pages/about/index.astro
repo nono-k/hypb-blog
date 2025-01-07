@@ -1,26 +1,84 @@
 ---
+import '@fontsource-variable/noto-serif-display';
 import FillContent from "@/components/utility/fill/fill-content.astro"
 import Layout from "@/layouts/layout"
+import { Image } from "astro:assets";
+import profile from '../../assets/images/profile.jpg';
+import XIcon from '../../assets/svg/x.svg';
+import GitHubIcon from '../../assets/svg/github.svg';
 
 const pageTitle = 'About';
 const description = 'このサイトについて';
 ---
 
 <Layout pageTitle={pageTitle} description={description}>
-  <FillContent en="About" ja="このサイトについて" lead="нульはプログラミング関連をテーマにしたテックブログです<br/>このブログでは中の人が学んだことをアウトプットしていくブログになります。<br/>皆さまの役に立てたら幸いです。<br/><br/>以下本サイトの概要になります。">
+  <FillContent en="About" ja="私について">
+  <div class="profile">
+    <div class="icon">
+      <Image src={profile} alt="プロフィール画像" width="150" height="150" />
+    </div>
+    <span class="profile__title">かめのの<span class="profile__id">@kamenono_3</span></span>
+  </div>
+  <div class="profile__link">
+    <a href="https://x.com/kameno_no3" target="_blank">
+      <Image src={XIcon} alt="xアカウント" width="24" height="24" />
+    </a>
+    <a href="https://github.com/iwasaki-source" target="_blank">
+      <Image src={GitHubIcon} alt="GitHubアカウント" width="24" height="24" />
+    </a>
+  </div>
   <div class="fill-body">
-    <h2>記事</h2>
-    <p>フロントエンド技術(CSS、JavaScript、各種ライブラリーやフレームワーク)、Web技術、書籍紹介など、皆さまの役に立つような記事を掲載しています。</p>
-    <h2>海外サイトのみのギャラリー集（仮）</h2>
-    <p>こちらは現在準備中です。<br/>中の人が参考になる、勉強になると思う海外サイトをまとめたギャラリーサイトを予定しております。</p>
-    <h2>お問い合わせ</h2>
-    <p>弊ブログに関するご質問やご要望がございましたら、以下のお問い合わせフォームにご連絡ください。</p>
-    <a href="/contact" class="link">お問い合わせ</a>
+    <h2>Profile</h2>
+    <p>kamenono / かめのの</p>
+    <p>音楽・読書・数学・プログラミングが好きです。</p>
+    <ul>
+      <li><a class="link" href="https://x.com/kameno_no3" target="_blank">X / Twitter</a></li>
+      <li><a class="link" href="https://github.com/iwasaki-source" target="_blank">GitHub</a></li>
+    </ul>
+    <h2>Articles</h2>
+    <p>フロントエンド技術(CSS、JavaScript、各種ライブラリーやフレームワーク)、Web技術、書籍紹介など、皆さまの役に立つような記事を掲載していきます。</p>
+    <h2>Contact</h2>
+    <p>弊サイトに関するご質問やご要望がございましたら以下のお問い合わせフォームか、X / Twitterまでご連絡ください。</p>
+    <a href="/contact" class="link">お問い合わせフォーム</a>
+    <h2>Favorite</h2>
+    <p>私の好きなもの</p>
+    <h3>Novel</h3>
+    <p>Goethe / Huysmans / Borges とか</p>
+    <h3>Movie</h3>
+    <p>Pedro Almodóvar / Michelangelo Antonioni / Hal Hartley とか</p>
+    <h3>Music</h3>
+    <p>The Cure / Prince / Portishead とか</p>
   </div>
   </FillContent>
 </Layout>
 
 <style lang="scss">
+  .profile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    font-family: 'Noto Serif Display Variable', serif;
+    &__title {
+      font-size: 1.875rem;
+    }
+    &__id {
+      display: block;
+      font-size: 1rem;
+    }
+    &__link {
+      display: grid;
+      grid-template-columns: 1.75rem 1.75rem;
+      gap: 1.25rem;
+      aign-items: center;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+  }
+  .icon {
+    border-radius: 50%;
+    overflow: hidden;
+  }
   .fill-body {
     margin-top: 3.5rem;
     & * + * {
@@ -39,23 +97,82 @@ const description = 'このサイトについて';
       letter-spacing: 0.1em;
       font-weight: 600;
     }
+    h3 {
+      --stack-space: 2.5rem;
+      display: flex;
+      align-items: center;
+      font-size: 1.5rem;
+      padding: 0.75rem 1.5rem 0.75rem 0.75rem;
+      gap: 0.5rem;
+      background: var(--black);
+      font-weight: 600;
+      color: var(--gray-10);
+      &::before {
+        content: '';
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--black);
+        background: var(--gray-10);
+      }
+    }
     p {
+      --stack-space: 1.25rem;
       padding-left: 1.5rem;
       padding-right: 1rem;
       line-height: 1.75;
+      & + p {
+        margin-top: 0.5rem;
+      }
+    }
+    ul {
+      > * + * {
+        margin-top: 0.75rem;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        &::before {
+          content: '';
+          width: 0.35rem;
+          height: 0.35rem;
+          border-radius: 50%;
+          background: var(--black);
+        }
+      }
     }
     .link {
-      color: var(--blue);
+      color: var(--black);
+      text-decoration: underline;
       display: block;
-      margin-top: 1rem;
+      // margin-top: 1rem;
       padding-left: 1.5rem;
       padding-right: 1rem;
       cursor: pointer;
     }
   }
   @include mixin.phone {
+    .profile {
+      margin-top: 0.5rem;
+      flex-direction: column;
+      gap: 0.5rem;
+      &__title {
+        font-size: 0.875rem;
+        text-align: center;
+      }
+      &__id {
+        font-size: 0.7rem;
+      }
+      &__link {
+        grid-template-columns: 1.5rem 1.5rem;
+        gap: 1rem;
+      }
+      & .icon {
+        width: 100px;
+      }
+    }
     .fill-body {
-      margin-top: 2.5rem;
+      margin-top: 2rem;
       font-size: 0.875rem;
       & * + * {
         margin-top: var(--stack-space, 1rem);
@@ -65,6 +182,11 @@ const description = 'このサイトについて';
         font-size: 1.25rem;
         padding: 0.5rem 0.75rem;
         border-width: 5px;
+      }
+      h3 {
+        --stack-space: 2rem;
+        font-size: 1.25rem;
+        padding: 0.5rem 0.75rem;
       }
       p {
         padding-inline: 0.5rem 0;
