@@ -25,7 +25,7 @@ const { blog } = Astro.props;
     {categoryTag.map(item => {
       const { title, items } = item;
       return (
-        <Accordion title={title} items={items}/>
+        <Accordion title={title} items={items} blog={blog} />
       )
     })
   }

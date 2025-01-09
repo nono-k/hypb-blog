@@ -1,7 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 
-const { title, items} = Astro.props;
+const { title, items, blog } = Astro.props;
 
 
 const categoryTagNum = async(title, name) => {
@@ -19,7 +19,7 @@ const categoryTagNum = async(title, name) => {
   }
 }
 ---
-<details>
+<details open={!blog} >
   <summary>
     <div class="inner">{title}</div>
   </summary>
