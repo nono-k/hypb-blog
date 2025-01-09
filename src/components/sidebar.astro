@@ -21,11 +21,11 @@ const categoryTag = [
 const { blog } = Astro.props;
 ---
 <div class="sidebar for-large">
-  <div class="accordion-wrapper">
+  <div class:list={["accordion-wrapper", !blog && 'sticky' ]}>
     {categoryTag.map(item => {
       const { title, items } = item;
       return (
-        <Accordion title={title} items={items}/>
+        <Accordion title={title} items={items} blog={blog} />
       )
     })
   }
@@ -41,5 +41,9 @@ const { blog } = Astro.props;
     display: flex;
     flex-direction: column;
     gap: 24px;
+    &.sticky {
+      position: sticky;
+      top: 32px;
+    }
   }
 </style>
