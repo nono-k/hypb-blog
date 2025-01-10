@@ -48,6 +48,10 @@ const categoryTagNum = async(title, name) => {
   details[open] summary .inner {
     border-bottom-left-radius: unset;
     border-bottom-right-radius: unset;
+    &::after {
+      rotate: -135deg;
+      margin-top: 0.4rem;
+    }
   }
   .inner {
     width: 100%;
@@ -55,6 +59,17 @@ const categoryTagNum = async(title, name) => {
     padding: 0.8rem 1rem;
     border-radius: 1rem;
     border: 2px solid var(--gray-10);
+    display: flex;
+    justify-content: space-between;
+    &::after {
+      content: '';
+      width: 0.5rem;
+      height: 0.5rem;
+      border-bottom: 1.5px solid var(--black);
+      border-right: 1.5px solid var(--black);
+      rotate: 45deg;
+      margin-top: 0.2rem;
+    }
   }
   .content {
     background-color: var(--black);
