@@ -54,6 +54,12 @@
     .toc-link {
       color: #a4a5a9;
       font-size: 0.87rem;
+      transition: color 0.3s;
+      @media (hover: hover) {
+        &:hover {
+          color: var(--gray-10);
+        }
+      }
     }
     .to-link-active {
       color: #fff;
