@@ -1,5 +1,4 @@
 import styles from './hamburger.module.scss';
-import Cursor from './cursor';
 import Overlay from './overlay';
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
@@ -29,7 +28,6 @@ export default function Hamberger() {
         </div>
       </motion.button>
       <Overlay menuIsActive={menuIsActive} />
-      <Cursor/>
     </>
   )
 }
