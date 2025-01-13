@@ -11,6 +11,7 @@ import BatchCategory from "@/components/ui/batch-category.astro";
 import ArticleBody from "@/components/pages/article/article-body.astro";
 import PaginationBox from "@/components/pages/article/pagination-box.astro";
 import Figure from "@/components/markdown/Figure.astro";
+import { Image } from "astro:assets";
 
 export async function getStaticPaths({}) {
   const articlePosts = await getCollection('articles');
@@ -37,7 +38,7 @@ const { Content } = await post.render();
 
 const {
   slug,
-  data: { title, pubDate, description, ogp },
+  data: { title, pubDate, description, ogp, image },
 } = post;
 const pubDateISO = formatISO(pubDate);
 const pubDateJA = format(pubDate, 'yyyy.MM.dd');
@@ -71,6 +72,9 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
               )
             })}
           </ul>
+          <div class="thumbnail">
+            <Image src={image} alt={title} width={1600} height={900} />
+          </div>
         </header>
         <ArticleBody>
           <Content components={{ img: Figure }} />
@@ -114,6 +118,9 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
       font-size: 0.875rem;
       color: var(--black);
     }
+  }
+  .thumbnail {
+    margin-top: 1rem;
   }
   @include mixin.mobile {
     .article {
