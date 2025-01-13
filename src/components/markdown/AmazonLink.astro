@@ -1,0 +1,55 @@
+---
+const { imageId, linkId, title, author } = Astro.props;
+---
+
+<div class="amazon">
+  <a href=`https://amzn.to/${linkId}` class="amazon__link" target="_blank">
+    <img src=`https://m.media-amazon.com/images/I/${imageId}.jpg` alt="">
+  </a>
+  <a href=`https://amzn.to/${linkId}` class="amazon__link -text" target="_blank">
+    <span class="title">{title}</span>
+    <span class="author">著者: {author}</span>
+    <span class="btn">Amazon.co.jpで購入する</span>
+  </a>
+</div>
+
+<style lang="scss">
+  .amazon {
+    display: grid;
+    grid-template-columns: 22% auto;
+    border: 3px solid transparent;
+    border-radius: 0.25rem;
+    background: var(--black);
+    transition: border-color 0.3s;
+    @media (hover: hover) {
+      &:hover {
+        border-color: var(--yellow);
+      }
+    }
+    &__link {
+      padding: 1rem;
+      padding-right: 0;
+      text-decoration: none;
+      color: var(--gray-10);
+      &.-text {
+        display: flex;
+        flex-direction: column;
+        padding-inline: 2rem 1rem;
+      }
+    }
+    .author {
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .btn {
+      margin-top: auto;
+      padding: 0.5rem;
+      background: #e47911;
+      border-radius: 0.25rem;
+      color: var(--gray-10);
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-align: center;
+    }
+  }
+</style>
