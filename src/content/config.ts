@@ -12,6 +12,7 @@ const articleCollection = defineCollection({
     tags: z.array(z.string()),
     description: z.string(),
     draft: z.boolean().optional(),
+    isAdLink: z.boolean().optional(),
   }),
 });
 
