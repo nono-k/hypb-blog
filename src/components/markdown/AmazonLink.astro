@@ -15,6 +15,7 @@ const { imageId, linkId, title, author } = Astro.props;
 
 <style lang="scss">
   .amazon {
+    margin-top: 3rem;
     display: grid;
     grid-template-columns: 22% auto;
     border: 3px solid transparent;
@@ -50,6 +51,12 @@ const { imageId, linkId, title, author } = Astro.props;
       font-size: 0.875rem;
       font-weight: 500;
       text-align: center;
+      transition: filter 0.3s;
+      @media (hover: hover) {
+        &:hover {
+          filter: brightness(1.1);
+        }
+      }
     }
   }
 </style>
