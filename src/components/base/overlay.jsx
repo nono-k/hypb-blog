@@ -111,8 +111,8 @@ export default function Overlay({ menuIsActive }) {
               </div>
             </div> */}
             <ul className={styles.rightList}>
-              <li><a href='/site-policy'>サイトポリシー</a></li>
-              <li><a href='/privacy-policy'>プライバシーポリシー</a></li>
+              <li><a href='/site-policy'>Site Policy</a></li>
+              <li><a href='/privacy-policy'>Privacy Policy</a></li>
             </ul>
           </div>
         </div>
