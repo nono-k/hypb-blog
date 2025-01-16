@@ -22,12 +22,16 @@ const { title, author, linkId, imageId, coment } = Astro.props;
   .amazon {
     margin-top: 3rem;
     display: grid;
-    grid-template-columns: 34% auto;
+    grid-template-columns: 38% auto;
     column-gap: 1rem;
     row-gap: 2rem;
     padding: 1.75rem 2rem 2.5rem;
     border-radius: 38px;
     background: var(--gray-10);
+    @include mixin.phone {
+      padding: 1.5rem 1rem;
+      border-radius: 20px;
+    }
     &__heading {
       grid-column: 1 / -1;
       font-size: 1.5rem;
@@ -36,17 +40,29 @@ const { title, author, linkId, imageId, coment } = Astro.props;
       align-items: center;
       gap: 0.75rem;
       margin-left: 1rem;
+      @include mixin.phone {
+        margin-left: 0;
+        font-size: 1.25rem;
+      }
       &::before {
         content: '';
         width: 0.875rem;
         height: 0.875rem;
         background: var(--red);
         border-radius: 50%;
+        @include mixin.phone {
+          width: 0.5rem;
+          height: 0.5rem;
+        }
       }
     }
     &__right {
       display: flex;
       flex-direction: column;
+      min-height: 280px;
+      @include mixin.phone {
+        min-height: unset;
+      }
     }
     &__link {
       text-decoration: none;
@@ -57,9 +73,16 @@ const { title, author, linkId, imageId, coment } = Astro.props;
         img {
           box-shadow: 10px 16px 14px -7px rgba(0, 0, 128, 0.2);
         }
+        @include mixin.mobile {
+          margin-inline: 0;
+        }
       }
       &.-text {
-        margin-top: 0.5rem;
+        max-height: 68px;
+        overflow: hidden;
+        @include mixin.large {
+          margin-top: 0.5rem;
+        }
       }
       &.-btn {
         margin-top: auto;
@@ -76,6 +99,10 @@ const { title, author, linkId, imageId, coment } = Astro.props;
         font-size: 0.875rem;
         font-weight: 500;
         transition: filter 0.3s;
+        @include mixin.phone {
+          margin-top: 1.5rem;
+          width: 100%;
+        }
         &::before {
           content: '';
         }
@@ -106,6 +133,9 @@ const { title, author, linkId, imageId, coment } = Astro.props;
       font-size: 0.875rem;
       line-height: 1.75;
       position: relative;
+      @include mixin.phone {
+        margin-top: 0.875rem;
+      }
       &::before {
         content: '';
         width: 16px;
@@ -124,8 +154,11 @@ const { title, author, linkId, imageId, coment } = Astro.props;
         background: #fff;
         border: 2px solid var(--black);
         border-radius: 0.5rem;
-        max-height: 105px;
+        max-height: 85px;
         overflow-y: auto;
+        @include mixin.phone {
+          padding: 0.5rem 0.75rem 0.75rem;
+        }
       }
     }
   }
