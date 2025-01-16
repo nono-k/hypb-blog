@@ -12,7 +12,7 @@ export const category = [
   // { name: 'Web', slug: 'web' },
   { name: 'Coding', slug: 'coding' },
   { name: 'ブログ', slug: 'blog' },
-  // { name: '書籍紹介', slug: 'book' },
+  { name: '書籍紹介', slug: 'book' },
 ];
 
 export const tags = [

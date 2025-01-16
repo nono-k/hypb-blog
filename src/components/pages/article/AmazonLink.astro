@@ -1,0 +1,165 @@
+---
+const { title, author, linkId, imageId, coment } = Astro.props;
+---
+<div class="amazon">
+  <div class="amazon__heading">紹介した本はこちら</div>
+  <div class="amazon__left">
+    <a href=`https://amzn.to/${linkId}` class="amazon__link -img" target="_blank">
+      <img src=`https://m.media-amazon.com/images/I/${imageId}.jpg` alt="">
+    </a>
+  </div>
+  <div class="amazon__right">
+    <a href=`https://amzn.to/${linkId}` class="amazon__link -text" target="_blank">{title}</a>
+    <span class="author">{author}</span>
+    <div class="coment">
+      <p class="coment__inner">{coment}</p>
+    </div>
+    <a href=`https://amzn.to/${linkId}` class="amazon__link -btn" target="_blank">商品詳細へ</a>
+  </div>
+</div>
+
+<style lang="scss">
+  .amazon {
+    margin-top: 3rem;
+    display: grid;
+    grid-template-columns: 38% auto;
+    column-gap: 1rem;
+    row-gap: 2rem;
+    padding: 1.75rem 2rem 2.5rem;
+    border-radius: 38px;
+    background: var(--gray-10);
+    @include mixin.phone {
+      padding: 1.5rem 1rem;
+      border-radius: 20px;
+    }
+    &__heading {
+      grid-column: 1 / -1;
+      font-size: 1.5rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-left: 1rem;
+      @include mixin.phone {
+        margin-left: 0;
+        font-size: 1.25rem;
+      }
+      &::before {
+        content: '';
+        width: 0.875rem;
+        height: 0.875rem;
+        background: var(--red);
+        border-radius: 50%;
+        @include mixin.phone {
+          width: 0.5rem;
+          height: 0.5rem;
+        }
+      }
+    }
+    &__right {
+      display: flex;
+      flex-direction: column;
+      min-height: 280px;
+      @include mixin.phone {
+        min-height: unset;
+      }
+    }
+    &__link {
+      text-decoration: none;
+      color: var(--black);
+      &.-img {
+        display: block;
+        margin-inline: 2rem;
+        img {
+          box-shadow: 10px 16px 14px -7px rgba(0, 0, 128, 0.2);
+        }
+        @include mixin.mobile {
+          margin-inline: 0;
+        }
+      }
+      &.-text {
+        max-height: 68px;
+        overflow: hidden;
+        @include mixin.large {
+          margin-top: 0.5rem;
+        }
+      }
+      &.-btn {
+        margin-top: auto;
+        margin-left: auto;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        column-gap: 0.5rem;
+        text-align: center;
+        padding: 0.75rem 1.5rem;
+        background: #405bfd;
+        border-radius: 2rem;
+        color: var(--gray-10);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: filter 0.3s;
+        @include mixin.phone {
+          margin-top: 1.5rem;
+          width: 100%;
+        }
+        &::before {
+          content: '';
+        }
+        &::after {
+          content: '';
+          width: 8px;
+          height: 8px;
+          border-right: 2px solid #fff;
+          border-bottom: 2px solid #fff;
+          rotate: -45deg;
+          translate: 0 1px;
+        }
+        @media (hover: hover) {
+          &:hover {
+            filter: brightness(1.1);
+          }
+        }
+      }
+    }
+    .author {
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+      text-align: right;
+      color: #808080;
+    }
+    .coment {
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      line-height: 1.75;
+      position: relative;
+      @include mixin.phone {
+        margin-top: 0.875rem;
+      }
+      &::before {
+        content: '';
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--black);
+        background: #fff;
+        border-right-color: transparent;
+        border-bottom-color: transparent;
+        position: absolute;
+        top: -8px;
+        left: 36px;
+        rotate: 45deg;
+      }
+      &__inner {
+        padding: 1rem;
+        background: #fff;
+        border: 2px solid var(--black);
+        border-radius: 0.5rem;
+        max-height: 85px;
+        overflow-y: auto;
+        @include mixin.phone {
+          padding: 0.5rem 0.75rem 0.75rem;
+        }
+      }
+    }
+  }
+</style>
