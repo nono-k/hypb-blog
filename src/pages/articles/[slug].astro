@@ -10,6 +10,7 @@ import { compareDesc, format, formatISO } from 'date-fns';
 import BatchCategory from "@/components/ui/batch-category.astro";
 import ArticleBody from "@/components/pages/article/article-body.astro";
 import PaginationBox from "@/components/pages/article/pagination-box.astro";
+import AmazonLink from "@/components/pages/article/AmazonLink.astro";
 import Figure from "@/components/markdown/Figure.astro";
 import { Image } from "astro:assets";
 
@@ -38,7 +39,7 @@ const { Content } = await post.render();
 
 const {
   slug,
-  data: { title, pubDate, description, ogp, image },
+  data: { title, pubDate, description, ogp, image, isAdLink, amazon },
 } = post;
 const pubDateISO = formatISO(pubDate);
 const pubDateJA = format(pubDate, 'yyyy.MM.dd');
@@ -75,10 +76,18 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
           <div class="thumbnail">
             <Image src={image} alt={title} width={1600} height={900} />
           </div>
+          { isAdLink && (
+            <div class="adLink-info">
+              記事内に商品プロモーションを含む場合があります
+            </div>
+          )}
         </header>
         <ArticleBody>
           <Content components={{ img: Figure }} />
         </ArticleBody>
+
+        { amazon ? <AmazonLink {...amazon} /> : ''}
+
         <PaginationBox {...url} />
       </div>
     </ArticleContainer>
@@ -118,6 +127,14 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
       font-size: 0.875rem;
       color: var(--black);
     }
+  }
+  .adLink-info {
+    background: linear-gradient(135deg,transparent 25%,rgba(0,0,0,.05) 25%,rgba(0,0,0,.05) 50%,transparent 50%,transparent 75%,rgba(0,0,0,.05) 75%,rgba(0,0,0,.05));
+    background-size: 4px 4px;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-size: 0.75rem;
+    margin-top: 1rem;
   }
   .thumbnail {
     margin-top: 1rem;

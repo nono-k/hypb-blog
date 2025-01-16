@@ -12,6 +12,14 @@ const articleCollection = defineCollection({
     tags: z.array(z.string()),
     description: z.string(),
     draft: z.boolean().optional(),
+    isAdLink: z.boolean().optional(),
+    amazon: z.object({
+      title: z.string(),
+      author: z.string(),
+      imageId: z.string(),
+      linkId: z.string(),
+      coment: z.string(),
+    }).optional(),
   }),
 });
 
