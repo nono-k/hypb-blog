@@ -1,0 +1,188 @@
+---
+title: Alpine.jsの実装アイデア集：コピペで使えるサンプルコードまとめ
+slug: alpinejs-demo
+pubDate: '2025-01-25'
+image: ../../assets/images/alpinejs-demo.jpg
+ogp: 'images/ogp/alpinejs-demo.jpg'
+category: Coding
+tags:
+  - JavaScript
+  - Alpine.js
+description: Alpine.jsで簡単に動的なUIの作り方をまとめました。
+---
+import Warning from '../../components/markdown/warning.astro';
+import Note from '../../components/markdown/note.astro';
+import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回は、Alpine.jsの実装アイデア集とのことで実際に自分が使いそうなパターンのコードをまとめてみました。生のJavaScriptを書くの面倒くさいな〜って思うときにAlpine.jsを使おうかと思います。
+案件で他のパターンでAlpine.jsを使った時は随時この記事で追加していく予定です。
+
+デモ数が多くコードの解説は少なめなので実際のCodePen上でコードを見てほしいのと、左の目次に実装例が載っていますので気になる実装がありましたら飛んでみてください🚀
+
+## Alpine.jsとは？
+
+Alpine.jsは、簡単に言うと「軽くてお手軽なJavaScriptフレームワーク」です。HTMLにちょっとしたコードを追加するだけで、クリックでメニューを開いたり、条件によって要素を表示・非表示にしたりと、動的なUIがサクッと作れちゃいます。
+
+「ReactとかVueって名前は聞いたことあるけど、なんか難しそう…」って感じたことありませんか？
+Alpine.jsなら大丈夫！特別な設定や面倒な準備はいりません。
+以下のスクリプトを読み込むだけで使えるから、誰でも気軽にスタートできます。
+
+```html
+<script src="//unpkg.com/alpinejs" defer></script>
+```
+
+動的なUIの例では、フォームのバリデーションやアコーディオンメニュー、モーダルウィンドウなんかもパパッと作れます。
+
+詳しい使い方などは公式のドキュメントを見てみてください！
+
+https://alpinejs.dev/
+
+それではデモを見ていきましょう！
+
+<Note text="今回はcssは解説しないので気になる方はCodePen上で確認してみてください！" />
+
+## 【デモ01】カテゴリーフィルターの表現
+
+最初はAlpine.jsでのカテゴリーフィルターの実装を見ていきましょう。
+カードコンポーネントがありタブをクリックすると特定のカテゴリーが表示されます。要件としてはクリックするとカテゴリーのidをURLに付与させるようにします。
+この実装で、ブラウザの戻るボタンを押したりリロードをしてもタブの切り替えを維持できます。
+（おそらくCodePenではURLの確認はできないと思うのでぜひ手元で確かめてみてください！）
+
+<CodePenEmbed penId="ByBPqPM" title="Alpine.js Category Filter" />
+
+### HTML
+
+HTMLは以下のようになっています。
+
+```html title="index.html"
+<div class="tab-content" x-data="{ open: 'all' }"
+  x-init="if (window.location.search) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const category = urlParams.get('category');
+    if (category) open = category;
+  }"
+  x-cloak
+  >
+  <div class="tab-list" role="tablist">
+    <a class="tab" href="javascript:void(0)" role="tab" id="all"
+      @click="open = 'all'; window.history.pushState({}, '', '?category=all')"
+      aria-controls="all" :aria-selected="open === 'all'"
+      :class="{ '-active': open === 'all' }"
+      >すべて</a>
+    <a class="tab" href="javascript:void(0)" role="tab" id="html"
+      @click="open = 'html'; window.history.pushState({}, '', '?category=html')"
+      aria-controls="html" :aria-selected="open === 'html'"
+      :class="{ '-active': open === 'html' }"
+      >HTML</a>
+
+    // 以降CSS,JavaScriptタグが続く
+  </div>
+
+  <div class="card-wrap">
+    <div class="card" x-show="open === 'all' || open === 'html'" x-transition>
+      <div class="card-img">
+        <img src="https://picsum.photos/600/400?random=0" alt="">
+      </div>
+      <div class="card-body">
+        <div class="card-category" id="html">HTML</div>
+        <div class="card-title">HTMLの記事だよ01</div>
+      </div>
+    </div>
+    <div class="card" x-show="open === 'all' || open === 'css'" x-transition>
+      <div class="card-img">
+        <img src="https://picsum.photos/600/400?random=1" alt="">
+      </div>
+      <div class="card-body">
+        <div class="card-category" id="css">CSS</div>
+        <div class="card-title">CSSの記事だよ01</div>
+      </div>
+    </div>
+
+    // 以降カードコンポーネント続く
+  </div>
+</div>
+```
+
+コード量が多く分かりづらいですが、コードを1つずつ見ていきましょう。
+
+#### 全体のデータ管理(x-data)と初期化の状態(x-init)
+
+```html
+<div class="tab-content" x-data="{ open: 'all' }"
+  x-init="if (window.location.search) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const category = urlParams.get('category');
+    if (category) open = category;
+  }"
+  x-cloak
+  >
+</div>
+```
+
+`x-data="{ open: 'all' }"`で現在選択中のカテゴリーを管理するopenという変数を定義します。
+初期状態では`all`にし、すべてのカードが表示されるようにしています。
+
+ページロード後もカテゴリーが選択されている状態にしたいため、`x-init`でURLのクエリーパラメータを取得して、その値をopenに代入しています。
+
+#### タブ部分(.tab-list)
+
+```html
+<div class="tab-list" role="tablist">
+  <a class="tab" href="javascript:void(0)" role="tab" id="all"
+    @click="open = 'all'; window.history.pushState({}, '', '?category=all')"
+    aria-controls="all" :aria-selected="open === 'all'"
+    :class="{ '-active': open === 'all' }"
+    >すべて</a>
+  <a class="tab" href="javascript:void(0)" role="tab" id="html"
+    @click="open = 'html'; window.history.pushState({}, '', '?category=html')"
+    aria-controls="html" :aria-selected="open === 'html'"
+    :class="{ '-active': open === 'html' }"
+    >HTML</a>
+
+  // 以降CSS,JavaScriptタグが続く
+</div>
+```
+
+各タブはaタグで実装しており、ページ遷移をさせないため`href="javascript:void(0)"`としています。
+タブをクリックすると以下の処理が行われます。
+
+- oepnの値をクリックされたカテゴリーに更新。
+- `window.history.pushState`でURLのクエリーパラメータを更新。
+- クリックされたタブには`-active`クラスを付与され（openの値と一致しているので）、ARIA属性も適切に更新されます。
+
+#### カード表示部分(.card-wrap)
+
+最後にカード表示部分になります。
+
+```html
+<div class="card-wrap">
+  <div class="card" x-show="open === 'all' || open === 'html'" x-transition>
+    <div class="card-img">
+      <img src="https://picsum.photos/600/400?random=0" alt="">
+    </div>
+    <div class="card-body">
+      <div class="card-category" id="html">HTML</div>
+      <div class="card-title">HTMLの記事だよ01</div>
+    </div>
+  </div>
+  // ...
+</div>
+```
+
+カードは`x-show`でopenがallの時か、特定のカテゴリー(htmlなど)の場合に表示されます。
+`x-transition`でアニメーションを付与させることができます！
+
+Alpine.jsを使うことでJavaScriptファイルを用意せずに実装できますが、その分htmlファイルが複雑になりますね💦
+ですが、ARIA属性なども適切に設定し使い回すことができるので慣れていきたいですね！
+
+---
+
+## まとめ
+
+Alpine.jsの実装アイデア集を何種類かまとめました。
+
+
+
+この記事が参考になれば幸いです。

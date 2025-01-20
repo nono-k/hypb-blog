@@ -22,5 +22,6 @@ export const tags = [
   { name: 'Swiper', slug: 'swiper' },
   { name: 'Markdown', slug: 'markdown' },
   { name: 'SVG', slug: 'svg' },
+  { name: 'Alpine.js', slug: 'alpinejs' },
   // { name: 'CSS', slug: 'css' },
 ];
