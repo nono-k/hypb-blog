@@ -19,8 +19,6 @@ import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
 今回は、Alpine.jsの実装アイデア集とのことで実際に自分が使いそうなパターンのコードをまとめてみました。生のJavaScriptを書くの面倒くさいな〜って思うときにAlpine.jsを使おうかと思います。
 案件で他のパターンでAlpine.jsを使った時は随時この記事で追加していく予定です。
 
-デモ数が多くコードの解説は少なめなので実際のCodePen上でコードを見てほしいのと、左の目次に実装例が載っていますので気になる実装がありましたら飛んでみてください🚀
-
 ## Alpine.jsとは？
 
 Alpine.jsは、簡単に言うと「軽くてお手軽なJavaScriptフレームワーク」です。HTMLにちょっとしたコードを追加するだけで、クリックでメニューを開いたり、条件によって要素を表示・非表示にしたりと、動的なUIがサクッと作れちゃいます。
@@ -41,7 +39,7 @@ https://alpinejs.dev/
 
 それではデモを見ていきましょう！
 
-<Note text="今回はcssは解説しないので気になる方はCodePen上で確認してみてください！" />
+<Note text="今回はcssは詳しく解説しないので気になる方はCodePen上で確認してみてください！" />
 
 ## 【デモ01】カテゴリーフィルターの表現
 
@@ -181,10 +179,50 @@ Alpine.jsを使うことでJSファイルを用意せずに実装できますが
 
 ## 【デモ02】モバイルの時にアコーディオンメニューになる
 
+デモ02は画面サイズに応じて異なる挙動をするアコーディオンUIのデモになります。具体的には、モバイル画面サイズ（768px未満）の場合にアコーディオン機能が有効になり、デスクトップでは通常のリスト表示になります。
+
+<CodePenEmbed penId="QwLVwmm" title="Alpine.js Mobile Accordion" />
+
+### HTML
+
+```html title="index.html"
+<div class="accordion-content"
+  x-data="{ isMobile: window.innerWidth < 768 }"
+  x-init="window.addEventListener('resize', () => isMobile = window.innerWidth < 768)"
+  >
+  <details class="accordion" :open="!isMobile">
+    <summary class="accordion-summary" :tabindex="isMobile ? '0' : '-1'">目次</summary>
+    <div class="accordion-body">
+      <ul class="accordion-list">
+        <li class="accordion-item">目次1</li>
+        // ...
+      </ul>
+    </div>
+  </details>
+</div>
+```
+
+アコーディオンにはdetailsタグを使っています。detailsタグはopen属性で開閉を制御でき、openがtrueの場合は開いた状態になります。なのでx-dataで画面幅がモバイル画面サイズ(768px未満)かを判定する変数isMobileを定義してモバイル画面ではないとき(!isMobile)はアコーディオンが開いている状態になります！
+
+detailsタグのデフォルトだとTab操作が可能になるので、アコーディオンが開いているときはtabindexを-1にしてTab操作を無効にしています。
+
+また、デスクトップ画面だとアコーディオンが開いていますが、クリックするとdetailsタグなので閉じてしまうので、cssで`pointer-events: none`でクリックイベントを無効にしましょう！
+
+```css
+.accordion {
+  pointer-events: none;
+  @media (max-width: 768px) {
+    pointer-events: all;
+  }
+}
+```
+
+このデモみたいにわざわざJavaScript書くのが地味に面倒くさい時にAlpine.jsは便利ですね！。
+
+
 ## まとめ
 
-Alpine.jsの実装アイデア集を何種類かまとめました。
-
-
+Alpine.jsの実装アイデア集を何種類かまとめました🏔️
+簡単に動的なUIを実装できるので、生のJavaScriptを書くの面倒くさいな〜って思うときにAlpine.jsを使っていこうと思います！
 
 この記事が参考になれば幸いです。
