@@ -57,6 +57,16 @@
         letter-spacing: -0.05em;
       }
     }
+    h4 {
+      --stack-space: 2rem;
+      font-size: 1.125rem;
+      &::before {
+        content: '###';
+        margin-right: 0.35rem;
+        letter-spacing: -0.05em;
+        color: var(--blue);
+      }
+    }
     ul {
       > * + * {
         margin-top: 0.5rem;
