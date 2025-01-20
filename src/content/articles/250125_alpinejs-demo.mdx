@@ -219,6 +219,42 @@ detailsタグのデフォルトだとTab操作が可能になるので、アコ�
 
 このデモみたいにわざわざJavaScript書くのが地味に面倒くさい時にAlpine.jsは便利ですね！
 
+---
+
+## 【デモ03】ドロップダウンメニュー
+
+デモ03はドロップダウンメニューのデモになります。
+
+<CodePenEmbed penId="xbKaGpR" title="Alpine.js Dropdown Menu" />
+
+### HTML
+
+```html title="index.html"
+<div class="dropdown"
+  x-data="{ open: false }"
+  @click.outside="open = false"
+  >
+  <button class="dropdown-btn" @click="open = !open">
+    ドロップダウンメニュー
+  </button>
+  <div class="dropdown-menu"
+    x-show="open"
+    @click.outside="open = false"
+    x-transition
+    x-clock
+    >
+    <ul>
+      <li class="dropdown-item">アイテム1</li>
+      <li class="dropdown-item">アイテム2</li>
+      <li class="dropdown-item">アイテム3</li>
+    </ul>
+  </div>
+</div>
+```
+
+今まで同様なので特に解説することはないですが、ドロップダウンメニューの場合は`@click.outside`でクリックされた要素以外の場所をクリックされたらメニューを閉じるようになります！
+
+---
 
 ## まとめ
 
