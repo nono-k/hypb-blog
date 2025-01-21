@@ -1,12 +1,18 @@
 ---
+import { getCollection } from "astro:content";
+import { compareDesc } from 'date-fns';
+import type { PaginateFunction } from "astro";
+
 import Layout from "@/layouts/layout";
 import Hero from "@/components/pages/hero/hero.astro";
 import NewArticle from "@/components/new-article.astro";
 import SearchArea from "@/components/search-area.astro";
-import { getCollection } from "astro:content";
-import { compareDesc } from 'date-fns';
 
-export async function getStaticPaths({ paginate }) {
+export async function getStaticPaths({
+  paginate,
+} : {
+  paginate: PaginateFunction
+}) {
   const articlePosts = await getCollection('articles');
   const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
   const sortedArticlePosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
