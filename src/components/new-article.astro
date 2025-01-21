@@ -1,8 +1,14 @@
 ---
+import type { CollectionEntry } from "astro:content";
+import type { Page } from "astro";
 import Card from "./card.astro";
 import LinkButton from './ui/link-button.astro';
 
-const { posts } = Astro.props;
+interface Props {
+  page: Page<CollectionEntry<"articles">>;
+}
+
+const { page } = Astro.props;
 
 ---
 <div class="inner">
@@ -10,7 +16,7 @@ const { posts } = Astro.props;
   <div class="wrapper">
     <div class="card-content">
       {
-        posts.map((post) => {
+        page.data.map((post) => {
           const { slug, data: { image, title, pubDate, category, tags }} = post;
           return (
             <Card home url={`/articles/${slug}`} src={image} title={title} time={pubDate} category={category} tags={tags} />
