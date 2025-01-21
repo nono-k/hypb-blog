@@ -7,6 +7,9 @@
       "@/layouts/*": ["src/layouts/*.astro"],
       "@/lib/*": ["src/lib/*.js"],
       "@/styles": ["src/styles/"]
-    }
-  }
+    },
+    "typeRoots": ["src/types", "node_modules/@types"]
+  },
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"]
 }
