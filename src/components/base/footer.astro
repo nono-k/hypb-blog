@@ -14,8 +14,8 @@ const lists = [
     {text: 'Privacy Policy', link: '/privacy-policy'},
   ],
   [
-    {text: 'X / Twitter', link: 'https://x.com/kameno_no3'},
-    {text: 'GitHub', link: 'https://github.com/iwasaki-source'},
+    {text: 'X / Twitter', link: 'https://x.com/kameno_no3', blank: true},
+    {text: 'GitHub', link: 'https://github.com/iwasaki-source', blank: true},
   ],
 ]
 ---
@@ -30,7 +30,9 @@ const lists = [
       <ul class="list">
         {list.map((item) =>
           <li class="item">
-            <a href={item.link}>{item.text}</a>
+            <a href={item.link} target={item.blank ? '_blank' : undefined}>
+              {item.text}
+            </a>
           </li>)}
       </ul>
     )})}
