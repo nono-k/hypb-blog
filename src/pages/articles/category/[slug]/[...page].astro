@@ -29,7 +29,6 @@ export async function getStaticPaths({paginate}) {
 const {
   page: {
     data,
-    url: { prev, next }
   },
   name } = Astro.props;
 const categoryNum = data.length;

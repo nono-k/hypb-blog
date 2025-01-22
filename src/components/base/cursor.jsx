@@ -1,6 +1,6 @@
 import styles from './cursor.module.scss';
-import { useEffect, useState, useRef } from 'react';
-import { motion, useMotionValue, useSpring, transform, animate } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 
 export default function  Cursor() {
   const [isLink, setIsLink] = useState(false);
