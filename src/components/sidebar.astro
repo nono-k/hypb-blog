@@ -22,10 +22,10 @@ const { blog } = Astro.props;
 ---
 <div class="sidebar for-large">
   <div class:list={["accordion-wrapper", !blog && 'sticky' ]}>
-    {categoryTag.map(item => {
+    {categoryTag.map((item, i) => {
       const { title, items } = item;
       return (
-        <Accordion title={title} items={items} blog={blog} />
+        <Accordion title={title} items={items} blog={blog} open={i === 0} />
       )
     })
   }

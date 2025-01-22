@@ -4,18 +4,18 @@ import Logo from "./logo.astro";
 
 const lists = [
   [
-    {text: 'Top', link: '/'},
-    {text: 'Articles', link: '/articles'},
-    {text: 'About', link: '/about'},
+    { text: 'Top', link: '/', blank: false },
+    { text: 'Articles', link: '/articles', blank: false },
+    { text: 'About', link: '/about', blank: false },
   ],
   [
-    {text: 'Contact', link: '/contact'},
-    {text: 'Site Policy', link: '/site-policy'},
-    {text: 'Privacy Policy', link: '/privacy-policy'},
+    { text: 'Contact', link: '/contact', blank: false },
+    { text: 'Site Policy', link: '/site-policy', blank: false },
+    { text: 'Privacy Policy', link: '/privacy-policy', blank: false },
   ],
   [
-    {text: 'X / Twitter', link: 'https://x.com/kameno_no3'},
-    {text: 'GitHub', link: 'https://github.com/iwasaki-source'},
+    { text: 'X / Twitter', link: 'https://x.com/kameno_no3', blank: true },
+    { text: 'GitHub', link: 'https://github.com/iwasaki-source', blank: true },
   ],
 ]
 ---
@@ -30,7 +30,9 @@ const lists = [
       <ul class="list">
         {list.map((item) =>
           <li class="item">
-            <a href={item.link}>{item.text}</a>
+            <a href={item.link} target={item.blank ? '_blank' : undefined}>
+              {item.text}
+            </a>
           </li>)}
       </ul>
     )})}

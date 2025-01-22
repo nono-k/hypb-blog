@@ -70,9 +70,9 @@ import SearchModal from "./search-modal.astro";
 </style>
 
 <script>
-  const searchButton = document.querySelector('.search-button');
-  const searchModal = document.querySelector('.search-modal');
-  const overlay = document.querySelector('.overlay');
+  const searchButton = document.querySelector('.search-button') as HTMLButtonElement;
+  const searchModal = document.querySelector('.search-modal') as HTMLDialogElement;
+  const overlay = document.querySelector('.overlay') as HTMLElement || null;
   const body = document.body;
 
   const openModal = () => {

@@ -68,5 +68,8 @@ export default defineConfig({
       shortenUrl: true
     }]],
     rehypePlugins: [[rehypePrettyCode, codeOptions]]
+  },
+  experimental: {
+    svg: true,
   }
 });
