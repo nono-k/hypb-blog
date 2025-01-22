@@ -100,13 +100,17 @@ const description = 'お問い合わせ';
   const form = document.getElementById('form');
   form?.addEventListener('submit', submitFormData);
 
-  async function submitFormData(event) {
+  async function submitFormData(event: Event) {
     event.preventDefault();
     grecaptcha.ready(() => {
       grecaptcha
         .execute('reCAPTCHA_site_key', { action: 'submit'})
         .then(async (token) => {
-          const target = event.target;
+          const target = event.target as typeof event.target & {
+            name: { value: string };
+            email: { value: string };
+            message: { value: string };
+          };
 
           const data = {
             name: target.name.value,
@@ -134,7 +138,7 @@ const description = 'お問い合わせ';
     })
   }
 
-  async function sendRequest(formData) {
+  async function sendRequest(formData: FormData) {
     return await fetch('https://hypb-blog.form.newt.so/v1/8VK_oilIG', {
       method: 'POST',
       body: formData,
