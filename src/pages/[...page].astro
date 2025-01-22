@@ -1,12 +1,23 @@
 ---
+import { getCollection } from "astro:content";
+import { compareDesc } from 'date-fns';
+import type { CollectionEntry } from "astro:content";
+import type { Page, PaginateFunction } from "astro";
+
 import Layout from "@/layouts/layout";
 import Hero from "@/components/pages/hero/hero.astro";
 import NewArticle from "@/components/new-article.astro";
 import SearchArea from "@/components/search-area.astro";
-import { getCollection } from "astro:content";
-import { compareDesc } from 'date-fns';
 
-export async function getStaticPaths({ paginate }) {
+interface Props {
+  page: Page<CollectionEntry<"articles">>;
+}
+
+export async function getStaticPaths({
+  paginate,
+} : {
+  paginate: PaginateFunction
+}) {
   const articlePosts = await getCollection('articles');
   const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
   const sortedArticlePosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
@@ -15,11 +26,7 @@ export async function getStaticPaths({ paginate }) {
   })
 }
 
-const {
-  page: {
-    data
-  }
-} = Astro.props;
+const { page } = Astro.props;
 ---
 
 <Layout home>
@@ -27,7 +34,7 @@ const {
     <Hero />
   </section>
   <section class="new-article">
-    <NewArticle posts={data} />
+    <NewArticle page={page} />
   </section>
   <section class="search">
     <SearchArea />

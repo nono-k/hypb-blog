@@ -9,7 +9,7 @@ import hero03 from '../../../assets/images/hero03.jpg';
 <div class="swiper">
   <div class="swiper-wrapper">
     {lists.map((list, i) => {
-      const { title, slug, img, color, data, category, tags } = list
+      const { title, slug, color, data, category, tags } = list
       const pubDateISO = formatISO(data);
       const pubDateJA = format(data, 'yyyy.MM.dd');
       const heroImages = [hero01, hero02, hero03];
@@ -321,7 +321,7 @@ import hero03 from '../../../assets/images/hero03.jpg';
   import 'swiper/css/bundle';
   import { Autoplay, Parallax, Navigation } from 'swiper/modules';
 
-  const swiper = new Swiper('.swiper', {
+  new Swiper('.swiper', {
     modules: [Autoplay, Parallax, Navigation],
     slidesPerView: 1,
     loop: true,

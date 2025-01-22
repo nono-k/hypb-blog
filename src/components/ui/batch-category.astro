@@ -8,7 +8,7 @@ const {
   radius = '1rem',
 } = Astro.props;
 
-const getCategoryColor = (text) => {
+const getCategoryColor = (text: string) => {
   switch (text) {
     case 'Coding':
       return 'var(--yellow)';
