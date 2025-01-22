@@ -1,20 +1,26 @@
 ---
+import { Image } from "astro:assets";
+import { getCollection } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+
 import Layout from "@/layouts/layout";
 import ArticleContainer from "@/components/pages/article/article-container.astro";
 import Sidebar from "@/components/sidebar.astro";
 import '@fontsource/shippori-mincho/600.css';
 import { category, tags } from "@/lib/constants";
 
-import { getCollection } from "astro:content";
 import { compareDesc, format, formatISO } from 'date-fns';
 import BatchCategory from "@/components/ui/batch-category.astro";
 import ArticleBody from "@/components/pages/article/article-body.astro";
 import PaginationBox from "@/components/pages/article/pagination-box.astro";
 import AmazonLink from "@/components/pages/article/AmazonLink.astro";
 import Figure from "@/components/markdown/Figure.astro";
-import { Image } from "astro:assets";
 
-export async function getStaticPaths({}) {
+interface Props {
+  post: CollectionEntry<"articles">;
+}
+
+export async function getStaticPaths() {
   const articlePosts = await getCollection('articles');
   const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
   const sortedBlogPosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
@@ -33,8 +39,7 @@ export async function getStaticPaths({}) {
   })
 }
 
-const { post, url } = Astro.props;
-
+const { post, url } = Astro.props as { post: CollectionEntry<"articles">; url: Record<string, unknown> };
 const { Content } = await post.render();
 
 const {
@@ -46,7 +51,7 @@ const pubDateJA = format(pubDate, 'yyyy.MM.dd');
 const categoryName = post.data.category;
 const tagsName = post.data.tags;
 
-const categorySlug = category.find((cat) => cat.name === categoryName).slug;
+const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
 ---
 
 <Layout pageTitle={title} description={description} articleOgp={ogp}>
@@ -63,7 +68,7 @@ const categorySlug = category.find((cat) => cat.name === categoryName).slug;
           </div>
           <ul class="list">
             {tagsName.map((tag) => {
-              const tagSlug = tags.find((item) => item.name === tag).slug;
+              const tagSlug = tags.find((item) => item.name === tag)?.slug;
               return (
                 <li class="item">
                   <a href={`/articles/tag/${tagSlug}`}>   #{tag}

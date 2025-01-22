@@ -1,10 +1,23 @@
 ---
 import { getCollection } from "astro:content";
 
+interface Item {
+  name: string;
+  slug: string;
+}
+
+interface Props {
+  title: string;
+  items: Item[];
+  blog: boolean;
+}
+
 const { title, items, blog } = Astro.props;
 
-
-const categoryTagNum = async(title, name) => {
+const categoryTagNum = async(
+  title: string,
+  name: string
+): Promise<number> => {
   const allPosts = await getCollection('articles');
   const nonDraftPosts = allPosts.filter((post) => !post.data.draft);
   switch (title) {
@@ -16,6 +29,8 @@ const categoryTagNum = async(title, name) => {
         return items.data.tags.some(item => item === name)
       })
       return filterTag.length;
+    default:
+      return 0;
   }
 }
 ---

@@ -11,8 +11,14 @@ import Pagination from "@/components/ui/pagination.astro";
 import ArticleList from "@/components/pages/article/article-list.astro";
 import Card from "@/components/card.astro";
 import ListTitle from "@/components/pages/list-title.astro";
+
+import type { CollectionEntry } from "astro:content";
+import type { Page } from  "astro";
 import type { PaginateFunction } from "astro";
 
+interface Props {
+  page: Page<CollectionEntry<"articles">>;
+}
 
 export async function getStaticPaths({
   paginate,
