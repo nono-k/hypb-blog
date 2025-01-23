@@ -11,7 +11,19 @@ import Card from "@/components/card.astro";
 import ListTitle from "@/components/pages/list-title.astro";
 import { category } from "@/lib/constants";
 
-export async function getStaticPaths({paginate}) {
+import type { CollectionEntry } from "astro:content";
+import type { Page, PaginateFunction } from "astro";
+
+interface Props {
+  page: Page<CollectionEntry<"articles">>;
+  name: string;
+}
+
+export async function getStaticPaths({
+  paginate
+} : {
+  paginate: PaginateFunction
+}) {
   const articlePosts = await getCollection('articles');
   const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
   const sortedArticlePosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));

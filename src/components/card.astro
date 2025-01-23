@@ -18,9 +18,9 @@ const pubDateJA = format(time, 'yyyy.MM.dd');
     <BatchCategory home={home} text={category} />
     <div class="tagsTime">
       <ul class="list">
-        {tags.map((item) => {
+        {tags.map((tag: string) => {
           return (
-            <li>{item}</li>
+            <li>{tag}</li>
           )
         })}
       </ul>
