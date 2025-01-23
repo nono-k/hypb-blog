@@ -5,7 +5,7 @@ const { title, author, linkId, imageId, coment } = Astro.props;
   <div class="amazon__heading">紹介した本はこちら</div>
   <div class="amazon__left">
     <a href=`https://amzn.to/${linkId}` class="amazon__link -img" target="_blank">
-      <img src=`https://m.media-amazon.com/images/I/${imageId}.jpg` alt="">
+      <img src=`https://m.media-amazon.com/images/I/${imageId}.jpg` alt=`${title}` width="270" height="340" loading="lazy">
     </a>
   </div>
   <div class="amazon__right">

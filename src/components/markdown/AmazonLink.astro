@@ -4,7 +4,7 @@ const { imageId, linkId, title, author } = Astro.props;
 
 <div class="amazon">
   <a href=`https://amzn.to/${linkId}` class="amazon__link -img" target="_blank">
-    <img src=`https://m.media-amazon.com/images/I/${imageId}.jpg` alt="">
+    <img src=`https://m.media-amazon.com/images/I/${imageId}.jpg` alt=`${title}` width="170" height="220" loading="lazy">
   </a>
   <a href=`https://amzn.to/${linkId}` class="amazon__link -text" target="_blank">
     <span class="title">{title}</span>
