@@ -1,4 +1,6 @@
 ---
+import { Image } from "astro:assets";
+
 const { prev, next, prevTitle, nextTitle, prevImage, nextImage } = Astro.props;
 ---
 <div class="pagination-box">
@@ -6,7 +8,7 @@ const { prev, next, prevTitle, nextTitle, prevImage, nextImage } = Astro.props;
     <a href={prev} class="prev-inner">
       <p class="cap">前の記事</p>
       <div class="img">
-        <img src={prevImage.src} alt="">
+        <Image src={prevImage} alt={prevTitle} />
       </div>
       <p class="title">{prevTitle}</p>
     </a> : <div></div>
@@ -18,7 +20,7 @@ const { prev, next, prevTitle, nextTitle, prevImage, nextImage } = Astro.props;
     <a href={next} class="next-inner">
       <p class="cap next">次の記事</p>
       <div class="img">
-        <img src={nextImage.src} alt="">
+        <Image src={nextImage} alt={nextTitle} />
       </div>
       <p class="title">{nextTitle}</p>
     </a> : <div></div>
