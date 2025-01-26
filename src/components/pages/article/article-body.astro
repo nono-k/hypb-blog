@@ -24,7 +24,9 @@
       color: var(--green);
     }
   }
-  .stack h2 + *,
+  .stack h2 + * {
+    --stack-space: 1.5em;
+  }
   .stack h3 + * {
     --stack-space: 1em;
   }
@@ -148,6 +150,9 @@
     }
   }
   @include mixin.phone {
+    .stack h2 + * {
+      --stack-space: 1em;
+    }
     .stack {
       padding-inline: 1rem;
       font-size: 0.875rem;
