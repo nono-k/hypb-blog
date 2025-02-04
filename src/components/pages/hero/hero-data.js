@@ -12,15 +12,14 @@ export const lists = [
     ]
   },
   {
-    title: 'Astroのブログに目次機能をつける',
-    slug: 'astrojs-tocbot',
+    title: 'Web制作・フロントエンドを学ぶあなたにおすすめの本20選まとめてみた！',
+    slug: 'recommended-book-for-frontend-devs',
     img: '../../assets/images/hero02.jpg',
-    color: 'yellow',
-    data: '2024-04-28',
-    category: 'ブログ',
+    color: 'blue',
+    data: '2024-02-01',
+    category: '書籍紹介',
     tags: [
-      'Astro',
-      'Markdown',
+      'フロントエンド雑記'
     ]
   },
   {
