@@ -13,15 +13,19 @@ const { imageId, linkId, title, author } = Astro.props;
   </a>
 </div>
 
-<style lang="scss">
+<style lang="scss" is:global>
   .amazon {
-    margin-top: 3rem;
+    margin-top: 2.8rem;
     display: grid;
     grid-template-columns: 22% auto;
     border: 3px solid transparent;
     border-radius: 0.25rem;
     background: var(--black);
     transition: border-color 0.3s;
+    a {
+      color: var(--gray-10);
+      text-decoration: none;
+    }
     @include mixin.phone {
       grid-template-columns: 1fr;
       gap: 1rem;
@@ -35,7 +39,6 @@ const { imageId, linkId, title, author } = Astro.props;
     &__link {
       padding: 1rem;
       text-decoration: none;
-      color: var(--gray-10);
       @include mixin.large {
         padding-right: 0;
       }
@@ -60,6 +63,7 @@ const { imageId, linkId, title, author } = Astro.props;
     .title {
       max-height: 66px;
       overflow: hidden;
+      color: var(--gray-10);
       @include mixin.phone {
         font-size: 0.875rem;
         max-height: unset;
@@ -88,5 +92,8 @@ const { imageId, linkId, title, author } = Astro.props;
         }
       }
     }
+  }
+  h3 + .amazon {
+    margin-top: 1.5rem;
   }
 </style>
