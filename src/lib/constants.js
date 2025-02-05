@@ -24,5 +24,6 @@ export const tags = [
   { name: 'Markdown', slug: 'markdown' },
   { name: 'SVG', slug: 'svg' },
   { name: 'Alpine.js', slug: 'alpinejs' },
+  { name: 'フロントエンド雑記', slug: 'frontend' },
   // { name: 'CSS', slug: 'css' },
 ];
