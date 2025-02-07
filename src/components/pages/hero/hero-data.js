@@ -16,7 +16,7 @@ export const lists = [
     slug: 'recommended-book-for-frontend-devs',
     img: '../../assets/images/hero02.jpg',
     color: 'blue',
-    data: '2024-02-01',
+    data: '2024-02-06',
     category: '書籍紹介',
     tags: [
       'フロントエンド雑記'
