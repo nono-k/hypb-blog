@@ -23,6 +23,7 @@ export const tags = [
   { name: 'Swiper', slug: 'swiper' },
   { name: 'Markdown', slug: 'markdown' },
   { name: 'SVG', slug: 'svg' },
+  { name: 'Cloudflare', slug: 'cloudflare' },
   { name: 'Alpine.js', slug: 'alpinejs' },
   { name: 'フロントエンド雑記', slug: 'frontend' },
   // { name: 'CSS', slug: 'css' },
