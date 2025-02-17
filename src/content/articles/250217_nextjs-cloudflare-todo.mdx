@@ -1,0 +1,1066 @@
+---
+title: Next.js + Hono + Cloudflare D1でToDoアプリを作る
+slug: nextjs-cloudflare-todo
+pubDate: "2025-02-17"
+image: ../../assets/images/nextjs-cloudflare-todo.jpg
+ogp: "images/ogp/nextjs-cloudflare-todo.jpg"
+category: Coding
+tags:
+  - Next.js
+  - Cloudflare
+  - Markdown
+description: Next.js + Hono + Cloudflare D1でToDoアプリを作る方法を解説します。
+---
+
+## はじめに
+
+Next.jsとCloudflareの練習として簡単なToDoアプリを作ってみましたので、作り方を解説します。Cloudflareについてなどは説明しないので、ログインなどの登録はすでに済んでいる前提で解説します。
+
+ToDoアプリなのでCRUD操作ができるのと、ToDoの内容はMarkdownで書けるようにしています。完成形は↓こんな感じになります。
+
+!['今回作るToDoアプリ'](../../assets/images/post/nextjs-cloudflare-todo-01.jpg '今回作るToDoアプリ')
+
+このToDoアプリの要件として、以下のようなものを想定しています。
+
+- タイトルと内容を入力してToDoを作成できる
+- タイトルは必須で、内容は任意
+- ToDoの内容はMarkdownで書ける
+- 完了・未完了のステータスを切り替えられる
+- 作成したToDoを一覧で確認できる
+- ToDoの内容は編集＆削除できる
+
+それでは、早速作っていきましょう！
+
+## プロジェクト作成
+
+以下のコマンドでプロジェクトを作成します。
+
+```
+npm create cloudflare@latest nextjs-cloudflare-todo -- --framework=next
+```
+
+プロジェクト名はnextjs-cloudflare-todoでnext.jsを使うのでオプションに—framework=nextを指定します。今回はTypeScriptとTailwindを使うのでYesを選択し、その外は適宜質問に答えてください。最後の質問でデプロイするか聞かれるのでNoを選択しましょう。`npm run dev`で開発サーバーが立ち上がるか確認しましょう。
+
+## Honoの導入
+
+以下コマンドでHonoをインストールします。
+
+```
+npm install hono
+```
+
+### api/helloにアクセスでHello Worldを返すようにする
+
+`api/hello`にアクセスしてHello Worldを返すようにします。
+元々の「src/app/api/hello/route.ts」を削除して「src/app/api/[[...route]]/route.ts」を作成しましょう。作成したら以下コードを書きます。
+
+```ts title="src/app/api/[[...route]]/route.ts"
+import { Hono } from "hono";
+import { handle } from "hono/vercel";
+
+export const runtime = "edge";
+
+const app = new Hono().basePath("/api");
+
+app.get("/hello", (c) => {
+  return c.json({ message: "Hello World!" });
+});
+
+export const GET = handle(app);
+export const POST = handle(app);
+```
+
+これで/api/helloにアクセスするとHello World!がJSON形式で返ってくるのが確認できるかと思います。
+
+## データベース作成
+
+以下のコマンドでデータベースを作成します。データベース名はd1-todo-appになります。
+
+```
+npx wrangler d1 create d1-todo-app
+```
+
+失敗などする場合は、`wrangler login`などでCloudflareにログインしてから行ってください。
+
+### wrangler.jsonに記載
+
+データベースを作成したときに、ターミナル上に表示されていたものをそのままwrangler.jsonにコピペしましょう
+
+```json title="wrangler.json"
+{
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "prod-d1-tutorial",
+      "database_id": "<unique-ID-for-your-database>"
+    }
+  ]
+}
+```
+
+## Drizzle ORMでのテーブル作成
+
+ORMとしてDrizzle ORMを使ってテーブルを作成します。以下のコマンドでインストールしときましょう。
+
+```
+npm install drizzle-orm
+npm install -D drizzle-kit
+```
+
+### schemaの定義
+
+/src/drizzle/schema.tsファイルを作成して今回のToDoアプリで使うテーブルのスキーマを定義します。コードは以下のようになります。
+
+```ts title="src/drizzle/schema.ts"
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+
+export const todos = sqliteTable("todos", {
+  id: integer("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  created_at: integer("created_at").default(Date.now()),
+  completed: integer("completed").default(0),
+});
+```
+
+次にDDLを作成するためにdrizzleの設定ファイルを作成します。ルートにdrizzle.config.tsを作成して以下のコードを書きます。
+
+```ts title="drizzle.config.ts"
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  schema: "./src/drizzle/schema.ts", // テーブルスキーマ記述ファイル
+  out: "./src/drizzle/migrations", // マイグレーションファイル出力先
+  dialect: "sqlite",
+});
+```
+
+それではマイグレーションファイルを作成しましょう。以下のコマンドを実行すると/src/drizzle/migrationsにマイグレーションファイルが作成されます。
+
+```
+npx drizzle-kit generate
+```
+
+wrangler.jsonにmigrations_dirを追加しましょう。
+
+```json title="wrangler.json"
+"d1_databases": [
+    {
+      //...
+      "migrations_dir": "src/drizzle/migrations"
+    }
+  ]
+```
+
+以下コマンドでマイグレーションを実行します。
+
+```
+npx wrangler d1 migrations apply d1-todo-app --local
+```
+
+--localオプションを付けることで、ローカルでマイグレーションを実行できます。
+
+### ダミーデータの作成
+
+ダミーデータを作成しましょう。ルートにdummy-data.sqlを作成して以下のコードを書きます。
+
+```sql title="dummy-data.sql"
+-- テストデータ挿入
+INSERT INTO todos (title, description, completed) VALUES
+  ('タスク1', 'タスク1の説明文です', 0),
+  ('タスク2', 'タスク2の説明文です', 1),
+  ('タスク3', 'タスク3の説明文です', 0);
+```
+
+以下コマンドでダミーデータを挿入します。
+
+```
+npx wrangler d1 execute d1-todo-app --local --file=./dummy-data.sql
+```
+
+続いて以下コマンドでダミーデータが挿入されているか確認しましょう。
+
+```
+npx wrangler d1 execute d1-todo-app --local --command="SELECT * FROM todos"
+```
+
+---
+
+## HonoとDrizzle ORMでCRUDの作成
+
+HonoとDrizzle ORMを使ってCRUDを作成していきます。
+route.tsのHello Worldを表示させていたコードを削除しましょう。そしたら、下記のようにコードを書きます。
+
+Bindingsプロパティに型を指定します。
+
+```ts title="src/app/api/[[...route]]/route.ts"
+type Bindings = {
+  DB: D1Database;
+};
+
+const app = new Hono<{ Bindings: Bindings }>().basePath("/api");
+```
+
+グローバル変数を定義します。env.d.tsを作成し、`DB: D1Database`を追加します。
+
+```ts title="env.d.ts"
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      DB: D1Database;
+    }
+  }
+}
+
+export {};
+```
+
+import文は以下のようになります。
+
+```ts title="src/app/api/[[...route]]/route.ts"
+import { drizzle } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
+import { todos } from "@/drizzle/schema";
+```
+
+それでは、CRUDのコードを1つずつ作成していきます。
+
+### 1件取得
+
+/api/todos/:idにアクセスすると、そのidのToDoを取得するようにします。
+
+```ts title="src/app/api/[[...route]]/route.ts"
+// 1件取得
+app.get("/todos/:id", async (c) => {
+  const db = drizzle(process.env.DB);
+  const id = parseInt(c.req.param("id"));
+  try {
+    const res = await db.select().from(todos).where(eq(todos.id, id));
+    return c.json(res);
+  } catch (error) {
+    return c.json({ error: error }, 500);
+  }
+});
+```
+
+### 全件取得
+
+/api/todosにアクセスすると、全てのToDoを取得するようにします。
+
+```ts title="src/app/api/[[...route]]/route.ts"
+// 全件取得
+app.get("/todos", async (c) => {
+  const db = drizzle(process.env.DB);
+  try {
+    const res = await db.select().from(todos);
+    return c.json(res);
+  } catch (error) {
+    return c.json({ error: error }, 500);
+  }
+});
+```
+
+### 1件削除
+
+/api/todos/:idにDELETEメソッドでアクセスすると、そのidのToDoを削除するようにします。
+
+```ts title="src/app/api/[[...route]]/route.ts"
+// 1件削除
+app.delete("/todos/:id", async (c) => {
+  const db = drizzle(process.env.DB);
+  const id = parseInt(c.req.param("id"));
+  try {
+    await db.delete(todos).where(eq(todos.id, id));
+    return c.json({ message: "Deleted" }, 200);
+  } catch (e) {
+    return c.json({ err: e }, 500);
+  }
+});
+
+export const DELETE = handle(app);
+```
+
+削除する際には、DELETEメソッドを使うので、export const DELETE = handle(app);を追加します。
+
+### 新規作成
+
+/api/todosにPOSTメソッドでアクセスすると、新規のToDoを作成するようにします。
+
+```ts title="src/app/api/[[...route]]/route.ts"
+// 新規作成
+app.post("/todos", async (c) => {
+  const db = drizzle(process.env.DB);
+  const { title, description, completed } = await c.req.json();
+  try {
+    await db.insert(todos).values({
+      title,
+      description,
+      completed,
+    });
+    return c.json({ message: "Created" }, 200);
+  } catch (e) {
+    return c.json({ err: e }, 500);
+  }
+});
+```
+
+最初に書いたように、今回のToDoアプリではタイトルと内容と完了ステータスを入力してToDoを作成できるようにしています。
+
+### 1件更新
+
+/api/todos/:idにPUTメソッドでアクセスすると、そのidのToDoを更新するようにします。
+
+```ts title="src/app/api/[[...route]]/route.ts"
+// 1件更新
+app.put("/todos/:id", async (c) => {
+  const db = drizzle(process.env.DB);
+  const id = parseInt(c.req.param("id"));
+  const { title, description, completed } = await c.req.json();
+  try {
+    await db
+      .update(todos)
+      .set({
+        title,
+        description,
+        completed,
+      })
+      .where(eq(todos.id, id));
+    return c.json({ message: "Updated" }, 200);
+  } catch (e) {
+    return c.json({ err: e }, 500);
+  }
+});
+
+export const PUT = handle(app);
+```
+
+更新する際には、PUTメソッドを使うので、export const PUT = handle(app);を追加します。
+
+### 動作確認
+
+CRUD操作ができるかどうか確認するために、Postmanなどを使って確認してみましょう。
+これでHonoとDrizzle ORMでCRUDの作成ができました。次にNext.jsでToDoの一覧表示を作成していきます。
+
+## ToDoの一覧表示
+
+ToDoの一覧表示を見ていく前に、事前準備としてlayout.tsxやheader.tsxを作成しましょう。ちなみにCSSはTailwindを使っています。
+
+### フロントの事前準備
+
+layout.tsxは以下になります。
+
+```tsx title="src/app/layout.tsx"
+import type { Metadata } from "next";
+import { Noto_Sans_JP } from "next/font/google";
+import "./globals.css";
+import { Header } from "@/components/layout/header";
+import Container from "@/components/layout/container";
+
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
+
+export const metadata: Metadata = {
+  title: "Todo App",
+  description: "todo app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ja">
+      <body className={notoSansJP.className}>
+        <Header />
+        <Container>{children}</Container>
+      </body>
+    </html>
+  );
+}
+```
+
+src/components/layout/header.tsxファイルを作成し、headerを作成します。
+
+```tsx title="src/components/layout/header.tsx"
+import Link from "next/link";
+
+export const Header = () => {
+  return (
+    <header className="flex justify-between items-center bg-gray-950 px-10 py-4">
+      <Link href="/" className="text-white text-2xl">
+        Todo App
+      </Link>
+      <Link
+        href="/create"
+        className="inline-block bg-amber-400 px-6 py-2
+        rounded-md text-center"
+      >
+        作成
+      </Link>
+    </header>
+  );
+};
+```
+
+ToDoは/createにアクセスすると作成できるようにするのでheaderに作成ボタンを作成しています。
+事前準備の最後は、src/components/layout/container.tsxを作成し、containerでmax-widthを指定し最大幅を定義しておきましょう！
+
+```tsx title="src/components/layout/container.tsx"
+import { ReactNode } from "react";
+
+export default function Container({ children }: { children: ReactNode }) {
+  return <div className="max-w-4xl mx-auto mt-8">{children}</div>;
+}
+```
+
+### ToDoの全件取得
+
+ToDoのデータを全件取得をするために、src/app/action.tsファイルを作成し、`getTodos`関数を作成します。
+
+```ts title="src/app/action.ts"
+'use server'
+
+import type { Todo } from "@/types/todo";
+
+export async function getTodos(): Promise<Todo[]> {
+  const res = await fetch(`${process.env.API_URL}/api/todos`);
+  if (!res.ok) {
+    throw new Error("Failed to fetch data");
+  }
+  return res.json();
+}
+```
+
+先ほど作成したように、/api/todosにアクセスするとToDoデータが全件取得できるようになっているのでfetchでAPIを叩くようにします。
+型定義は、src/types/todo.tsに記述しています。
+
+```ts title="src/types/todo.ts"
+export type Todo = {
+  id: number;
+  title: string;
+  description: string;
+  created_at: string;
+  completed: boolean;
+};
+```
+
+また、開発環境では、API_URLをlocalhost:3000としているので、.env.localにAPI_URL=http://localhost:3000を追加しておきましょう。
+
+```text title=".env.local"
+API_URL=http://localhost:3000
+```
+
+ToDoの全件取得ができるようになったので、ToDoの一覧表示を作成していきましょう！
+
+### ToDoの一覧表示
+
+/src/app/page.tsxを作成し、以下のように記述します。
+
+```tsx title="src/app/page.tsx"
+import TodoList from "@/components/todo/todo-list";
+import { getTodos } from "@/app/action";
+import Link from "next/link";
+
+export default async function Home() {
+  const todos = await getTodos();
+  return (
+    <div>
+      <main>
+        <h1 className="text-center text-2xl mb-6">Todoリスト一覧</h1>
+        <TodoList todos={todos} />
+        <Link
+          href="/create"
+          className="block max-w-lg mx-auto mt-8 bg-amber-400 px-4 py-3 rounded-md text-center"
+        >
+          作成ページへ
+        </Link>
+      </main>
+    </div>
+  );
+}
+```
+
+getTodos関数で全件取得したToDoデータをTodoListコンポーネントに渡しています。
+src/components/todo/todo-list.tsxを作成し、ToDoの一覧表示を作成します。
+
+```tsx title="src/components/todo/todo-list.tsx"
+import type { Todo } from "@/types/todo"
+import TodoCard from "./todo-card"
+
+export default function TodoList({ todos }: { todos: Todo[] }) {
+  return (
+    <ul className="space-y-4">
+      {todos.map((todo) => (
+          <li key={todo.id}>
+            <TodoCard todo={todo} />
+          </li>
+        ))}
+    </ul>
+  )
+}
+```
+
+map関数を使って、ToDoデータを1件ずつ表示しています。
+src/components/todo/todo-card.tsxを作成し、ToDoのカードを作成します。
+
+```tsx title="src/components/todo/todo-card.tsx"
+import type { Todo } from "@/types/todo"
+
+export default function TodoCard({ todo }: { todo: Todo }) {
+  const { title, description, created_at, completed } = todo;
+  const formattedDate = new Date(created_at).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  return (
+    <div className="border border-black rounded-md p-4">
+      <div className="flex justify-between gap-x-4 pb-2 border-b border-black">
+        <h2 className="text-xl">{title}</h2>
+        {completed ? (
+          <p className="text-green-800 font-medium">完了</p>
+        ) : (
+          <p className="text-red-500 font-medium">未完了</p>
+        )}
+      </div>
+      <div className="p-4 pb-0">
+        <p>{description}</p>
+        <div className="flex justify-end gap-4 mt-4">
+          <time className="mr-auto self-end">{formattedDate}</time>
+          <a href="" className="bg-emerald-800 text-white px-4 py-2 rounded-md">編集</a>
+          <button className="bg-rose-600 text-white px-4 py-2 rounded-md">削除</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+日付は、「年月日」のように表示したいのでformattedDateという変数に日付を整形して代入しています。また、completedにチェックが入っている場合は、完了、入っていない場合は未完了と表示しています。
+いったん、↓のように表示されるようになりました！
+
+!['ToDoリスト一覧'](../../assets/images/post/nextjs-cloudflare-todo-01.jpg '今回作るToDoアプリ')
+
+続いてはToDoデータの登録を作成していきましょう！
+
+---
+
+## ToDoの登録
+
+ToDoの登録は、/createにアクセスすると作成できるようにします。
+バリデーションも適用できるようにしていきます。
+
+react-hook-formとzodをインストールしましょう！
+
+```
+npm install react-hook-form @hookform/resolvers zod
+```
+
+### バリデーションの定義
+
+バリデーションを定義するために、src/lib/validation-schema/taskSchema.tsを作成します。
+
+```ts title="src/lib/validation-schema/taskSchema.ts"
+import { z } from "zod";
+
+export const todoSchema = z.object({
+  id: z.number(),
+  title: z.string({ required_error: 'タイトルを入力してください' })
+          .trim()
+          .min(2, { message: '2文字以上入力してください' })
+          .max(20, { message: '20文字以内にしてください' }),
+  description: z.string(),
+  created_at: z.string(),
+  completed: z.boolean(),
+});
+
+export const createTodoSchema = todoSchema.omit({
+  id: true,
+  created_at: true,
+});
+```
+
+ここで、zodのオプションを使ってバリデーションを定義しています。今回はタイトルだけ必須入力で、最小文字数は2文字、最大文字数は20文字としています。idとcreated_atは自動で付与されるので、ToDoを登録時(createTodoSchema)はomitで除外しています。
+
+バリデーションを定義したので、types/todo.tsを修正しましょう！
+
+```ts title="src/types/todo.ts"
+import { todoSchema, createTodoSchema } from "@/lib/validation-schema/taskSchema";
+import { z } from "zod";
+
+export type Todo = z.infer<typeof todoSchema>
+export type CreateTodo = z.infer<typeof createTodoSchema>
+```
+
+これでバリデーションの型定義ができました。
+
+### ToDoを登録する関数を作成
+
+ToDoを登録する関数を作成します。src/app/action.tsに以下を追加します。
+
+```ts title="src/app/action.ts"
+import { redirect } from "next/navigation";
+import { CreateTodo, Todo } from "@/types/todo";
+
+export async function createTodo({
+  title,
+  description,
+  completed
+}: CreateTodo) {
+  await fetch(`${process.env.API_URL}/api/todos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ title, description, completed }),
+  });
+  redirect('/');
+}
+```
+
+POSTメソッドで/api/todosにアクセスし、ToDoを登録しています。
+ToDoを登録した後は、redirect関数を使ってトップページ(ToDo一覧ページ)にリダイレクトしています。
+
+### ToDoの作成ページを作成
+
+ToDo作成ページは/createにアクセスすると作成できるようにするので、src/app/create/page.tsxを作成します。
+
+```tsx title="src/app/create/page.tsx"
+import AddTodoForm from '@/components/todo/add-todo-form';
+
+export default function Create() {
+  return (
+    <div>
+      <h1 className='text-center text-2xl mb-6'>Todo作成</h1>
+      <AddTodoForm />
+    </div>
+  );
+}
+```
+
+/src/components/todo/add-todo-form.tsxを作成しましょう。
+このコンポーネントでは、react-hook-formと作成したバリデーションの型定義を使って、フォームを作成していきます。
+
+```tsx title="src/components/todo/add-todo-form.tsx"
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { createTodo } from "@/app/action";
+import { CreateTodo } from '@/types/todo';
+import { createTodoSchema } from '@/lib/validation-schema/taskSchema';
+
+export default function AddTodoForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateTodo>({
+    resolver: zodResolver(createTodoSchema),
+  });
+
+  const onSubmit = async (data: CreateTodo) => {
+    await createTodo(data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-y-6 '>
+      <div className='flex flex-col gap-y-4'>
+        <label htmlFor='title'>タイトル</label>
+        <input
+          id="title"
+          {...register("title")}
+          className='border-2 p-2'
+        />
+        {errors.title && <p className='text-red-500'>{errors.title.message}</p>}
+      </div>
+      <div className='flex flex-col gap-y-2'>
+        <label htmlFor='description'>内容</label>
+        <textarea
+          id="description"
+          {...register('description')}
+          rows={10}
+          className='border-2 p-2'
+        />
+      </div>
+      <label className='flex gap-x-2 items-center justify-center'>
+        完了
+        <input {...register('completed')} type='checkbox' className='w-4 h-4' />
+      </label>
+      <div className='flex justify-center mt-8'>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className='block w-full max-w-xs bg-amber-400 px-4 py-3 rounded-md text-center'
+        >
+          {isSubmitting ? '作成中...' :  '作成'}
+        </button>
+      </div>
+    </form>
+  )
+}
+```
+
+タイトルの箇所でバリデーションが適用されているか確認してみましょう！
+タイトルを入力しないで送信すると、エラーメッセージが表示されるかと思います。
+
+![タイトルを入力しないで返信するとエラーメッセージが表示される](../../assets/images/post/nextjs-cloudflare-todo-02.jpg 'タイトルを入力しないで返信するとエラーメッセージが表示される')
+
+これでToDoの登録ができるようになりました！
+
+---
+
+## ToDoの削除
+
+ToDoの削除ができるようにしましょう。ToDoの削除は、ToDo一覧ページで削除ボタンを押すと削除できるようにします。todo-card.tsxを修正しTodoActionsコンポーネントを追加します。
+
+```tsx {2,28} title="src/components/todo/todo-card.tsx"
+import type { Todo } from "@/types/todo";
+import TodoActions from "./todo-actions";
+
+export default function TodoCard({ todo }: { todo: Todo }) {
+  const { title, description, created_at, completed } = todo;
+
+  if (!description) return null;
+
+  const formattedDate = new Date(created_at).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  return (
+    <div className="border border-black rounded-md p-4">
+      <div className="flex justify-between gap-x-4 pb-2 border-b border-black">
+        <h2 className="text-xl">{title}</h2>
+        {completed ? (
+          <p className="text-green-800 font-medium">完了</p>
+        ) : (
+          <p className="text-red-500 font-medium">未完了</p>
+        )}
+      </div>
+      <div className="p-4 pb-0">
+        <div className="description" dangerouslySetInnerHTML={{ __html: description || '' }} />
+        <div className="flex justify-end gap-4 mt-4">
+          <time className="mr-auto self-end">{formattedDate}</time>
+          <TodoActions todo={todo} />
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+TodoActionsコンポーネントでは、削除ボタンと編集ボタンを作成します。
+
+```tsx title="src/components/todo/todo-actions.tsx"
+'use client';
+
+import { Todo } from "@/types/todo";
+import { deleteTodo } from "@/app/action";
+
+export default function TodoActions({ todo }: { todo: Todo }) {
+  return (
+    <div className="flex gap-x-4">
+      <a href={`/edit/${todo.id}`}
+        className="bg-emerald-800 text-white px-4 py-2 rounded-md"
+      >編集
+      </a>
+      <button
+        onClick={async () => {
+          const confirmDelete = window.confirm("本当に削除しますか？");
+          if (!confirmDelete) return;
+          await deleteTodo(todo.id);
+        }}
+        className="bg-rose-600 text-white px-4 py-2 rounded-md"
+      >
+        削除
+      </button>
+    </div>
+  )
+}
+```
+
+ここでは、buttonタグにonClickを設定し、confirm関数を使って削除の確認をしOKだったら、ToDoを削除するdeleteTodo関数を呼び出しています。
+
+それではdeleteTodo関数を/app/action.tsに追加しましょう。
+
+```ts title="src/app/action.ts"
+export async function deleteTodo(id: number) {
+  try {
+    const res = await fetch(`${process.env.API_URL}/api/todos/${id}`, {
+      method: 'DELETE',
+      next: { revalidate: 0 }
+    });
+    if (!res.ok) {
+      throw new Error('削除に失敗しました');
+    }
+  } catch (error) {
+    console.error(error);
+  }
+  redirect('/');
+};
+```
+
+これでToDoの削除ができるようになりました！
+
+## ToDoの編集
+
+続いてToDoの編集ができるようにしましょう。編集ページは、/edit/:idというURLでアクセスできるようにします。なので、新たにsrc/app/edit/[id]/page.tsxを作成しましょう。
+
+```tsx title="src/app/edit/[id]/page.tsx"
+import { getTodo } from "@/app/action";
+import EditTodoForm from "@/components/todo/edit-todo-form";
+
+export default async function Edit({ params }: { params: Promise<{ id: number }> }) {
+  const { id } = await params;
+  const todo = await getTodo(id);
+  const singleTodo = Array.isArray(todo) ? todo[0] : todo;
+
+  return (
+    <div>
+      <h1 className='text-center text-2xl mb-6'>Todo編集</h1>
+      <EditTodoForm todo={singleTodo} />
+    </div>
+  )
+}
+```
+
+ここで、paramsで渡されるidを取得し、getTodo関数でidに該当するToDoを1件取得しています。
+このToDoをEditTodoFormコンポーネントに渡しています。
+
+それでは/components/todo/edit-todo-form.tsxを作成しましょう。
+
+```tsx title="src/components/todo/edit-todo-form.tsx"
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { updateTodo } from "@/app/action";
+import { createTodoSchema } from '@/lib/validation-schema/taskSchema';
+import { CreateTodo,  Todo } from '@/types/todo';
+
+export default function EditTodoForm({ todo }: { todo: Todo}) {
+
+  const { id, title, description, completed } = todo;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateTodo>({
+    resolver: zodResolver(createTodoSchema),
+    defaultValues: {
+      title: title,
+      description: description,
+      completed: completed
+    }
+  });
+
+  const onSubmit = async (data: CreateTodo) => {
+    await updateTodo(id, data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-y-6 '>
+      <div className='flex flex-col gap-y-4'>
+        <label htmlFor='title'>タイトル</label>
+        <input
+          id="title"
+          {...register("title")}
+          className='border-2 p-2'
+        />
+        {errors.title && <p className='text-red-500'>{errors.title.message}</p>}
+      </div>
+      <div className='flex flex-col gap-y-2'>
+        <label htmlFor='description'>内容</label>
+        <textarea
+          id="description"
+          {...register('description')}
+          rows={10}
+          className='border-2 p-2'
+        />
+      </div>
+      <label className='flex gap-x-2 items-center justify-center'>
+        完了
+        <input {...register('completed')} type='checkbox' className='w-4 h-4' />
+      </label>
+      <div className='flex justify-center mt-8'>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className='block w-full max-w-xs bg-amber-400 px-4 py-3 rounded-md text-center'
+        >
+          {isSubmitting ? '更新中...' :  '更新'}
+        </button>
+      </div>
+    </form>
+  )
+}
+```
+
+ToDoの新規作成と同様にタイトルをバリデーションできるようにしてます。
+最後に、updateTodo関数を/app/action.tsに追加しましょう。
+
+```ts title="src/app/action.ts"
+export async function updateTodo(id: number, data: CreateTodo) {
+  await fetch(`${process.env.API_URL}/api/todos/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data),
+  });
+  redirect('/');
+}
+```
+
+これでToDoの編集ができるようになりました！
+
+## ToDoの内容をMarkdownで書けるようにする
+
+最後にToDoの内容をMarkdownで書けるようにしましょう。データベースにはHTMLで保存するので、MarkdownをHTMLに変換する`remark`を使用します。サニタイズ(XSS対策)のために`sanitize-html`もインストールしましょう。
+
+```
+npm install remark remark-html sanitize-html
+```
+
+MarkdownをHTMLに変換する関数を書きましょう。lib/markdown/markdown.tsを作成してconvertMarkdownToHtml関数を追加します。
+
+```ts title="src/lib/markdown/markdown.ts"
+import { remark } from 'remark';
+import html from 'remark-html';
+import sanitizeHtml from 'sanitize-html';
+
+export async function convertMarkdownToHtml(markdown: string): Promise<string> {
+  const processedContent = await remark().use(html).process(markdown);
+  const rawHtml = processedContent.toString();
+
+  // XSS対策でサニタイズ（スクリプトの埋め込みを防ぐ）
+  return sanitizeHtml(rawHtml, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
+    allowedAttributes: {
+      ...sanitizeHtml.defaults.allowedAttributes,
+      img: ['src', 'alt', 'width', 'height'],
+    },
+  });
+}
+```
+
+これでconvertMarkdownToHtml関数の引数にMarkdownを渡すとHTMLに変換されるようになりました。それではこの関数を使ってMarkdownで書いたToDoの内容をHTMLに変換しデータベースに保存するようにしましょう。action.tsのcreateTodo関数を以下のように修正します。
+
+```ts {1,8,17} title="src/app/action.ts"
+import { convertMarkdownToHtml } from "@/lib/markdown/markdown";
+
+export async function createTodo({
+  title,
+  description,
+  completed
+}: CreateTodo) {
+  const htmlDescription = await convertMarkdownToHtml(description);
+
+  await fetch(`${process.env.API_URL}/api/todos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      title,
+      description: htmlDescription,
+      completed
+    }),
+  });
+  redirect('/');
+}
+```
+
+descriptionはHTMLの形式で保存されているので、表示する際は`dangerouslySetInnerHTML`を使ってHTMLを表示します。todo-card.tsxを修正しましょう。
+
+```tsx {8-9} title="src/components/todo/todo-card.tsx"
+export default function TodoCard({ todo }: { todo: Todo }) {
+  const { title, description, created_at, completed } = todo;
+
+  return (
+    <div className="border border-black rounded-md p-4">
+      // ...
+      <div className="p-4 pb-0">
+        <div className="description"
+          dangerouslySetInnerHTML={{ __html: description || '' }} />
+        // ...
+      </div>
+    </div>
+  )
+}
+```
+
+これでMarkdownで書いたToDoの内容をHTMLに変換して表示できるようになりました！適宜CSSを追加して見た目を整えてみてください。
+
+## 編集ページの修正
+
+ToDoの内容はデータベースではHTMLで保存されているので、編集する時にMarkdownに変更する必要があります。なので最後に編集ページを修正しましょう。
+
+HTMLをMarkdownに変換するために以下のライブラリをインストールします。
+
+```
+npm install unified rehype-parse rehype-remark remark-stringify
+```
+
+lib/markdown/markdown.tsにHTMLをMarkdownに変換する関数convertHtmlToMarkdownを追加します。
+
+```ts title="src/lib/markdown/markdown.ts"
+import { unified } from 'unified';
+import rehypeParse from 'rehype-parse';
+import rehypeRemark from 'rehype-remark';
+import remarkStringify from 'remark-stringify';
+
+export function convertHtmlToMarkdown(html: string) {
+  const markdown = unified()
+    .use(rehypeParse, { fragment: true }) // HTML をパース
+    .use(rehypeRemark) // HTML → Markdown 変換
+    .use(remarkStringify) // Markdown を文字列化
+    .processSync(html)
+    .toString();
+
+  return markdown;
+}
+```
+
+編集ページのコンポーネント(edit-todo-form.tsx)を修正しましょう。
+
+```tsx {1,15} title="src/components/todo/edit-todo-form.tsx"
+import { convertHtmlToMarkdown } from '@/lib/markdown/markdown';
+
+export default function EditTodoForm({ todo }: { todo: Todo}) {
+
+  const { id, title, description, completed } = todo;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateTodo>({
+    resolver: zodResolver(createTodoSchema),
+    defaultValues: {
+      title: title,
+      description: convertHtmlToMarkdown(description),
+      completed: completed
+    }
+  });
+
+  // ...
+}
+```
+
+これで編集ページでもMarkdownで表示されるのと、MarkdownでToDoの内容を書けるようになりました！
+
+---
+
+## まとめ
+
+1つの記事にまとめたので長くなってしまいましたが、Next.jsとCloudflareを使ってToDoアプリを作成しました。簡単なアプリから作成することで、Next.jsとCloudflareの使い方に慣れることができるました！
+
+これからもなにかチュートリアルみたいなものを作って解説できたらと思います。
+
+この記事が参考になれば幸いです。
