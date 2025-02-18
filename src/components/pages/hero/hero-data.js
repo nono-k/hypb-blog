@@ -23,14 +23,15 @@ export const lists = [
     ]
   },
   {
-    title: 'rehype-pretty-codeを使ったコードハイライトの実装方法',
-    slug: 'astrojs-rehype-pretty-code',
+    title: 'Next.js + Hono + Cloudflare D1でToDoアプリを作る',
+    slug: 'nextjs-cloudflare-todo',
     img: '../../assets/images/hero03.jpg',
-    color: 'green',
-    data: '2024-04-29',
-    category: 'ブログ',
+    color: 'yellow',
+    data: '2025-02-17',
+    category: 'Coding',
     tags: [
-      'Astro',
+      'Next.js',
+      'Cloudflare',
       'Markdown',
     ]
   },
