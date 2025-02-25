@@ -43,6 +43,7 @@
     "node": "20.9.0"
   },
   "devDependencies": {
-    "@types/grecaptcha": "^3.0.9"
+    "@types/grecaptcha": "^3.0.9",
+    "astro-icon": "^1.1.5"
   }
 }
