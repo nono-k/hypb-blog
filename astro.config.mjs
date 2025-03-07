@@ -6,6 +6,8 @@ import remarkBreaks from 'remark-breaks';
 import remarkGemoji from 'remark-gemoji';
 import remarkLinkCard from 'remark-link-card';
 import rehypePrettyCode from 'rehype-pretty-code';
+import rehypeRaw from 'rehype-raw';
+import rehypeExternalLinks from 'rehype-external-links';
 import partytown from "@astrojs/partytown";
 import sitemap from '@astrojs/sitemap';
 
@@ -67,7 +69,11 @@ export default defineConfig({
       cache: true,
       shortenUrl: true
     }]],
-    rehypePlugins: [[rehypePrettyCode, codeOptions]]
+    rehypePlugins: [
+      rehypeRaw,
+      [rehypeExternalLinks, { target: '_blank' }],
+      [rehypePrettyCode, codeOptions]
+    ]
   },
   experimental: {
     svg: true,
