@@ -69,6 +69,28 @@
         color: var(--blue);
       }
     }
+    h2, h3, h4 {
+      .heading-link {
+        text-decoration: none;
+      }
+      .heading-link-icon {
+        &::after {
+          content: "🔗";
+          font-size: 0.8em;
+          margin-left: 0.5rem;
+          vertical-align: 0.05em;
+          opacity: 0;
+          transition: opacity 0.2s;
+        }
+      }
+      &:hover {
+        .heading-link-icon {
+          &::after {
+            opacity: 1;
+          }
+        }
+      }
+    }
     ul {
       > * + * {
         margin-top: 0.5rem;

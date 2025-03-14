@@ -1,5 +1,7 @@
 import { defineConfig } from 'astro/config';
+import { rehypeHeadingIds } from '@astrojs/markdown-remark';
 import { siteMeta } from './src/lib/constants';
+import { h } from 'hastscript';
 import mdx from "@astrojs/mdx";
 import react from '@astrojs/react';
 import remarkBreaks from 'remark-breaks';
@@ -8,6 +10,7 @@ import remarkLinkCard from 'remark-link-card';
 import rehypePrettyCode from 'rehype-pretty-code';
 import rehypeRaw from 'rehype-raw';
 import rehypeExternalLinks from 'rehype-external-links';
+import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import partytown from "@astrojs/partytown";
 import sitemap from '@astrojs/sitemap';
 
@@ -72,7 +75,23 @@ export default defineConfig({
     rehypePlugins: [
       rehypeRaw,
       [rehypeExternalLinks, { target: '_blank' }],
-      [rehypePrettyCode, codeOptions]
+      [rehypePrettyCode, codeOptions],
+      rehypeHeadingIds,
+      [
+        rehypeAutolinkHeadings,
+        {
+          behavior: 'append',
+          properties(node) {
+            return {
+              'aria-labelledby': node.properties.id,
+              class: 'heading-link',
+            };
+          },
+          content: h('span.heading-link-icon', {
+            title: 'リンク',
+          })
+        }
+      ]
     ]
   },
   experimental: {

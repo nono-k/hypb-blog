@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-padding-top: 2em;
+}
+
 body {
   font-size: 1rem;
   color: var(--black);
