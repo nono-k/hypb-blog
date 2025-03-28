@@ -2,14 +2,14 @@
 title: Pinterest風なMasonryレイアウトをJavaScriptで実装！動的なレスポンシブにも対応！
 slug: masonry-layout-javascript
 pubDate: '2024-12-29'
-image: ../../assets/images/masonry-layout-javascript.jpg
+image: ../../../assets/images/masonry-layout-javascript.jpg
 ogp: 'images/ogp/masonry-layout-javascript.jpg'
 category: Coding
 tags:
   - JavaScript
 description: Pinterest風なMasonryレイアウトを汎用的に使うためにJavaScriptで実装してみました。CSSだけでは厳しいのでJavaScriptで実装してますが以外と簡単に実装できました。
 ---
-import CodePenEmbed from '../../components/markdown/CodePenEmbed.astro';
+import CodePenEmbed from '../../../components/markdown/CodePenEmbed.astro';
 
 ## はじめに
 
@@ -28,7 +28,7 @@ Masonryレイアウトについては実装するだけならCSSだけでも可�
 
 ですが、下記画像のように要素の並びが左から縦に並べられてしまいます。これだと新着情報などが左から並べられてしまうなどCSSのみでは使えないなという印象です。。
 
-!['column-count: 3とbreak-inside: voideを使用した実装'](../../assets/images/post/masonry-layout-javascript-01.jpg 'column-count: 3とbreak-inside: voideを使用した実装')
+!['column-count: 3とbreak-inside: voideを使用した実装'](../../../assets/images/post/masonry-layout-javascript-01.jpg 'column-count: 3とbreak-inside: voideを使用した実装')
 
 また、[この記事](https://dev.to/hungle00/build-a-masonry-layout-pinterest-layout-3glp)にあるようにgridを使ってMasonryレイアウトを上から順番に並べる方法も見つけましたが、こちらはgird-rowで高さを指定する都合上、要素の高さが固定の場合のみ実装でき要素の高さが揃ってない場合は厳しい感じでした。
 
