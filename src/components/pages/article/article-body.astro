@@ -7,7 +7,7 @@
 
 <style lang="scss" is:global>
   .stack > * + * {
-    margin-top: var(--stack-space, 1.5em);
+    margin-top: var(--stack-space, 1.5rem);
   }
   .stack h2,
   .stack h3 {
@@ -25,13 +25,13 @@
     }
   }
   .stack h2 + * {
-    --stack-space: 1.5em;
+    --stack-space: 1.5rem;
   }
   .stack h3 + * {
-    --stack-space: 1em;
+    --stack-space: 1rem;
   }
   .stack p {
-    line-height: 1.8;
+    line-height: 1.75;
   }
   .stack {
     background-color: var(--gray-10);
@@ -41,7 +41,7 @@
     color: var(--black);
     font-size: 1.0375rem;
     h2 {
-      --stack-space: 2em;
+      --stack-space: 2rem;
       padding-bottom: 0.75rem;
       border-bottom: 1px solid rgba(37, 37, 54, .3);
       font-weight: 600;
@@ -137,10 +137,16 @@
           content: '▼';
         }
         + div {
-          padding: 0.75rem 1rem;
+          padding: 1.5rem 1rem;
           background: var(--black);
           color: var(--gray-10);
           border-radius: 0 0 0.5rem 0.5rem;
+          > * + * {
+            margin-top: 1.5rem;
+          }
+          figure {
+            margin-bottom: 0;
+          }
         }
       }
     }
@@ -176,7 +182,7 @@
   }
   @include mixin.phone {
     .stack h2 + * {
-      --stack-space: 1em;
+      --stack-space: 1rem;
     }
     .stack {
       padding-inline: 1rem;
