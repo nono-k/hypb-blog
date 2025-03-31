@@ -2,7 +2,7 @@
 title: Next.js + Hono + Cloudflare D1でToDoアプリを作る
 slug: nextjs-cloudflare-todo
 pubDate: "2025-02-17"
-image: ../../assets/images/nextjs-cloudflare-todo.jpg
+image: ../../../assets/images/nextjs-cloudflare-todo.jpg
 ogp: "images/ogp/nextjs-cloudflare-todo.jpg"
 category: Coding
 tags:
@@ -18,7 +18,7 @@ Next.jsとCloudflareの練習として簡単なToDoアプリを作ってみま�
 
 ToDoアプリなのでCRUD操作ができるのと、ToDoの内容はMarkdownで書けるようにしています。完成形は↓こんな感じになります。
 
-!['今回作るToDoアプリ'](../../assets/images/post/nextjs-cloudflare-todo-01.jpg '今回作るToDoアプリ')
+!['今回作るToDoアプリ'](../../../assets/images/post/nextjs-cloudflare-todo-01.jpg '今回作るToDoアプリ')
 
 このToDoアプリの要件として、以下のようなものを想定しています。
 
@@ -542,7 +542,7 @@ export default function TodoCard({ todo }: { todo: Todo }) {
 日付は、「年月日」のように表示したいのでformattedDateという変数に日付を整形して代入しています。また、completedにチェックが入っている場合は、完了、入っていない場合は未完了と表示しています。
 いったん、↓のように表示されるようになりました！
 
-!['ToDoリスト一覧'](../../assets/images/post/nextjs-cloudflare-todo-01.jpg '今回作るToDoアプリ')
+!['ToDoリスト一覧'](../../../assets/images/post/nextjs-cloudflare-todo-01.jpg '今回作るToDoアプリ')
 
 続いてはToDoデータの登録を作成していきましょう！
 
@@ -707,7 +707,7 @@ export default function AddTodoForm() {
 タイトルの箇所でバリデーションが適用されているか確認してみましょう！
 タイトルを入力しないで送信すると、エラーメッセージが表示されるかと思います。
 
-![タイトルを入力しないで返信するとエラーメッセージが表示される](../../assets/images/post/nextjs-cloudflare-todo-02.jpg 'タイトルを入力しないで返信するとエラーメッセージが表示される')
+![タイトルを入力しないで返信するとエラーメッセージが表示される](../../../assets/images/post/nextjs-cloudflare-todo-02.jpg 'タイトルを入力しないで返信するとエラーメッセージが表示される')
 
 これでToDoの登録ができるようになりました！
 
