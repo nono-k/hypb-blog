@@ -1,0 +1,530 @@
+---
+title: Web制作の開発効率を上げる自分のGulp環境のテンプレを公開
+slug: gulp-template
+pubDate: '2025-03-31'
+image: ../../../assets/images/gulp-template.jpg
+ogp: 'images/ogp/gulp-template.jpg'
+category: Coding
+tags:
+  - Gulp
+  - Pug
+description: Web制作の開発効率を上げる自分のGulpの開発環境のテンプレを公開しました
+---
+
+## はじめに
+
+最近、[MENTA](https://menta.work/)でWeb制作について教えていたりするのですが、PugやSassを使ったら効率的になるのになと思うことがあります。(教える側としてもPugやSassで書かれているほうが読むのが楽ですよね〜)
+
+なので、2025年になって今更ですが「[Gulp](https://gulpjs.com/)」の導入方法や設定方法の解説と、自分のGulp環境のテンプレートを公開します。
+
+👇GulpのテンプレートのGitHub
+
+https://github.com/nono-k/gulp-template
+
+ちなみに自分のMENTAプロフィールは↓になります！
+気になる方はお気軽にご相談ください！
+
+https://menta.work/user/117802
+
+## Gulpを使うメリット
+
+Web制作において、開発効率を上げるためにSassやPugを使うかと思います。VSCodeの拡張機能でもコンパイルすることは可能ですが、普段使用するテンプレートがあると便利です！SassやPugをコンパイルしたり、JavaScriptファイルを1つにまとめminifyしたりする作業を自動化できるツールのことを「タスクランナー」や「ビルドツール」といいます。Gulp以外にはWebpackやViteなどがありますが、設定が簡単にできるので今回はGulpを使っていきます。
+
+## Gulpの導入
+
+Node.jsはインストール済みとして話を進めます。インストールしていない方は[こちら](https://nodejs.org/en/download/)からインストールしてください。
+
+プロジェクトフォルダーを作成しましょう（今回は`gulp-template`とします）。gulp-templateフォルダーに移動して以下のコマンドを実行すると設定情報が記述された`package.json`が作成されます。
+
+```
+npm init -y
+```
+
+<details>
+<summary>gitで管理する場合は</summary>
+<div>
+gitで管理する場合は、node_modulesやコンパイルしたフォルダー（今回の場合はdist）などは.gitignoreでgitで管理しないようにしましょう。下記は.gitignoreの例です。
+
+```text title=".gitignore"
+node_modules/
+dist/
+.DS_Store
+```
+</div>
+</details>
+
+### Gulpのインストール
+
+それではGulpをインストールしましょう。下記のコマンドを実装するとローカル環境にGulpがインストールされます。
+
+```
+npm install -D gulp
+```
+
+package.jsonのdevDependenciesにGulpとバージョンが追加されたかと思います。これでGulpが使えるようになりました。
+
+## Pugのコンパイル方法
+
+まずはGulpでPugをコンパイルする方法を見ていきましょう。
+今回はプロジェクトフォルダーの直下に`src`フォルダーを作成して、その中に諸々のファイルを配置することにします。ページを表示する用のPugファイルは`src/pages`フォルダーに配置します。以下のコマンドで`src/pages`フォルダーに`index.pug`ファイルを作成します。
+
+```
+mkdir src | mkdir src/pages
+touch src/pages/index.pug
+```
+
+index.pugファイルに確認のためPugで以下のように記述しましょう。
+
+```pug title="src/pages/index.pug"
+doctype html
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Document
+    link(rel="stylesheet", href="/common/css/styles.css")
+  body
+    h1 これはTopページです
+```
+
+### Pug用のGulpプラグインのインストール
+
+GulpでPugをコンパイルするためにはプラグインが必要です。以下のコマンドでプラグイン(gulp-pug)をインストールしましょう。
+
+```
+npm install -D gulp-pug gulp-plumber
+```
+
+ここで`gulp-plumber`はエラーが発生した際にタスクが強制停止することを防止するプラグインです。
+
+それでは、GulpでPugをコンパイルするための設定をしていきましょう。設定はプロジェクトフォルダー直下に`gulpfile.js`ファイルを作成して記述しますので、作成してください。
+
+### Pugのコンパイルの設定
+
+gulpfile.jsに以下を記述します。
+
+```js title="gulpfile.js"
+const gulp = require("gulp");
+const pug = require("gulp-pug");
+const plumber = require("gulp-plumber");
+
+// ** Pug のコンパイル **
+const compilePug = () => {
+  return gulp
+    .src(["src/pages/**/*.pug"])
+    .pipe(plumber()) // エラーが発生しても止まらないようにする
+    .pipe(pug({ pretty: true })) // PugをHTMLに変換（圧縮しない）
+    .pipe(gulp.dest("dist")) // 出力先のディレクトリを指定
+};
+
+// ** デフォルトタスク **
+exports.default = gulp.series(
+  gulp.parallel(compilePug)
+);
+```
+
+詳細はコメントに記載していますが、`gulp.src`でコンパイルするファイルを指定して、`gulp.dest`でコンパイルしたファイルの出力先を指定しています。今回は`src/pages`フォルダーにあるPugファイルをコンパイルして`dist`フォルダーに出力します。これでPugをコンパイルする準備が整いました。
+
+### Pugのコンパイルの実行
+
+ターミナルで`npx gulp`を実行すると、gulpfile.jsで設定したタスクが実行されます。distフォルダーにindex.htmlが出力されているか確認してみてください。
+
+```
+npx gulp
+```
+
+package.jsonのscriptsに`dev`で下記のように追加すると、`npm run dev`でタスクを実行できるので追加しておきましょう。
+
+```json title="package.json"
+{
+  "scripts": {
+    "dev": "gulp"
+  }
+}
+```
+
+### ブラウザの立ち上げとホットリロードの設定
+
+`npm run dev`でタスクを実行すると、distフォルダーにindex.htmlが出力されるようになったかと思います。ですが、このままではブラウザで確認できないので、ブラウザの立ち上げとホットリロードの設定をしていきましょう。
+
+`browser-sync`というプラグインを使ってブラウザの立ち上げとホットリロードを設定するので、インストールしましょう。
+
+```
+npm install -D browser-sync
+```
+
+gulpfile.jsに以下のように追加しましょう。
+
+```js {4,13} title="gulpfile.js"
+const gulp = require("gulp");
+const pug = require("gulp-pug");
+const plumber = require("gulp-plumber");
+const browserSync = require("browser-sync").create();
+
+// ** Pug のコンパイル **
+const compilePug = () => {
+  return gulp
+    .src(["src/pages/**/*.pug"])
+    .pipe(plumber()) // エラーが発生しても止まらないようにする
+    .pipe(pug({ pretty: true })) // PugをHTMLに変換（圧縮しない）
+    .pipe(gulp.dest("dist")) // 出力先のディレクトリを指定
+    .pipe(browserSync.stream());
+};
+```
+
+次にブラウザの自動リロードの設定をします。
+
+```js title="gulpfile.js"
+// ** ブラウザの自動リロード設定 **
+const serve = () => {
+  browserSync.init({
+    server: { baseDir: "dist" },
+    open: true,
+    notify: false,
+    injectChanges: true,
+    cache: false,
+  });
+
+  gulp.watch("src/pages/**/*.pug", compilePug);
+  gulp.watch("dist/**/*.html").on("change", browserSync.reload);
+};
+
+// ** デフォルトタスク **
+exports.default = gulp.series(
+  gulp.parallel(compilePug),
+  serve
+);
+```
+
+src/pagesフォルダーにあるPugファイルを変更したら、ブラウザが自動でリロードされるようになりました。再度`npm run dev`を実行してみて変更が反映されているか確認してみてください。
+
+ちなみに、複数のページを作成する場合は例えばsrc/pagesフォルダーに`about/index.pug`ファイルを作成するとaboutページが自動的に作成されますので確認してみてください。
+
+Pugのmixinの設定などは次回に解説しますのでお待ちください。
+次はSassをコンパイルする方法を解説します。
+
+## Sassのコンパイル方法
+
+同様にSassをコンパイルするためのプラグインをインストールしましょう。下記のコマンドでインストールします。
+
+```
+npm install -D gulp-sass gulp-postcss autoprefixer
+```
+
+gulpfile.jsに以下のように追加しましょう。
+
+```js {21,27}  title="gulpfile.js"
+const sass = require("gulp-sass")(require("sass"));
+const postcss = require("gulp-postcss");
+const autoprefixer = require("autoprefixer");
+
+// ** SCSS のコンパイル **
+const compileSass = () => {
+  return gulp
+    .src(["src/styles/**/*.scss", "!src/styles/**/_*.scss"]) // `_`で始まるファイルは対象外
+    .pipe(plumber())
+    .pipe(sass())
+    .pipe(postcss([autoprefixer()]))
+    .pipe(gulp.dest("dist/common/css"))
+    .pipe(browserSync.stream());
+};
+
+// ** ブラウザの自動リロード設定 **
+const serve = () => {
+  // ...
+
+  gulp.watch("src/pages/**/*.pug", compilePug);
+  gulp.watch("src/styles/**/*.scss", compileSass);
+  gulp.watch("dist/**/*.html").on("change", browserSync.reload);
+};
+
+// ** デフォルトタスク **
+exports.default = gulp.series(
+  gulp.parallel(compilePug, compileSass),
+  serve
+);
+```
+
+ここでcompileSass()関数の中で`gulp.src`でコンパイルするファイルを指定しています。`!src/styles/**/_*.scss`という記述がありますが、これは`_`で始まるファイルは対象外という意味になります。
+
+それではsassファイルを作成してみましょう。自分の場合は以下のような構成にしてます。
+
+```
+src
+  |-- styles
+  |   |-- project
+  |   |   |-- _index.scss
+  |   |   |-- _top.scss
+  |   |   |-- _about.scss
+  |   |-- setting
+  |   |   |-- _index.scss
+  |   |   |-- _regulation.scss
+  |   |   |-- _structure.scss
+  |   |-- components
+  |   |-- utility
+  |   |-- _mixin.scss
+  |   └── styles.scss
+```
+
+このようにフォルダーを分けているのは、ファイルが多くなってきた時に管理しやすくするためです。詳しい実装は自分の[github](https://github.com/nono-k/gulp-template)をご確認ください。
+
+前述のようにコンパイルしないファイルの先頭には「_」を付けます。今回はstyles.scssひとつにまとめています。再度`npm run dev`を実行してみると、dist/common/cssフォルダーにstyles.cssが出力されているかと思います。ホットリロードなどが効くかも確認してみましょう！
+
+## 画像
+
+今のままでは画像が出力されないので、画像を出力するための設定をしていきましょう。
+画像は`src/public/images`フォルダーに配置することにしますので作成しましょう。
+
+### 画像の出力設定
+
+gulpfile.jsに以下のように追加しましょう。
+
+```js {1-4,12,18} title="gulpfile.js"
+const copyImages = () => {
+  return gulp.src("src/public/images/**/*", { encoding: false })
+    .pipe(gulp.dest("dist/common/images"));
+};
+
+// ** ブラウザの自動リロード設定 **
+const serve = () => {
+  // ...
+
+  gulp.watch("src/pages/**/*.pug", compilePug);
+  gulp.watch("src/styles/**/*.scss", compileSass);
+  gulp.watch("src/public/images/**/*", gulp.series(copyImages));
+  gulp.watch("dist/**/*.html").on("change", browserSync.reload);
+};
+
+// ** デフォルトタスク **
+exports.default = gulp.series(
+  gulp.parallel(compilePug, compileSass, copyImages),
+  serve
+);
+```
+
+ここで,copyImages()関数のgulp.srcの第2引数に`{ encoding: false }`を追加しています。ここでencodingをfalseにしないと、画像ファイルが壊れる現象があったのでfalseにするのを忘れないようにしましょう。
+
+再度`npm run dev`を実行してみると、dist/common/imagesフォルダーに画像が出力されているかと思います。試しにsrc/public/images/aboutなどに画像を配置してみて出力されるか確認してみてください。
+
+## JavaScript
+
+### minifyとinclude
+
+次はJavaScriptファイルをひとつにまとめて出力するのとminifyする方法を解説します。
+minifyするために`gulp-uglify`を、ひとつにまとめるために`gulp-include`をインストールします。
+
+```
+npm install -D gulp-uglfy gulp-include
+```
+
+gulpfile.jsに以下のように追加しましょう。
+
+```js {1-2,19,26} title="gulpfile.js"
+const include = require("gulp-include");
+const uglify = require("gulp-uglify");
+
+const compileJS = () => {
+  return gulp
+    .src(["src/scripts/**/*.js", "!src/scripts/_**/*.js"])
+    .pipe(include())
+    .pipe(uglify())
+    .pipe(gulp.dest("dist/common/js"))
+    .pipe(browserSync.stream());
+}
+
+// ** ブラウザの自動リロード設定 **
+const serve = () => {
+  // ...
+
+  gulp.watch("src/pages/**/*.pug", compilePug);
+  gulp.watch("src/styles/**/*.scss", compileSass);
+  gulp.watch("src/scripts/**/*.js", compileJS);
+  gulp.watch("src/public/images/**/*", gulp.series(copyImages));
+  gulp.watch("dist/**/*.html").on("change", browserSync.reload);
+};
+
+// ** デフォルトタスク **
+exports.default = gulp.series(
+  gulp.parallel(compilePug, compileSass, compileJS, copyImages),
+  serve
+);
+```
+
+ここでsrc/scriptsフォルダーに「_」で始まるファイルはコンパイルしないようにしています。また、dist/common/jsフォルダーに出力するようにしています。
+
+自分の場合のJavaScriptのファイル構成は以下のようにしています。
+
+```
+src
+  |-- scripts
+  |   |-- _modules
+  |   |   |-- header.js
+  |   |-- _pages
+  |   |   |-- top.js
+  |   |   |-- about.js
+  |   |-- scripts.js
+  |   └── vendor.pug
+```
+
+簡単な使用例を見てみましょう。`src/scripts/_pages/top.js`ファイルを作成して以下のように記述します。
+
+```js title="src/scripts/_pages/top.js"
+class Top {
+  constructor() {
+    this.init();
+  }
+  init() {
+    document.querySelector('h1').textContent = 'Hello World!';
+  }
+}
+```
+
+`src/scripts/scripts.js`ファイルを作成してtop.jsを読み込むようにします。
+
+```js title="src/scripts/scripts.js"
+//=include _pages/top.js
+
+window.addEventListener('DOMContentLoaded', () => {
+  new Top();
+});
+```
+
+gulp-includeにより`//=include _pages/top.js`と記述するだけで、top.jsを読み込むことができました。dist/common/jsフォルダーにminifyされたscripts.jsが出力されているか確認してみましょう。
+
+### ライブラリの読み込み
+
+ライブラリの読み込みはscripts.jsではない場所で読み込んだ方が良いでしょう。
+`src/scripts/vendor.js`ファイルを作成してこのファイルで使うライブラリを読み込みます。
+
+自分がよく使うライブラリは`swiper`と`gsap`なのでインストールしておきます。
+
+```
+npm install swiper gsap
+```
+
+gulpfile.jsにvendor用のタスクを追加します。
+
+```js {5,14-23,31} title="gulpfile.js"
+const compileJS = () => {
+  return gulp
+    .src([
+      "src/scripts/**/*.js",
+      "!src/scripts/**/vendor.js",
+      "!src/scripts/_**/*.js"
+    ])
+    .pipe(include())
+    .pipe(uglify())
+    .pipe(gulp.dest("dist/common/js"))
+    .pipe(browserSync.stream());
+}
+
+const compileJSVendor = () => {
+  return gulp
+    .src("src/scripts/**/vendor.js")
+    .pipe(include({
+      includePaths: [__dirname + "/node_modules"]
+    }))
+    .pipe(uglify())
+    .pipe(gulp.dest("dist/common/js"))
+    .pipe(browserSync.stream());
+}
+
+// ** デフォルトタスク **
+exports.default = gulp.series(
+  gulp.parallel(
+    compilePug,
+    compileSass,
+    compileJS,
+    compileJSVendor,
+    copyImages
+  ),
+  serve
+);
+```
+
+`compileJS`ではvendor.jsを読み込まないようにしています。
+`compileJSVendor`の方ではincludeのincludePathsにnode_modulesフォルダーを指定しています。これでnode_modulesフォルダーにあるライブラリのパスを省略して読み込むことができます。
+
+ライブラリを読み込むvendor.jsファイルの例は以下のようになります。
+
+```js title="src/scripts/vendor.js"
+//=include swiper/swiper-bundle.min.js
+//=include gsap/dist/gsap.min.js
+
+// ** ライブラリを使わない場合 **
+//*=include gsap/dist/ScrollTrigger.min.js
+```
+ライブラリを使わない場合は`*=`を付けて読み込まないようにしましょう。
+
+### Swiperの例
+
+ここでは例としてswiperを使ってみましょう！
+src/pages/index.pugに以下のように記述します。
+
+```pug title="src/pages/index.pug"
+//...
+body
+  .swiper
+    .swiper-wrapper
+      - for (var i = 0; i < 9; i++)
+        .swiper-slide
+          img(src=`https://picsum.photos/800/400?random=${i}`, alt="")
+
+  script(src="/common/js/vendor.js")
+  script(src="/common/js/scripts.js")
+```
+
+vendor.jsとscripts.jsを読み込むのを忘れないようにしましょう。
+swiperを使うためにはswiperのcssファイルとJavaScriptファイルを読み込む必要があります。`src/styles/styles.scss`にswiperのcssを追加しましょう。
+
+```scss {3-4} title="src/styles/styles.scss"
+@use 'setting';
+
+// vendor
+@use "../../node_modules/swiper/swiper-bundle.min.css";
+
+@use 'project';
+```
+
+`src/scripts/_modules/slider.js`ファイルを作成してswiperのコードを雑に書きます。
+
+```js title="src/scripts/_modules/slider.js"
+class Slider {
+  constructor() {
+    this.init();
+  }
+  init() {
+    const swiper = document.querySelector('.swiper');
+    new Swiper(swiper, {
+      slidesPerView: 3,
+    })
+  }
+}
+```
+
+最後にscripts.jsで読み込みましょう！
+
+```js title="src/scripts/scripts.js"
+//=include _pages/top.js
+//=include _modules/slider.js
+
+window.addEventListener('DOMContentLoaded', () => {
+  new Top();
+  new Slider();
+});
+```
+
+topページでswiperが動作するか確認してみましょう！
+
+## まとめ
+
+自分が使っているGulpの設定ファイルを紹介しました。
+正直、この構成がベストなのかはわかりませんが、おいおいカスタマイズしていくという感じです。
+
+ぜひ皆さんも使いやすいようにカスタマイズをしてWeb制作の効率化を図ってみてください！
+
+この記事が参考になれば幸いです。
+
+## 参考記事
+
+- [絶対つまずかないGulp 5入門 インストールとSassを使うまでの手順](https://ics.media/entry/3290/)

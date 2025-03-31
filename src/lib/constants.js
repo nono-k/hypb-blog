@@ -25,6 +25,9 @@ export const tags = [
   { name: 'SVG', slug: 'svg' },
   { name: 'Cloudflare', slug: 'cloudflare' },
   { name: 'Alpine.js', slug: 'alpinejs' },
+  { name: 'Pug', slug: 'pug' },
+  { name: 'Gulp', slug: 'gulp' },
+  // { name: 'Chrome拡張機能', slug: 'chrome-extensions' },
   { name: 'フロントエンド雑記', slug: 'frontend' },
   // { name: 'CSS', slug: 'css' },
 ];
