@@ -1,0 +1,501 @@
+---
+title: Pugを使いこなしてWeb制作のスピードを上げよう！Pugの使い方まとめ
+slug: pug-tutorial
+pubDate: '2025-04-02'
+image: ../../../assets/images/pug-tutorial.jpg
+ogp: 'images/ogp/pug-tutorial.jpg'
+category: Coding
+tags:
+  - Pug
+description: テンプレートエンジンのPugの使い方をまとめました。
+---
+
+## はじめに
+
+[前回](gulp-template)の記事ではGulpの導入方法を解説しました。今回はHTMLを簡単に記述できるテンプレートエンジンPugの使い方をまとめていきます。
+
+簡単に試すにはVSCodeの拡張機能を使うのがおすすめですが、今回は↓のgulp-templateを使ってGulpでコンパイルすることを前提として解説していきます。
+
+https://github.com/nono-k/gulp-template
+
+## Pugとは
+
+[Pug](https://pugjs.org/api/getting-started.html)はHTMLを簡単に記述できるテンプレートエンジンです。Pugは、HTMLを書くのに必要な冗長なタグを省略し、インデントを使って階層を表現することで、シンプルで読みやすいコードを提供します。また、共通部分(ヘッダー、フッターなど)を別ファイルに切り出して、includeを使って読み込むことができるので、生のHTMLよりも保守性や可読性を高めることができます。
+
+## Pugの特徴
+
+Pugの拡張子は`.pug`になります。以下、`src/pages/index.pug`ファイルを作成しPugの特徴を試してみましょう！
+
+### シンプルな構文でHTMLを記述できる
+
+Pugはインデントベースの構文を使用し、HTMLタグの閉じタグや冗長な属性指定が不要です。これにより、HTMLコードが非常にシンプルで見やすくなります。
+
+例えば、以下のように記述できます
+
+```pug title="pug記法"
+html
+  head
+    title My Pug Page
+  body
+    h1 Hello, world!
+    p This is a paragraph.
+```
+
+これをコンパイルすると、以下のようなHTMLが生成されます。
+
+```html title="変換後のHTML"
+<html>
+  <head>
+    <title>My Pug Page</title>
+  </head>
+  <body>
+    <h1>Hello, world!</h1>
+    <p>This is a paragraph.</p>
+  </body>
+</html>
+```
+
+### 動的なコンテンツを簡単に生成できる
+
+Pugでは、変数や式を使って動的にコンテンツを埋め込むことができます。埋め込む場合は`!{変数名}`のように記述します。
+
+```pug title="変数を使ったPug記法"
+const name = 'John';
+p Hello, !{name}
+```
+
+このコードは`<p>Hello, John</p>`というHTMLを出力します。
+
+### ループや条件分岐を使ってプログラミング的な処理を記述できる
+
+Pugでは、eachループやif条件を使って動的なHTMLを生成できます。例えば、リストをループして表示したり、特定の条件に基づいて異なる内容を表示したりできます。
+
+```pug title="ループと条件分岐を使ったPug記法"
+- const fruits = ['apple', 'banana', 'orange'];
+ul
+  each fruit in fruits
+    li
+      |!{fruit}
+```
+
+これをコンパイルすると、以下のようなHTMLが生成されます。
+
+```html title="変換後のHTML"
+<ul>
+  <li>apple</li>
+  <li>banana</li>
+  <li>orange</li>
+</ul>
+```
+
+### ミックスインを使って共通部分を再利用できる
+
+Pugでは、再利用可能なテンプレート片を「ミックスイン」として作成できます。これにより、コードの再利用性が高まり、保守性が向上します。
+
+```pug title="ミックスインを使ったPug記法"
+mixin btn(text, link, blank)
+  a.btn(href=link target=blank ? '_blank' : '')
+    |!{text}
+
++btn('外部リンク', 'https://example.com', true)
+```
+
+これをコンパイルすると、以下のようなHTMLが生成されます。
+
+```html title="変換後のHTML"
+<a href="https://example.com" target="_blank">外部リンク</a>
+```
+
+## Pugでのクラス・IDの記述方法
+
+Pugでは、HTMLのクラスやIDを簡単に指定できます。クラスの付け方にはいくつかの方法があり、どれもシンプルに記述できます。以下に、クラスの指定方法や応用例を紹介します。
+
+### クラスを「.」で指定
+
+Pugでは、`.` を付けることでクラスを指定できます。また、タグ名を省略してクラス名だけ指定すると、自動的に`div`タグになります。
+
+```pug title="タグなしでクラスだけ記述"
+.container
+  .inner
+    h1.title タイトルです
+```
+
+これをコンパイルすると、以下のようなHTMLが生成されます。
+
+```html title="変換後のHTML"
+<div class="container">
+  <div class="inner">
+    <h1 class="title">タイトルです</h1>
+  </div>
+</div>
+```
+
+この方法は、divが多くなるレイアウトで便利です。
+
+### 複数のクラスを指定
+
+クラスは、複数指定することができます。
+
+```pug title="複数のクラスを指定"
+.container.p-top
+  p.text.large テキストです
+```
+
+これをコンパイルすると、以下のようなHTMLが生成されます。
+
+```html title="変換後のHTML"
+<div class="container p-top">
+  <p class="text large">テキストです</p>
+</div>
+```
+
+css設計におけるModifierが書きやすいですね！
+
+### IDを「#」で指定
+
+Pugでは、`#` を付けることでIDを指定できます。また、クラスとIDを組み合わせて使うこともできます。
+
+```pug title="IDを指定"
+#main.main
+  h1 メインコンテンツ
+```
+
+これをコンパイルすると、以下のようなHTMLが生成されます。
+
+```html title="変換後のHTML"
+<div id="main" class="main">
+  <h1>メインコンテンツ</h1>
+</div>
+```
+
+### 変数を使ってクラスを動的に指定
+
+変数やif文・三項演算子を使って、クラスを動的に指定することもできます。
+
+```pug title="変数を使ってクラスを動的に指定"
+- const isActive = true;
+.container(class=isActive ? 'active' : '')
+  p テキストです
+```
+
+これをコンパイルすると、以下のようなHTMLが生成されます。
+
+```html title="変換後のHTML"
+<div class="container active">
+  <p>テキストです</p>
+</div>
+```
+
+Pugを使うことで、クラスやIDの指定がシンプルになり、HTMLの記述がすっきりします！
+
+---
+
+## 実践的な使い方
+
+ここまでPugの基本的な使い方を紹介しました。
+次は、先述の[gulp-template](https://github.com/nono-k/gulp-template)を使って実践的な使い方を見ていきましょう！
+
+自分のPugでの開発環境のフォルダー構成の例は以下のようになります。
+
+```
+src
+├── pug
+│   ├── base
+│   │   ├── header.pug
+│   │   ├── footer.pug
+│   │   ├── body-append.pug
+│   │   ├── head-assets.pug
+│   │   └── meta.pug
+│   ├── components
+│   │   ├── button.pug
+│   │   └── card.pug
+│   ├── data
+│   │   └── top_data.pug
+│   └── mixin.pug
+└── pages
+```
+
+src/pugフォルダーの中にmixinなどの共通部分を切り出したファイルを配置しています。これらのpugファイルをコンパイルしないようにするために、`gulpfile.js`ファイルに以下を追加しましょう！
+
+```js title="gulpfile.js"
+// ** Pug のコンパイル **
+const compilePug = () => {
+  return gulp
+    .src(["src/pages/**/*.pug", "!src/pug/**"]) // pug直下で始まるファイルは対象外
+    .pipe(plumber()) // エラーが発生しても止まらないようにする
+    .pipe(pug({ pretty: true })) // PugをHTMLに変換（圧縮しない）
+    .pipe(gulp.dest("dist")) // 出力先
+    .pipe(browserSync.stream());
+};
+```
+
+これで準備は完了です。では、実践的な使い方を見ていきましょう！
+
+### ヘッダーとフッターを別ファイルに切り出す
+
+ヘッダーとフッターは、サイト内のどのページでも共通して使われる部分です。これらを別ファイルに切り出すことで、コードの重複を防ぐことができ保守性が向上します。
+
+`src/pug/base`フォルダーにheader.pug、footer.pugファイルを作成しましょう。
+
+```pug title="src/pug/base/header.pug"
+header.l-header.js-header
+  a(href="/").l-header__logo
+    |Logo
+  .l-header__menu
+    |Menu
+```
+
+```pug title="src/pug/base/footer.pug"
+footer.l-footer
+  small.l-footer__copyright Copyright © テストサイト
+```
+
+これらのファイルを読み込むために、`src/pages/index.pug`ファイルのbody配下を以下のように編集しましょう。
+
+```pug title="src/pages/index.pug"
+body
+  include ../../src/pug/base/header
+
+  // ...
+
+  include ../../src/pug/base/footer
+  script(src="/common/js/vendor.js")
+  script(src="/common/js/scripts.js")
+```
+
+pugファイルを読み込むには`include`を使って読み込みます。これで、ヘッダーとフッターが共通化され、コードの重複を減らすことができました。以下同様に他の共通化できる部分についても対応していきましょう！
+
+### サイトのメタ情報を管理する
+
+サイトのメタ情報（タイトル、 description, ogpなど）は、サイト全体で共通して使われます。これらも別ファイルに切り出して管理しましょう。また、ページごとにタイトルを動的に設定したいのでmixinを使用します。`src/pug/base`フォルダーにmeta.pugファイルを作成しましょう。
+
+```pug title="src/pug/base/meta.pug"
+mixin meta(title, description, ogp, url)
+  meta(charset="UTF-8")
+  meta(name="viewport", content="width=device-width, initial-scale=1.0")
+  title !{title}
+  meta(name="description", content=description)
+  meta(property="og:title", content=title)
+  meta(property="og:description", content=description)
+  meta(property="og:image", content=ogp)
+  meta(property="og:url", content=url)
+  meta(name="twitter:card", content="summary_large_image")
+```
+
+これらはメタ情報の例なので、それぞれのサイトに合わせて変更してください。
+それでは、ページごとにメタ情報を設定していきましょう。`src/pages/index.pug`ファイルと`src/pages/abot/index.pug`ファイルを編集します。
+
+```pug title="src/pages/index.pug"
+include ../../src/pug/base/meta
+
+doctype html
+html
+  head
+    +meta(
+      "サンプルサイト",
+      "サンプルサイトの説明文です。",
+      "/common/images/ogp.png",
+      "https://example.com"
+    )
+    link(rel="stylesheet", href="/common/css/styles.css")
+```
+
+includeで読み込んだmeta.pugファイルを使って、メタ情報を設定します。
+同様にAboutページにもメタ情報を設定し確認しましょう。
+
+```pug title="src/pages/about/index.pug"
+include ../../../src/pug/base/meta
+
+doctype html
+html
+  head
+    +meta(
+      "About | サンプルサイト",
+      "サンプルサイトの説明文です。",
+      "/common/images/ogp.png",
+      "https://example.com"
+    )
+    link(rel="stylesheet", href="/common/css/styles.css")
+```
+
+これで、ページごとにメタ情報を設定することができました！
+
+### cssやJavaScriptファイルを管理する
+
+cssやJavaScriptも別ファイルに切り出して管理しましょう。cssは`src/pug/base/head-assets.pug`ファイルに切り出します。
+
+```pug title="src/pug/base/head-assets.pug"
+//- Google Fontsはここで読み込む
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap" rel="stylesheet">
+
+link(rel="stylesheet", href="/common/css/styles.css")
+```
+
+Google Fontsの設定などは`<head>`の中に入れるのでここで読み込むようにしましょう。
+JavaScriptは`src/pug/base/body-append.pug`ファイルに切り出します。
+
+```pug title="src/pug/base/body-append.pug"
+script(src="/common/js/vendor.js")
+script(src="/common/js/scripts.js")
+```
+
+最後に、`src/pages/index.pug`ファイルを編集しましょう！
+
+```pug {10,17} title="src/pages/index.pug"
+html
+  head
+    +meta(
+      "サンプルサイト",
+      "サンプルサイトの説明文です。",
+      "/common/images/ogp.png",
+      "https://example.com"
+    )
+
+    include ../../src/pug/base/head-assets
+  body
+    include ../../src/pug/base/header
+
+    // ...
+
+    include ../../src/pug/base/footer
+    include ../../src/pug/base/body-append
+```
+
+これで、cssやJavaScriptファイルも別ファイルで管理することができました！
+
+### 文章などのデータを管理する
+
+`src/pug/data`フォルダーは文章やリンク情報などを管理するフォルダーにします。ここでは例としてheaderのメニュー情報を管理することにします。`src/pug/data`フォルダーに`header_data.pug`ファイルを作成しましょう。
+
+```pug title="src/pug/data/header_data.pug"
+-
+  const headerData = [
+    { text: "Home", link: "/" },
+    { text: "About", link: '/about' },
+    { text: "Contact", link: '/contact' },
+  ]
+```
+
+このファイルを読み込むために、`src/pug/base/header.pug`ファイルを修正しましょう。
+
+```pug {1,6-11} title="src/pug/base/header.pug"
+include ../data/header_data
+
+header.l-header.js-header
+  a(href="/").l-header__logo
+    |Logo
+  nav.l-header__nav
+    ul.l-header__list
+      each item in headerData
+        li.l-header__item
+          a(href=item.link).l-header__link
+            |!{item.text}
+```
+
+このように、dataフォルダーに文章やリンクなどの情報を管理することで、コンポーネント内のコードには文章などが無い状態になるのでコーディングの効率が上がるかと思います！
+
+## mixinの活用
+
+最後に、mixinの活用方法を見ていきましょう！
+まずは普段、使っている画像関連のmixinになります。
+
+```pug title="src/pug/mixin/mixin.pug"
+-
+  const rootDir = '/common/';
+  const bpMobile = '959px';
+
+mixin img(src, alt, w, h)
+  - let _src = rootDir + 'images/' + src;
+  img(src=_src, alt=alt, width=w, height=h)&attributes(attributes)
+
+mixin pic(pc, sp, alt, pcw, pch, spw, sph)
+  picture
+    source(media=`(max-width: ${bpMobile})`, srcset= rootDir + 'images/' + sp, width=spw, height=sph)
+    img(src= rootDir + 'images/' + pc, alt=alt, width=pcw, height=pch)&attributes(attributes)
+
+mixin sprite(id, w, h)
+  svg(width=w, height=h)&attributes(attributes)
+    use(xlink:href=`#${id}`)
+```
+
+`img`タグにはalt属性とwidth、height属性を指定したいので、mixinではそれらを引数として受け取るようにしています。`picture`タグも同様で、PC用の画像とスマホ用の画像を引数として受け取るようにしています。
+`sprite`に関しては、svgのuseタグのidを引数として受け取るようにして、svgを出力できるようにしています。
+
+ここで`&attributes(attributes)`という記述がありますが、これは、mixinで受け取った属性をそのまま出力するための記述です。例えば以下のようになります。
+
+```pug
++img('dummy.jpg', 'ダミー画像', 1200, 300).img-full
+```
+
+このように書くと以下のように、後ろに書いた`img-full`がクラスに出力されます。
+
+```html
+<img src="/common/images/dummy.jpg" alt="ダミー画像" width="1200" height="300" class="img-full">
+```
+
+画像関係は以上になります。
+最後に、効率的に書けるカードコンポーネントを作ってみましょう。
+
+### カードコンポーネントを作る
+
+まずは、`src/pug/components`フォルダーにcard.pugファイルを作成しましょう。
+ここにカードコンポーネントを作っていきます。
+
+```pug title="src/pug/components/card.pug"
+mixin card(title, imgData, tags, link, blank)
+  a(href=link, target=blank ? '_blank' : '_self').c-card
+    .c-card__img
+      +img(imgData.src, imgData.alt, imgData.width, imgData.height)
+    .c-card__tags
+      each tag in tags
+        .c-card__tag
+          |!{tag}
+    .c-card__title
+      |!{title}
+```
+
+ここで、カードコンポーネントは第一引数は「タイトル」、第二引数は「画像データ」、第三引数は「タグ」、第四引数は「リンク」、第五引数は「リンク先を新しいタブで開くかどうか」を受け取るようにしています。blankがtrueの場合は、リンク先を新しいタブで開くようにしています。
+
+カードの文章・画像・タグ・リンク先などのデータを管理するために、`src/pug/data`フォルダーにtop_data.pugファイルを作成しましょう。ダミーとして以下のように記述します。
+
+```pug title="src/pug/data/top_data.pug"
+-
+  const topData = {
+    card: [
+      { title: 'カードタイトル', imgData: { src: 'dummy.jpg', alt: 'ダミー画像', width: 1200, height: 300 }, tags: ['music', 'life'], link: '/', blank: false },
+      { title: 'カードタイトル02', imgData: { src: 'dummy02.jpg', alt: 'ダミー画像', width: 1200, height: 300 }, tags: ['video'], link: '/', blank: false },
+      { title: 'カードタイトル03', imgData: { src: 'dummy03.jpg', alt: 'ダミー画像', width: 1200, height: 300 }, tags: ['code'], link: '/', blank: true },
+    ]
+  }
+```
+
+それでは、トップページにカードコンポーネントを表示するために、`src/pages/index.pug`ファイルを編集しましょう。
+
+```pug title="src/pages/index.pug"
+include ../../src/pug/data/top_data
+
+.p-top__card-wrap
+  each card in topData.card
+    +card(card.title, card.imgData, card.tags, card.link, card.blank)
+```
+
+これだけで、カードコンポーネントが表示されるようになりました！
+topData.cardの数や内容を変更したりして、カードの表示を変更し感覚をつかみましょう！
+
+---
+
+## まとめ
+
+今回は、Pugの基本的な使い方と実際のWeb制作に役立つ実践的な使い方を紹介しました。
+ぜひ、Pugをマスターして、Web制作の効率化を図ってみてください！
+
+この記事が参考になれば幸いです。
+
+## 宣伝
+
+MENTAにて、Web制作初学者向けに分かりやすく教えています。
+今回のようなWeb制作における効率化の方法の他にも、フロントエンド開発、高度なアニメーションの実装方法などを教えています。気になった方はぜひお気軽にご連絡ください！
+
+https://menta.work/user/117802
