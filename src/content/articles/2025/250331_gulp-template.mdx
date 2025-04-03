@@ -200,7 +200,10 @@ src/pagesフォルダーにあるPugファイルを変更したら、ブラウ�
 
 ちなみに、複数のページを作成する場合は例えばsrc/pagesフォルダーに`about/index.pug`ファイルを作成するとaboutページが自動的に作成されますので確認してみてください。
 
-Pugのmixinの設定などは次回に解説しますのでお待ちください。
+Pugのmixinの設定などは👇の記事で解説してます！
+
+https://hypb.dev/articles/pug-tutorial/
+
 次はSassをコンパイルする方法を解説します。
 
 ## Sassのコンパイル方法
@@ -260,6 +263,7 @@ src
   |   |   |-- _index.scss
   |   |   |-- _regulation.scss
   |   |   |-- _structure.scss
+  |   |-- base
   |   |-- components
   |   |-- utility
   |   |-- _mixin.scss
@@ -350,9 +354,9 @@ exports.default = gulp.series(
 );
 ```
 
-ここでsrc/scriptsフォルダーに「_」で始まるファイルはコンパイルしないようにしています。また、dist/common/jsフォルダーに出力するようにしています。
+ここでsrc/scriptsフォルダーに「_」で始まるフォルダーはコンパイルしないようにしています。また、dist/common/jsフォルダーに出力するようにしています。
 
-自分の場合のJavaScriptのファイル構成は以下のようにしています。
+自分の場合のJavaScriptのフォルダー構成は以下のようにしています。
 
 ```
 src
@@ -502,9 +506,10 @@ class Slider {
 }
 ```
 
+ここでは画像が3枚ずつ表示されるように設定しています。
 最後にscripts.jsで読み込みましょう！
 
-```js title="src/scripts/scripts.js"
+```js {2,6} title="src/scripts/scripts.js"
 //=include _pages/top.js
 //=include _modules/slider.js
 
@@ -514,7 +519,9 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 ```
 
-topページでswiperが動作するか確認してみましょう！
+topページでSwiperが動作するか確認してみましょう！
+
+---
 
 ## まとめ
 
