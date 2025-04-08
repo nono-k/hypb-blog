@@ -1,0 +1,503 @@
+---
+title: Chrome拡張機能を簡単に作成できるフレームワーク「WXT」を使って、初めて拡張機能を自作してみた
+slug: chrome-extensions-wxt
+pubDate: '2025-04-08'
+image: ../../../assets/images/chrome-extensions-wxt.jpg
+ogp: 'images/ogp/chrome-extensions-wxt.jpg'
+category: Web
+tags:
+  - Chrome拡張機能
+description: Chrome拡張機能を簡単に作成できるフレームワーク「WXT」を使って、初めて拡張機能を自作してみた
+---
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+
+## はじめに
+
+とある理由でChromeの拡張機能を作りたくなり、どうせならReactで作りたいなと調べてみたところ[WXT](https://wxt.dev/)というフレームワークを使うと簡単に作成できたので、今回はその作成方法をまとめていきます。
+
+今回、例で作る拡張機能の機能は、Amazonの商品ページから商品の情報と画像を取得してコピーできるようにした機能です。作ったもののリポジトリは👇こちらになります。
+
+https://github.com/nono-k/chrome-extensions-amazon-scraping
+
+## WXTとは
+
+WXTは、ChromeやFirefoxなど複数のブラウザに対応した拡張機能を簡単に作成できるフレームワークです。Vanila JSはもちろん、React・Vue・Svelte・Solidなどのフレームワークを使って拡張機能を作成することができます。
+
+https://wxt.dev/
+
+## WXTの導入
+
+npmでインストールします。任意のディレクトリで以下のコマンドを実行します。
+
+```
+npx wxt@latest init <project-name>
+```
+
+コマンド実行後、フレームワークを使うかやどのパッケージマネージャーを使うかを聞かれるので、今回はreactとnpmを選択します。
+
+上記完了したらプロジェクトに移動して`npm install`を実行しましょう。
+
+## 開発ブラウザの起動
+
+インストールしたら既にpopup以下にテンプレートが作成されているので、`npm run dev`すると開発ブラウザが起動し動作を確認できます。ReactでおなじみのカウントAppが表示されるかと思います。
+
+npm run devで起動するブラウザは拡張機能が全て外された状態のものが起動するのが良いですね。
+ホットリロードも効くので、保存したら即座に反映されるのでとても便利です。
+
+## Tailwind CSSの導入
+
+CSSを楽に書くためにTailwind CSSを導入しましょう！
+下記コマンドでインストールします。
+
+```
+npm install tailwindcss @tailwindcss/vite
+```
+
+インストールできたら、`wxt.config.ts`にプラグイン情報を追加します。
+
+```ts {6-8} title="wxt.config.ts"
+import { defineConfig } from 'wxt';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+  // ...
+  vite: () => ({
+    plugins: [tailwidcss()],
+  })
+})
+```
+
+`assets/tailwind.css`を作成し、インポートしましょう。
+
+```css title="assets/tailwind.css"
+@import "tailwindcss";
+```
+
+`entrypoints/popup/index.html`で先ほど作成したtailwind.cssを読み込むことで、Tailwind CSSを使うことができます。Tailwind CSSが反映されるか確認しましょう！
+
+```html {8} title="entrypoints/popup/index.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Default Popup Title</title>
+    <meta name="manifest.type" content="browser_action" />
+    <link rel="stylesheet" href="../../assets/tailwind.css" />
+  </head>
+  <body>
+    <h1 class="text-2xl text-red-500">Hellow World</h1>
+  </body>
+</html>
+```
+
+それでは、今回作成したAmazonの商品情報を取得する拡張機能の作り方を見ていきましょう！
+
+---
+
+## Amazonの商品情報を取得する拡張機能を作る
+
+このブログではAmazonのリンクを載せるために、AstroのコンポーネントをMDXで書いて表示させるようにしています。以下はAmazon商品ページのリンクを表示するコンポーネントの例です。
+
+```mdx title="MDXでのAmazonLinkコンポーネントの書き方"
+<AmazonLink
+  imageId=""
+  linkId=""
+  title=""
+  author=""
+/>
+```
+
+<details>
+<summary>AmazonLinkコンポーネントの中身</summary>
+<div>
+AmazonLinkコンポーネントの中身は以下のようになっています。
+
+```astro title="AmazonLinkコンポーネント"
+---
+const { imageId, linkId, title, author } = Astro.props;
+---
+
+<div class="amazon">
+  <a href=`https://amzn.to/${linkId}` class="amazon__link -img" target="_blank">
+    <img src=`https://m.media-amazon.com/images/I/${imageId}.jpg` alt=`${title}` width="170" height="220" loading="lazy">
+  </a>
+  <a href=`https://amzn.to/${linkId}` class="amazon__link -text" target="_blank">
+    <span class="title">{title}</span>
+    <span class="author">著者: {author}</span>
+    <span class="btn">Amazon.co.jpで購入する</span>
+  </a>
+</div>
+```
+
+リンクは短縮リンクが`https://amzn.to/`で始まるので、その後にIDを付けることで機能します。画像に関しても同様に、画像のIDを指定することで画像を表示することができます。
+</div>
+</details>
+
+このように、いちいち商品ページに飛んでタイトルや画像URLをコピーして貼り付けていたので面倒でした。なので、コピーボタンを押したら一発で商品情報を取得してコピーできるような拡張機能を作成します。
+
+完成図は以下のようになります。
+
+![Amazon商品情報取得拡張機能の完成図](../../../assets/images/post/chrome-extensions-wxt-01.jpg 'Amazon商品情報取得拡張機能の完成図')
+
+### ディレクトリ構成
+
+今回のディレクトリ構成は以下のようになります。
+
+```
+.
+├── assets
+│   ├── react.svg
+│   └── tailwind.css
+├── components
+│   └── Scraping.tsx
+├── entrypoints
+│   ├── content
+│   │   ├── getAmazonProductData.ts
+│   │   └── index.ts
+│   └── popup
+│       ├── index.html
+│       └── main.tsx
+├── package-lock.json
+├── package.json
+├── public
+│   ├── icon
+│   │   ├── 128.png
+│   │   ├── 16.png
+│   │   └── 48.png
+│   └── wxt.svg
+├── tsconfig.json
+└── wxt.config.ts
+```
+
+WXTをインストールした際に作成されたファイルは邪魔なので、いったん`entrypoints`以下は全て削除しておきましょう。
+
+### wxt.config.tsの編集
+
+WXTの設定ファイルである`wxt.config.ts`を編集しましょう。拡張機能の名前や説明、開発ブラウザを起動した時に表示されるURLを指定します。
+
+```ts {8-10,12,14} title="wxt.config.ts"
+import { defineConfig } from 'wxt';
+import tailwindcss from '@tailwindcss/vite';
+
+// See https://wxt.dev/api/config.html
+export default defineConfig({
+  extensionApi: 'chrome',
+  modules: ['@wxt-dev/module-react'],
+  runner: {
+    startUrls: ['https://www.amazon.co.jp/'],
+  },
+  manifest: {
+    name: 'Amazon 商品情報取得',
+    version: '1.0',
+    description: 'Amazonの商品ページから画像URLや商品情報を取得します。',
+    manifest_version: 3,
+  },
+  vite: () => ({
+    plugins: [tailwindcss()],
+  })
+});
+```
+
+特定のサイトなどでのみ機能させる拡張機能の場合は、`runner.startUrls`にURLを指定すると開発するのが便利になるでしょう🚀
+
+### popupの作成
+
+最初に`popup`を作成しましょう。popupは拡張機能のアイコンをクリックした時に表示されるウィンドウです。
+
+`entrypoints`フォルダーに`popup`フォルダーを作成し、`index.html`を作成しましょう。
+index.htmlを以下のように記述します。
+
+```html title="entrypoints/popup/index.html"
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amazon 商品情報取得</title>
+    <meta name="manifest.type" content="browser_action" />
+    <link rel="stylesheet" href="../../assets/tailwind.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
+```
+
+ここでは、Tailwind CSSを使うために`assets/tailwind.css`を読み込んでいます。また、Reactを使うため、idが`root`の要素を作成し、main.tsxを読み込んでいます。
+
+次に`entrypoints/popup/main.tsx`を作成しましょう。
+
+```ts title="entrypoints/popup/main.tsx"
+import React from "react";
+import ReactDOM from "react-dom/client";
+import Scraping from "../../components/Scraping";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <Scraping />
+  </React.StrictMode>
+)
+```
+
+main.tsxでは、Scrapingコンポーネントを読み込んでいます。このScrapingコンポーネントが今回作成する商品情報を取得するコンポーネントです。
+
+それでは、`components`フォルダーに`Scraping.tsx`を作成しましょう。
+
+```tsx title="components/Scraping.tsx"
+import { useState, useEffect } from "react";
+
+export default function Scraping() {
+  const defaultTemplate = `<AmazonLink\n  imageId=\"${"${imageURL}"}\"\n  linkId=""\n  title=\"${"${title}"}\"\n  author=\"${"${author}"}\"\n/>`;
+
+  const [template, setTemplate] = useState(defaultTemplate);
+  const [filledTemplate, setFilledTemplate] = useState('');
+
+  const handleTemplateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newTemplate = e.target.value;
+    setTemplate(newTemplate);
+  }
+
+  const fetchProductData = () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id!, { action: 'getAmazonData' }, (response) => {
+        if (!response) {
+          console.error('No response received from content script');
+          return;
+        }
+        setFilledTemplate(
+          template
+            .replace("${title}", response.title || '')
+            .replace("${author}", response.author || '')
+            .replace("${imageURL}", response.imageUrl || '')
+        );
+      });
+    })
+  };
+
+  return (
+    <div className="p-4 pt-2 w-72 bg-[#232E3E] text-white">
+      <h2 className="text-base font-bold">Amazon 商品情報取得</h2>
+      <textarea
+        className="w-full p-2 border rounded mt-3"
+        rows={6}
+        value={template}
+        onChange={handleTemplateChange}
+      />
+      <button onClick={fetchProductData} className="bg-blue-500 hover:bg-blue-700 font-bold py-2 px-4 rounded mt-1">
+        商品情報を取得
+      </button>
+
+      {filledTemplate && (
+        <>
+          <pre className="mt-3 p-2 border rounded overflow-auto">{filledTemplate}</pre>
+        </>
+      )}
+    </div>
+  )
+}
+```
+
+このコンポーネントでは、以下の処理を行っています。
+
+#### テンプレートのデフォルト値と状態の管理
+
+```tsx
+const defaultTemplate = `<AmazonLink\n  imageId=\"${"${imageURL}"}\"\n  linkId=""\n  title=\"${"${title}"}\"\n  author=\"${"${author}"}\"\n/>`;
+
+const [template, setTemplate] = useState(defaultTemplate);
+const [filledTemplate, setFilledTemplate] = useState('');
+```
+
+デフォルトのテンプレートとして、このブログの`<AmazonLink>`コンポーネントを定義してます。ユーザーが変更した際には、`setTemplate`で状態を更新します。`filledTemplate`は、ユーザーが商品情報を取得した際に、テンプレートにデータを埋め込んだものを保持します。
+
+#### テキストエリアの変更をハンドリング
+
+```tsx
+const handleTemplateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const newTemplate = e.target.value;
+  setTemplate(newTemplate);
+};
+```
+
+ユーザーがテキストエリアの値を変更した際に、`setTemplate`で状態を更新します。この値がテンプレートとして使われます。
+
+#### Amazonの商品データ取得
+
+「商品情報を取得」ボタンをクリックした際の処理が以下になります。
+
+```tsx
+const fetchProductData = () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.sendMessage(tabs[0].id!, { action: 'getAmazonData' }, (response) => {
+      if (!response) {
+        console.error('No response received from content script');
+        return;
+      }
+      setFilledTemplate(
+        template
+          .replace("${title}", response.title || '')
+          .replace("${author}", response.author || '')
+          .replace("${imageURL}", response.imageUrl || '')
+      );
+    });
+  });
+};
+```
+
+- `chrome.tabs.query()`で現在開いているタブを取得します。
+- `chrome.tabs.sendMessage()`でコンテンツスクリプトにメッセージを送り、Amazonの商品データを取得。
+- `setFilledTemplate()`と`replace`を使って取得したデータをテンプレートに埋め込む。
+
+popupではWebスクレイピングができないため、コンテンツスクリプトにメッセージを送信して、商品データを取得する必要があります。次は、コンテンツスクリプトを作成しましょう。
+
+### コンテンツスクリプトの作成
+
+コンテンツスクリプトはWebページのDOMに直接アクセスできます。
+それでは、`entrypoints/content`フォルダーに`index.ts`を作成しましょう。
+
+```ts title="entrypoints/content/index.ts"
+import getAmazonProductData from "./getAmazonProductData";
+
+export default defineContentScript({
+  matches: ['*://www.amazon.co.jp/*', '*://www.amazon.com/*'],
+  main() {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === 'getAmazonData') {
+        sendResponse(getAmazonProductData());
+      }
+    })
+  }
+})
+```
+
+このコードでは、`getAmazonProductData`関数をインポートしています。この関数は、Amazonの商品ページから商品情報を取得するためのものです。
+
+`matches`プロパティでは、「*://www.amazon.co.jp/*」と「*://www.amazon.com/*」のURLにマッチするように設定しています。これにより、拡張機能はAmazonの商品ページにアクセスした際にのみ、コンテンツスクリプトが実行されます。
+
+`main`関数では、`chrome.runtime.onMessage.addListener`を使って、コンテンツスクリプトがメッセージを受信した際に実行されるコールバック関数を定義しています。このコールバック関数では、`getAmazonProductData`関数を呼び出し、商品情報を取得しています。
+
+先ほど、popupで「商品情報を取得」ボタンをクリックした際に、コンテンツスクリプトにメッセージ（getAmazonData）を送信していました。そのメッセージを受信した際に、`getAmazonProductData`関数を実行し、取得したデータを`sendResponse`関数で返しています。
+
+それでは、getAmazonProductData関数を作成しましょう。
+
+```ts title="entrypoints/content/getAmazonProductData.ts"
+export default function getAmazonProductData() {
+  const title = document.querySelector('#productTitle')?.textContent?.trim() || '';
+  const author = document.querySelector('.author .a-link-normal')?.textContent?.trim() || '';
+  const imageSrc = document.querySelector('#imgTagWrapperId img')?.getAttribute('src') || '';
+  const imageUrl = imageSrc ? extractImageId(imageSrc) : '';
+
+  return { title, author, imageUrl };
+}
+
+function extractImageId(url: string) {
+  const match = url.match(/\/images\/I\/([^\/]+)\.jpg/);
+  return match ? match[1] : null;
+}
+```
+
+この関数では、DOM操作よりAmazonの商品ページから商品情報を取得しています。画像URLのところは、一意なIDを取得するために、`extractImageId`関数を作って使っています。
+
+コンテンツスクリプトができたので、「商品情報を取得」ボタンをクリックしたら、テンプレートの形で商品情報が表示されるようになりました！
+
+###  コピーボタンを作る
+
+取得できた商品情報をコピーできるように、コピーボタンを作りましょう。
+
+```tsx {6-9,34-38} title="components/Scraping.tsx"
+export default function Scraping() {
+
+  // ...
+
+  // コピーボタンをクリックしたら、テンプレートをクリップボードにコピー
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(filledTemplate);
+    setIsCopying(true);
+  }
+
+  return (
+    <div className="p-4 pt-2 w-72 bg-[#232E3E] text-white">
+      <h2 className="text-base font-bold">Amazon 商品情報取得</h2>
+      <textarea
+        className="w-full p-2 border rounded mt-3"
+        rows={6}
+        value={template}
+        onChange={handleTemplateChange}
+      />
+      <button onClick={fetchProductData} className="bg-blue-500 hover:bg-blue-700 font-bold py-2 px-4 rounded mt-1">
+        商品情報を取得
+      </button>
+
+      {filledTemplate && (
+        <>
+          <pre className="mt-3 p-2 border rounded overflow-auto">{filledTemplate}</pre>
+          <button onClick={copyToClipboard} className="mt-2 p-2 bg-orange-400 rounded w-full font-bold">
+            コピー
+          </button>
+        </>
+      )}
+
+      // コピーが完了したら、メッセージを表示
+      {isCopying && (
+        <div className="mt-2 text-center">
+          コピーしました！
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+`navigator.clipboard.writeText`メソッドでテンプレートをクリップボードにコピーしています。
+`isCopying`という状態を作って、コピーが完了したら、メッセージを表示しています。
+
+これで、テンプレートをコピーできるようになりました！
+最後にユーザーがテンプレートを編集したら、その情報を保存できるようにしましょう！
+
+### ユーザーがテンプレートを編集したら、localStorageに保存する
+
+編集した情報を保存するためには、localStorageを使います。ユーザーがテンプレートを編集すると、`handleTemplateChange`関数が呼ばれるので、その中で`localStorage.setItem`でテンプレートをlocalStorageに保存します。その時のキーは「amazonTemplate」とします。
+
+そして、useEffectを使って、初回レンダリング時にlocalStorageからテンプレートを読み込むようにすることで、ページをリロードしてもテンプレートが保存されたままになり利便性が上がるでしょう。
+
+
+```tsx {4-9,15} title="components/Scraping.tsx"
+export default function Scraping() {
+
+  // 初回レンダリング時に、localStorageからテンプレートを読み込む
+  useEffect(() => {
+    const savedTemplate = localStorage.getItem('amazonTemplate');
+    if (savedTemplate) {
+      setTemplate(savedTemplate);
+    }
+  }, []);
+
+  const handleTemplateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newTemplate = e.target.value;
+    setTemplate(newTemplate);
+    // localStorageに保存
+    localStorage.setItem('amazonTemplate', newTemplate);
+  }
+}
+```
+
+以上で、WXTでAmazonの商品情報を取得する拡張機能が完成しました！
+これをこのまま貼り付ければ👇のように表示されるようになり、時間短縮になりました！
+
+<AmazonLink imageId="71+jz0lyKnL._SY522_" linkId="3FPBzDd" title="JavaScript 第7版" author="David Flanagan"/>
+
+## まとめ
+
+今回はじめてChrome拡張機能を作ってみました。フレームワークのWXTを使うことで、ちょっと調べるだけで簡単に作ることができて良かったです！
+
+今後も自分だけが使うようなChrome拡張機能を作っていきたいと思います。
+
+この記事が参考になれば幸いです。
+
+## 参考
+
+- [WXT公式](https://wxt.dev/)
+- [ブラウザ拡張機能をReactで開発する【WXT】](https://qiita.com/t-ujiie/items/8de2e101368245816e9f)
+- [ブラウザ拡張機能を作るならWXTを使おう](https://hamachi25.com/blog/post/wxt-browser-extension/)

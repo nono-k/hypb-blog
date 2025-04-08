@@ -9,10 +9,10 @@ export const siteMeta = {
 };
 
 export const category = [
-  // { name: 'Web', slug: 'web' },
   { name: 'Coding', slug: 'coding' },
-  { name: 'ブログ', slug: 'blog' },
   { name: '書籍紹介', slug: 'book' },
+  { name: 'Web', slug: 'web' },
+  { name: 'ブログ', slug: 'blog' },
 ];
 
 export const tags = [
@@ -27,7 +27,7 @@ export const tags = [
   { name: 'Alpine.js', slug: 'alpinejs' },
   { name: 'Pug', slug: 'pug' },
   { name: 'Gulp', slug: 'gulp' },
-  // { name: 'Chrome拡張機能', slug: 'chrome-extensions' },
+  { name: 'Chrome拡張機能', slug: 'chrome-extensions' },
   { name: 'フロントエンド雑記', slug: 'frontend' },
   // { name: 'CSS', slug: 'css' },
 ];
