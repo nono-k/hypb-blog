@@ -47,6 +47,7 @@
     "node": "20.9.0"
   },
   "devDependencies": {
+    "@iconify-json/fa6-brands": "^1.2.5",
     "@types/grecaptcha": "^3.0.9",
     "astro-icon": "^1.1.5"
   }
