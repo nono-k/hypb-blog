@@ -1,0 +1,620 @@
+---
+title: Astroでの開発環境のテンプレートを作ってみた
+slug: astro-template
+pubDate: '2025-04-12'
+image: ../../../assets/images/astro-template.jpg
+ogp: 'images/ogp/astro-template.jpg'
+category: Coding
+tags:
+  - Astro
+description: Astroでの開発環境のテンプレートを作ってみたので公開します。
+---
+
+## はじめに
+
+Astroプロジェクトを作る時に、毎回`npm create astro@latest`で作成していて、sassとかの導入が面倒なので自分用のテンプレを作りました。まだ、Astroの実践投入の機会は少ないので今後このテンプレをアップグレードしていく予定です。
+
+この記事では、1からAstroプロジェクトのテンプレートの作成方法を解説していけたらと思います！
+
+Astroの開発環境のテンプレのリポジトリは👇になります。
+
+https://github.com/nono-k/astro-template
+
+## Astroの導入
+
+Astroの導入は、npmやyarnでプロジェクトを作成します。作業ディレクトリで以下のコマンドを実行します。
+
+```
+npm create astro@latest
+```
+
+コマンドを実行したらプロジェクト名を聞かれるので入力します。今回は`astro-template`とします。また、スタートテンプレートを選択するか聞かれるので、今回は「A basic, minimal starter」を選択しましょう。後の項目は全てYesで大丈夫だと思います。
+
+## ディレクトリ構成
+
+今回のAstro開発環境のディレクトリ構成は以下のようになります。
+
+```
+.
+├── public
+│   ├── favicon.svg
+│   └── ojp.jpg
+├── src
+│   ├── assets
+│   │   └── images
+│   ├── components
+│   │   ├── base
+│   │   └── ui
+│   ├── data
+│   ├── layouts
+│   │   └── Layout.astro
+│   ├── pages
+│   │   ├── about
+│   │   └── index.astro
+│   ├── scripts
+│   ├── styles
+│   │   ├── setting
+│   │   ├── ui
+│   │   ├── utility
+│   │   ├── mixin.scss
+│   │   └── styles.scss
+│   ├── types
+│   ├── utils
+│   └── config.ts
+├── astro.config.mjs
+├── biome.json
+├── package-lock.json
+├── package.json
+└── tsconfig.json
+```
+
+それでは順に見ていきましょう。
+
+## biomeの導入
+
+ファイルのリンターとフォーマットを行うために、[biome](https://biomejs.dev/)を導入します。以下のコマンドを実行してインストールしましょう。
+
+```
+npm install --save-dev --save-exact @biomejs/biome
+```
+
+biomeの設定ファイルを作成します。`biome.json`ファイルを作成して以下のように記述しましょう。
+
+```json title="biome.json"
+{
+  "$schema": "https://biomejs.dev/schemas/1.2.2/schema.json",
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentWidth": 2,
+    "indentStyle": "space",
+    "lineWidth": 80
+  },
+  "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "asNeeded"
+    }
+  }
+}
+```
+
+今回は自分が利用している設定なので、個々のプロジェクトに応じて設定してみてください！
+
+<details>
+<summary>VSCodeで保存時にフォーマットするには？</summary>
+<div>
+公式でVSCodeの[拡張機能](https://marketplace.visualstudio.com/items?itemName=biomejs.biome)が用意されているのでインストールしましょう。
+
+`.vscode/settings.json`を作成し、以下のように記述することで保存時にフォーマットされるようになります。
+
+```json title=".vscode/settings.json"
+{
+  "editor.formatOnSave": true,
+}
+```
+</div>
+</details>
+
+## tsconfigにパスエイリアスを設定
+
+ファイルパスを短く書けるようにするために、tsconfigにパスエイリアスを設定しましょう。以下のように記述すればパスエイリアスを設定できます。
+
+```json {3-8} title="tsconfig.json"
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"]
+}
+```
+
+## sassの導入
+
+素のcssでもTailwind CSSでも問題ないのですが、今回はいつも通りsassを使ってcssを書いていきます。Astroではsassをインストールするだけで使えるようになります。
+
+```
+npm install sass
+```
+
+Astroファイルでsassを使う場合は、`<style lang="scss">`と書きます。
+
+```astro title="src/pages/index.astro"
+<style lang="scss">
+  .hoge {
+    color: red;
+  }
+</style>
+```
+
+## グローバルで使うcssの設定
+
+リセットcssやメディアクエリ用のMixin、カスタムプロパティなどの設定は`src/styles`フォルダーに書いていきます。詳細はリポジトリを見てもらうとして、今回はメディアクエリ関係などのmixinの設定例を解説します。
+
+それでは、`src/styles/mixin.scss`ファイルを作成して以下のように記述しましょう。
+
+```scss title="src/styles/mixin.scss"
+$mobile: 959px;
+$large: 960px;
+$phone: 549px;
+
+@mixin mobile {
+  @media (max-width: ($mobile)) {
+    @content;
+  }
+}
+
+@mixin phone {
+  @media (max-width: ($phone)) {
+    @content;
+  }
+}
+
+@mixin large {
+  @media (min-width: ($large)) {
+    @content;
+  }
+}
+
+@mixin hover {
+  @media (any-hover: hover) {
+    &:hover {
+      @content;
+    }
+  }
+}
+```
+
+ここでは、メディアクエリ用のmixinとホバー用のmixinを作っています。Astroコンポーネントでいつでもmixinを使えるように、`astro.config.mjs`ファイルに設定を追加しましょう。
+
+```js title="astro.config.mjs"
+// @ts-check
+import { defineConfig } from 'astro/config';
+
+// https://astro.build/config
+export default defineConfig({
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: '@use "src/styles/mixin.scss";',
+        },
+      },
+    },
+  },
+});
+```
+
+これで、Astroコンポーネントでいつでもmixinが呼び出せるようになりました。実際のAstroコンポーネントでの使用例は以下のようになります。
+
+```astro title="src/pages/index.astro"
+<style lang="scss">
+  .hoge {
+    color: red;
+    @include mixin.mobile {
+      color: black;
+    }
+    @include mixin.hover {
+      color: blue;
+    }
+  }
+</style>
+```
+
+## サイト情報の管理
+
+サイトのタイトルや説明文、OGP画像などの設定は共通だと思うので1つのファイルで管理しましょう。まずは、型定義ファイルを作成します。`src/types/config.ts`ファイルを作成し、以下のように記述しましょう。
+
+```ts title="src/types/config.ts"
+export type SiteConfig = {
+  siteTitle: string;
+  siteDesc: string;
+  siteUrl: string;
+  siteType: string;
+  siteLocale: string;
+  siteIcon: string;
+  siteImg: string;
+};
+```
+
+続いて、サイト情報を管理するファイルを作成します。`src/config.ts`ファイルを作成し、以下のように記述しましょう。
+
+```ts title="src/config.ts"
+import type { SiteConfig } from "@/types/config";
+
+export const siteConfig: SiteConfig = {
+  siteTitle: "My Site",
+  siteDesc: "My Site Description",
+  siteUrl: "https://example.com",
+  siteType: "website",
+  siteLocale: "ja_JP",
+  siteIcon: "/favicon.svg",
+  siteImg: "/ogp.png",
+}
+```
+
+これで共通したサイト情報にアクセスできるようになりました。最後に`astro.config.mjs`ファイルにサイトURLを追加しましょう。
+
+```js title="astro.config.mjs"
+import { siteConfig } from './src/config';
+
+const { siteUrl } = siteConfig;
+
+// https://astro.build/config
+export default defineConfig({
+  site: siteUrl,
+});
+```
+
+## Layoutコンポーネントの作成
+
+サイト共通で利用するLayoutコンポーネントを編集しましょう。`src/layouts/Layout.astro`ファイルを以下のように編集しましょう。
+
+```astro title="src/layouts/Layout.astro"
+---
+// Googlee Fontsなどはここで読み込む
+
+import '@/styles/styles.scss';
+
+import Footer from '@/components/base/Footer.astro';
+import Header from '@/components/base/Header.astro';
+import Meta from '@/components/base/Meta.astro';
+
+const props = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+	<head>
+		<Meta {...props} />
+	</head>
+	<body>
+    <Header />
+		<slot />
+    <Footer />
+	</body>
+</html>
+```
+
+Google Fontsなどの外部ファイルはLayoutコンポーネントで読み込むことにします。このテンプレートではLayoutコンポーネントでヘッダーとフッターを読み込むようにしています。
+
+### Metaコンポーネントの作成
+
+メタ情報も共通になるのでコンポーネントに分けましょう。`src/components/base/Meta.astro`ファイルを作成し、以下のように記述しましょう。
+
+```astro title="src/components/base/Meta.astro"
+---
+import { siteConfig } from "@/config";
+
+const { siteTitle, siteDesc, siteLocale, siteType, siteIcon, siteImg } = siteConfig;
+
+const {
+  pageTitle,
+  description = siteDesc,
+  pageOgp,
+} = Astro.props;
+
+const title = pageTitle ? `${pageTitle} | ${siteTitle}` : siteTitle;
+
+const ogpImg = pageOgp ? pageOgp : siteImg;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const socialImageURL = new URL(ogpImg, Astro.site);
+
+---
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width" />
+<meta name="generator" content={Astro.generator} />
+<title>{title}</title>
+<meta property="og:title" content={title} />
+<meta name="description" content={description} />
+<meta property="og:description" content={description} />
+<link rel="canonical" href={canonicalURL} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:site_name" content={siteTitle} />
+<meta property="og:type" content={siteType} />
+<meta property="og:locale" content={siteLocale} />
+<link rel="icon" href={siteIcon} />
+<link rel="apple-touch-icon" href={siteIcon} />
+<meta property="og:image" content={socialImageURL} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+```
+
+`src/config.ts`ファイルにサイト共通の情報を記述しているので、読み込みます。タイトルとOGP画像と説明文の箇所はページごとに変更する可能性があるので、三項演算子でページごとに変更できるようにしています。例えば、Aboutページでは、以下のように記述します。
+
+```astro title="src/pages/about/index.astro"
+---
+import Layout from '@/layouts/Layout.astro';
+
+const pageTitle = 'About';
+const description = 'Aboutページの説明文です。';
+const pageOgp = '/images/ogp/about/ogp.png';
+---
+
+<Layout
+  pageTitle={pageTitle}
+  description={description}
+  pageOgp={pageOgp}>
+
+  <h1>Aboutページです。</h1>
+
+</Layout>
+```
+
+これで、ページごとにメタ情報を設定できるようになりました。
+
+
+### ヘッダーの作成
+
+Layoutコンポーネントで読み込むコンポーネントとして、ヘッダーを作成しましょう。ヘッダーもサイト共通なので、`config.ts`ファイルで管理しましょう！
+
+```ts title="src/types/config.ts"
+export type HeaderLink = {
+  name: string;
+  url: string;
+};
+```
+
+
+```ts {1} title="src/config.ts"
+import type { SiteConfig, HeaderLink } from "@/types/config";
+
+export const headerLink: HeaderLink[] = [
+  { name: 'Home', url: '/' },
+  { name: 'About', url: '/about' },
+  { name: 'Contact', url: '/contact' },
+];
+```
+
+`src/components/base/Header.astro`ファイルを作成し、以下のように記述しましょう。
+
+```astro title="src/components/base/Header.astro"
+---
+import { headerLink } from "@/config";
+---
+
+<header class="header">
+  <a href="/" class="header__logo">Logo</a>
+  <nav class="header__nav">
+    <ul class="header__list">
+      {headerLink.map(link => (
+        <li>
+          <a href={link.url}>{link.name}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</header>
+
+<style lang="scss">
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #f0f0f0;
+    &__logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    &__list {
+      display: flex;
+      gap: 1rem;
+    }
+  }
+</style>
+```
+
+config.tsで設定したリンク情報をmap関数を使って表示させてます。以上、ヘッダーの例になりました！
+
+## ページルーティング
+
+ページルーティングについても見ていきましょう！TOPページとAboutページを以下のように作成しましょう。
+
+### TOPページ
+
+```astro title="src/pages/index.astro"
+---
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout>
+  <h1>TOPページ</h1>
+</Layout>
+```
+
+### Aboutページ
+
+```astro title="src/pages/about/index.astro"
+---
+import Layout from '@/layouts/Layout.astro';
+
+const pageTitle = 'About';
+const description = 'Aboutページの説明文です。';
+const pageOgp = '/images/ogp/about/ogp.png';
+---
+
+<Layout
+  pageTitle={pageTitle}
+  description={description}
+  pageOgp={pageOgp}>
+
+  <h1>Aboutページです。</h1>
+
+</Layout>
+```
+
+それぞれのページを移動してみてh1やタイトルが変わるか確認してみてください！
+
+## カードコンポーネントの作成
+
+最後にカードコンポーネントとカード情報を作成して、TOPページで表示します。最初にカード情報の型定義ファイルを作成しましょう。`src/types/card.ts`ファイルを作成し、以下のように記述しましょう。
+
+```ts title="src/types/card.ts"
+export type Card = {
+  title: string;
+  image: string;
+  tags: string[];
+};
+```
+
+次に、カード情報を作成しましょう。`src/data/card.ts`ファイルを作成し、以下のように記述しましょう。
+
+```ts title="src/data/card.ts"
+import type { Card } from '@/types/card';
+
+export const cardData: Card[] = [
+  {
+    title: 'タイトル 01',
+    image: 'https://picsum.photos/800/400?random=1',
+    tags: ['html'],
+  },
+  {
+    title: 'タイトル 03',
+    image: 'https://picsum.photos/800/400?random=2',
+    tags: ['css'],
+  },
+  {
+    title: 'タイトル 03',
+    image: 'https://picsum.photos/800/400?random=3',
+    tags: ['html', 'css'],
+  },
+];
+```
+
+次に、カードコンポーネントを作成しましょう。`src/components/ui/Card.astro`ファイルを作成し、以下のように記述しましょう。
+
+```astro title="src/components/ui/Card.astro"
+---
+import type { Card } from "@/types/card";
+
+interface Props {
+  card: Card;
+}
+
+const { card } = Astro.props;
+---
+
+<div class="card">
+  <div class="card__image">
+    <img src={card.image} alt="">
+  </div>
+  <div class="card__body">
+    <ul class="card__tags">
+      {card.tags.map(tag => (
+        <li class="card__tag">{tag}</li>
+      ))}
+    </ul>
+    <div class="card__title">{card.title}</div>
+  </div>
+</div>
+
+<style lang="scss">
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    &__body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    &__tags {
+      display: flex;
+      gap: 0.5rem;
+    }
+    &__tag {
+      padding: 0.25rem 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 0.25rem;
+    }
+    &__title {
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+  }
+</style>
+```
+
+最後にTopページでカードを表示させます！
+
+```astro title="src/pages/index.astro"
+---
+import Card from '@/components/ui/Card.astro';
+import { cardData } from '@/data/card-data';
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout>
+  <h1>TOPページ</h1>
+
+  <div class="card__container">
+    {cardData.map((card) => (
+      <Card card={card} />
+    ))}
+  </div>
+</Layout>
+
+<style lang="scss">
+  .card__container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin: 3rem 2rem;
+    padding-inline: 1rem;
+  }
+</style>
+```
+
+Topページに移動して、カードが表示されていることを確認してください！Astroでも、コンポーネントやデータを別ファイルに分離することで、コードの再利用性や保守性を高めることができコーディングの速度の向上も期待できます。
+
+---
+
+## まとめ
+
+自分のAstroでの開発環境のテンプレートを作成し、作り方を解説しました。Astroは学習コストも高くなく直ぐに使い始めることができるので、ぜひ使ってみてください！
+
+この記事が参考になれば幸いです。
