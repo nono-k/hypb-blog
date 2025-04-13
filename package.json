@@ -7,7 +7,8 @@
     "start": "astro dev",
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "new:post": "node --import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"ts-node/esm\", pathToFileURL(\"./\"));' src/scripts/create-post.ts"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
@@ -47,7 +48,10 @@
     "node": "20.9.0"
   },
   "devDependencies": {
+    "@iconify-json/fa6-brands": "^1.2.5",
+    "@iconify-json/simple-icons": "^1.2.31",
     "@types/grecaptcha": "^3.0.9",
-    "astro-icon": "^1.1.5"
+    "astro-icon": "^1.1.5",
+    "ts-node": "^10.9.2"
   }
 }

@@ -15,6 +15,8 @@ import ArticleBody from "@/components/pages/article/article-body.astro";
 import PaginationBox from "@/components/pages/article/pagination-box.astro";
 import AmazonLink from "@/components/pages/article/AmazonLink.astro";
 import Figure from "@/components/markdown/Figure.astro";
+import ShareCard from "@/components/pages/article/ShareCard.astro";
+import Related from '@/components/pages/article/Related.astro';
 
 interface Props {
   post: CollectionEntry<"articles">;
@@ -43,7 +45,7 @@ const { post, url } = Astro.props as { post: CollectionEntry<"articles">; url: R
 const { Content } = await post.render();
 
 const {
-  data: { title, pubDate, description, ogp, image, isAdLink, amazon },
+  data: { title, pubDate, description, ogp, image, isAdLink, amazon, relatedPosts },
 } = post;
 const pubDateISO = formatISO(pubDate);
 const pubDateJA = format(pubDate, 'yyyy.MM.dd');
@@ -92,7 +94,11 @@ const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
 
         { amazon ? <AmazonLink {...amazon} /> : ''}
 
+        <ShareCard post={post} />
+
         <PaginationBox {...url} />
+
+        { relatedPosts ? <Related relatedPosts={relatedPosts} /> : '' }
       </div>
     </ArticleContainer>
   </div>

@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import { rehypeHeadingIds } from '@astrojs/markdown-remark';
 import { siteMeta } from './src/lib/constants';
 import { h } from 'hastscript';
+import icon from 'astro-icon';
 import mdx from "@astrojs/mdx";
 import react from '@astrojs/react';
 import remarkBreaks from 'remark-breaks';
@@ -58,6 +59,7 @@ export default defineConfig({
   },
   integrations: [
     mdx(),
+    icon(),
     react(),
     partytown({
       config: {

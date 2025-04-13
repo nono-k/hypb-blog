@@ -1,0 +1,137 @@
+---
+import { getCollection, getEntries } from "astro:content";
+import { compareDesc } from 'date-fns';
+import { Image } from "astro:assets";
+
+const { relatedPosts } = Astro.props;
+const relatedPostsData = await getEntries(relatedPosts);
+
+const articlePosts = await getCollection('articles');
+const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
+const sortedArticlePosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
+const newArticlePosts = sortedArticlePosts.slice(0, 4);
+---
+
+<div class="related">
+  <div class="related__content">
+    <p class="related__heading">関連記事</p>
+    <ul class="related__list">
+      {relatedPostsData.map((post) => {
+        const { slug, data: { title, image }} = post;
+        return (
+          <li class="related__item">
+            <a href={`/articles/${slug}`}>
+              <div class="related__image">
+                <Image src={image} alt={title} />
+              </div>
+              <p class="related__title">{title}</p>
+            </a>
+          </li>
+        )
+      })}
+    </ul>
+  </div>
+  <div class="related__content">
+    <p class="related__heading">新着記事</p>
+    <ul class="related__list -new">
+      {newArticlePosts.map((post) => {
+        const { slug, data: { title, image }} = post;
+        return (
+          <li class="related__item">
+            <a href={`/articles/${slug}`}>
+              <div class="related__image">
+                <Image src={image} alt={title} />
+              </div>
+              <p class="related__title">{title}</p>
+            </a>
+          </li>
+        )
+      })}
+    </ul>
+  </div>
+</div>
+
+<style lang="scss">
+  .related {
+    margin-top: 4rem;
+    background: var(--gray-10);
+    border-radius: 38px;
+    padding: 3rem 2.5rem;
+    @include mixin.mobile {
+      padding: 2rem 1rem;
+    }
+    @include mixin.phone {
+      border-radius: 20px;
+      padding-bottom: 2.5rem;
+    }
+    > * + * {
+      margin-top: 3rem;
+    }
+    &__heading {
+      display: inline-block;
+      font-size: 1.25rem;
+      background: var(--black);
+      color: var(--gray-10);
+      padding: 0.75rem 3rem;
+      border-radius: 2.5rem;
+      margin-bottom: 1.5rem;
+      @include mixin.mobile {
+        font-size: 1rem;
+        padding: 0.5rem 2rem
+      }
+    }
+    &__list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      column-gap: 1.75rem;
+      row-gap: 1rem;
+      margin-inline: 1.5rem;
+      @include mixin.mobile {
+        grid-template-columns: repeat(2, 1fr);
+        column-gap: 1.5rem;
+        row-gap: 1.5rem;
+        margin-inline: 0;
+      }
+      &.-new {
+        @include mixin.large {
+          grid-template-columns: repeat(4, 1fr);
+          column-gap: 1.5rem;
+          .related__image {
+            border-radius: 0.875rem;
+          }
+        }
+      }
+    }
+    &__item {
+      a {
+        display: block;
+        height: 100%;
+        @media (hover: hover) {
+          &:hover {
+            .related__image {
+              img {
+                scale: (1.05);
+              }
+            }
+          }
+        }
+      }
+    }
+    &__image {
+      aspect-ratio: 16 / 9;
+      margin-bottom: 0.5rem;
+      border-radius: 1rem;
+      overflow: hidden;
+      img {
+        height: 100%;
+        transition: .5s;
+      }
+    }
+    &__title {
+      font-size: 0.75rem;
+      display: --webkit-box;
+      height: 36px;
+      overflow: hidden;
+    }
+  }
+</style>

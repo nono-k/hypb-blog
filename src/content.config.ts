@@ -1,4 +1,4 @@
-import { z, defineCollection } from 'astro:content';
+import { z, defineCollection, reference } from 'astro:content';
 
 const articleCollection = defineCollection({
   schema: ({image}) => z.object({
@@ -9,6 +9,7 @@ const articleCollection = defineCollection({
     category: z.string(),
     tags: z.array(z.string()),
     description: z.string(),
+    relatedPosts: z.array(reference('articles')).optional(),
     draft: z.boolean().optional(),
     isAdLink: z.boolean().optional(),
     amazon: z.object({

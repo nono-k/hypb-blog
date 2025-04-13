@@ -1,0 +1,181 @@
+---
+import { Image } from "astro:assets";
+import { Icon } from 'astro-icon/components';
+import { siteMeta } from "@/lib/constants";
+
+const { post } = Astro.props;
+const { siteUrl } = siteMeta;
+
+console.log(Astro.site);
+
+const shareLink = [
+  {
+    name: 'X/Twitter',
+    icon: 'fa6-brands:x-twitter',
+    url: `https://twitter.com/intent/tweet?text=${post.data.title}&url=${siteUrl}/articles/${post.slug}`,
+  },
+  {
+    name: 'Facebook',
+    icon: 'fa6-brands:facebook',
+    url: `https://www.facebook.com/sharer/sharer.php?u=${siteUrl}/articles/${post.slug}`,
+    color: '#1777F2'
+  },
+  {
+    name: 'LINE',
+    icon: 'fa6-brands:line',
+    url: `https://social-plugins.line.me/lineit/share?url=${siteUrl}/articles/${post.slug}`,
+    color: '#00B901'
+  },
+  {
+    name: 'Hatena',
+    icon: 'simple-icons:hatenabookmark',
+    url: `https://b.hatena.ne.jp/entry/${siteUrl}/articles/${post.slug}`,
+    color: '#00A4DE'
+  }
+]
+
+---
+
+<div class="shareCard">
+  <div class="shareCard__left">
+    <div class="shareCard__image">
+      <Image src={post.data.image} alt={post.data.title} />
+    </div>
+    <div class="shareCard__title">
+      {post.data.title}
+    </div>
+  </div>
+  <div class="shareCard__right">
+    <p class="shareCard__heading">この記事をシェアする</p>
+    <ul class="shareCard__list">
+      {
+        shareLink.map(({ name, icon, url, color }) => (
+          <li class="shareCard__item">
+            <a href={url} target="_blank" aria-label={name} class="shareCard__link" style={color ? `color: ${color}` : ''}>
+              <Icon name={icon} />
+            </a>
+          </li>
+        ))
+      }
+      <li class="shareCard__item -button">
+        <button class="shareCard__copy">
+          リンクをコピーする
+        </button>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<style lang="scss">
+  .shareCard {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    background: var(--gray-10);
+    border-radius: 38px;
+    padding: 2rem;
+    margin-top: 3rem;
+    @include mixin.phone {
+      grid-template-columns: 1fr;
+      border-radius: 20px;
+      row-gap: 1.5rem;
+      padding: 2rem 1.5rem;
+    }
+    &__left {
+      padding: 1rem 2.5rem 0rem 0.5rem;
+      @include mixin.mobile {
+        padding-right: 1.5rem;
+        padding-left: 0;
+      }
+      @include mixin.phone {
+        padding: 0;
+      }
+    }
+    &__title {
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+    &__heading {
+      font-weight: 700;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      @include mixin.mobile {
+        font-size: 1.25rem;
+      }
+      &::before {
+        content: '';
+        width: 0.875rem;
+        height: 0.875rem;
+        background: var(--yellow);
+        border-radius: 50%;
+        margin-top: 0.2rem;
+      }
+    }
+    &__list {
+      margin-top: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      column-gap: 1rem;
+      row-gap: 0.875rem;
+      @include mixin.mobile {
+        column-gap: 0.75rem;
+      }
+    }
+    &__link, &__copy {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0.875rem 1rem;
+      background: #ececed;
+      border: 1px solid #4f576c;
+      font-size: 1.6rem;
+      border-radius: 25px;
+      transition: background 0.3s;
+      @include mixin.mobile {
+        font-size: 1.4rem;
+      }
+      @media (hover: hover) {
+        &:hover {
+          background: #d5d5d5;
+        }
+      }
+    }
+    &__item {
+      &.-button {
+        grid-column: 1 / -1;
+      }
+    }
+    &__copy {
+      font-size: 1rem;
+      font-weight: 800;
+      width: 100%;
+      gap: 0.5rem;
+      cursor: pointer;
+      &::before {
+        content: "🔗";
+        font-size: 0.8em;
+        margin-top: 0.2rem;
+      }
+      &.copied {
+        &::before {
+          content: '';
+        }
+      }
+    }
+  }
+</style>
+
+<script>
+  const copyButton = document.querySelector('.shareCard__copy');
+  copyButton?.addEventListener('click', () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    copyButton.classList.add('copied');
+    copyButton.textContent = 'コピーしました';
+    setTimeout(() => {
+      copyButton.classList.remove('copied');
+      copyButton.textContent = 'リンクをコピーする';
+    }, 2000);
+  });
+</script>

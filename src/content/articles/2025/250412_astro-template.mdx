@@ -8,6 +8,8 @@ category: Coding
 tags:
   - Astro
 description: Astroでの開発環境のテンプレートを作ってみたので公開します。
+relatedPosts:
+  - first-post
 ---
 
 ## はじめに
@@ -610,6 +612,14 @@ import Layout from '@/layouts/Layout.astro';
 ```
 
 Topページに移動して、カードが表示されていることを確認してください！Astroでも、コンポーネントやデータを別ファイルに分離することで、コードの再利用性や保守性を高めることができコーディングの速度の向上も期待できます。
+
+## テンプレートの利用方法
+
+Astro開発環境のテンプレートを作成できたら、Githubに公開しておきましょう。公開したテンプレートを利用するには、以下のコマンドを実行することで利用できます。リポジトリの部分はご自身のリポジトリを利用ください。
+
+```
+npm create astro@latest -- --template nono-k/astro-template
+```
 
 ---
 
