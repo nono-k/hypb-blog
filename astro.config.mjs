@@ -8,10 +8,12 @@ import react from '@astrojs/react';
 import remarkBreaks from 'remark-breaks';
 import remarkGemoji from 'remark-gemoji';
 import remarkLinkCard from 'remark-link-card';
+import remarkMath from 'remark-math';
 import rehypePrettyCode from 'rehype-pretty-code';
 import rehypeRaw from 'rehype-raw';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
+import rehypeKatex from 'rehype-katex';
 import partytown from "@astrojs/partytown";
 import sitemap from '@astrojs/sitemap';
 
@@ -70,12 +72,20 @@ export default defineConfig({
   ],
   markdown: {
     syntaxHighlight: false,
-    remarkPlugins: [remarkBreaks, remarkGemoji, [remarkLinkCard, {
-      cache: true,
-      shortenUrl: true
-    }]],
+    remarkPlugins: [
+      remarkBreaks,
+      remarkGemoji,
+      remarkMath,
+      [
+        remarkLinkCard, {
+          cache: true,
+          shortenUrl: true
+        }
+      ]
+    ],
     rehypePlugins: [
       rehypeRaw,
+      rehypeKatex,
       [rehypeExternalLinks, { target: '_blank' }],
       [rehypePrettyCode, codeOptions],
       rehypeHeadingIds,

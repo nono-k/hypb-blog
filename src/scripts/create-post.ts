@@ -33,6 +33,8 @@ category:
 tags:
   -
 description:
+relatedPosts:
+  - recommended-book-for-frontend-devs
 ---
   `;
 

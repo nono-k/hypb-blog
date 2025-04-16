@@ -22,37 +22,36 @@ import Caution from '../../../components/markdown/caution.astro';
 
 ## はじめに
 
-個人の備忘録としてブログを[Astro](https://astro.build)で作成した。
-このブログではフロントエンド技術やWebに関して書いていきたい。
+個人の備忘録としてブログを[Astro](https://astro.build)で作成しました。
+このブログではフロントエンド技術やWebに関して書いていきたいと思います。
 
 以下はこのブログのGitのリポジトリになります。
-未経験からWeb制作会社に転職して半年くらいでこのブログを作成したのだが、ブログの自作は非常に勉強になった。
+未経験からWeb制作会社に転職して半年くらいでこのブログを作成しましたが、ブログの自作は非常に勉強になりました。
 
 https://github.com/nono-k/hypb-blog
 
 ## デザインについて
 
-最近のモダンな技術（NextjsやAstro）で作られた個人ブログは洗練されていて格好いいのだが、どれも似たようなレイアウトに感じることもありポップで被らないようにと意識してデザインを作成した。
+最近のモダンな技術（NextjsやAstro）で作られた個人ブログは洗練されていて格好いいですが、どれも似たようなレイアウトに感じることもありポップで被らないようにと意識してデザインを作成しました。
 
-結果、自作したことで愛着を持つことができたのでこれからコンテンツを増やしていきたい。
+結果、自作したことで愛着を持つことができたのでこれからコンテンツを増やしていきたいと思います。
 
 ## 機能一覧と実装まとめ
 
-以下はこのブログの機能と実装のまとめになる。
+以下はこのブログの機能と実装のまとめです。
 
 ### 検索機能
 
-[トップ](https://hypb.dev)のみになるがブログ記事のテキスト検索ができるようにした🔎
-検索ライブラリーとしては[Pagefind](https://pagefind.app/)を使った。
+[トップ](https://hypb.dev)のみになりますが、ブログ記事のテキスト検索ができるようにしました🔎検索ライブラリーとしては[Pagefind](https://pagefind.app/)を使ってます。
 
-PagefindではCSS（`@pagefind/default-ui/css/ui.css`）とJS（`@pagefind/default-ui.js`）を読み込むだけですぐに検索機能が使用できるようになった。
+PagefindではCSS（`@pagefind/default-ui/css/ui.css`）とJS（`@pagefind/default-ui.js`）を読み込むだけですぐに検索機能が使用できるようになります。
 
-`data-pagefind-body`を付けることで、その要素以下のコンテツを検索対象にすることができるのでこのサイトではブログ記事の本文以下を検索対象として指定した。
+要素に`data-pagefind-body`を付けることで、その要素以下のコンテツを検索対象にすることができるのでこのサイトではブログ記事の本文以下を検索対象として指定してます。
 
 ### 目次機能
 
-画面幅960px以上で閲覧すると記事の左側に目次リンクが表示されるように実装した📔
-こちらは[TocBot](https://tscanlin.github.io/tocbot/)というライブラリーを使用した。
+画面幅960px以上で閲覧すると記事の左側に目次リンクが表示されるように実装しました📔
+こちらは[TocBot](https://tscanlin.github.io/tocbot/)というライブラリーを使用してます。
 
 以下:arrow_down:は実装方法になります。
 
@@ -60,7 +59,7 @@ https://hypb.dev/articles/astrojs-tocbot
 
 ### リンクカード
 
-自作で実装しようと思ったが大変だったので、remark用のプラグイン[remark-link-card](https://github.com/gladevise/remark-link-card?tab=readme-ov-file)を採用した。
+自作で実装しようと思ったが大変だったので、remark用のプラグイン[remark-link-card](https://github.com/gladevise/remark-link-card?tab=readme-ov-file)を採用しました。
 
 remark-link-cardを使うと、Markdown内のリンクに対して自動でリンクカードに変換してくれます。
 リンクカードにはサムネイル、タイトル、概要、favicon、リンク先のURLが表示されます。
@@ -106,8 +105,7 @@ https://hypb.dev/articles/astrojs-rehype-pretty-code/
 
 ### 独自記法
 
-当初はZennやQiitaみたいなnote記法で書きたかったが、実装で断念してMDXのコンポーネントで対応した。
-使い方としてはMDXファイルでimportして使う事ができる。
+当初はZennやQiitaみたいなnote記法で書きたかったが、実装で断念してMDXのコンポーネントで対応した。使い方としてはMDXファイルでimportして使う事ができます。
 
 ```md
 ---
@@ -154,7 +152,7 @@ import Caution from '../../components/markdown/caution.astro';
 
 以下は今後実装したい機能です。
 
-- [ ] 数式（remark-math）
-- [ ] ページネーション
+- [x] 数式（remark-math）
+- [x] ページネーション
 - [x] サイトマップ
 - [ ] Twitter,Youtubeの埋め込み

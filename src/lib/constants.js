@@ -16,6 +16,7 @@ export const category = [
 ];
 
 export const tags = [
+  { name: 'CSS', slug: 'css' },
   { name: 'JavaScript', slug: 'javascript' },
   { name: 'Next.js', slug: 'nextjs' },
   { name: 'Astro', slug: 'astro' },
@@ -27,7 +28,7 @@ export const tags = [
   { name: 'Alpine.js', slug: 'alpinejs' },
   { name: 'Pug', slug: 'pug' },
   { name: 'Gulp', slug: 'gulp' },
+  { name: '3D', slug: '3d' },
   { name: 'Chrome拡張機能', slug: 'chrome-extensions' },
   { name: 'フロントエンド雑記', slug: 'frontend' },
-  // { name: 'CSS', slug: 'css' },
 ];
