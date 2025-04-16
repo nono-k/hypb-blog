@@ -1,0 +1,238 @@
+---
+title: CSS transform と perspective を使った3Dカルーセルの作り方
+slug: css-3d-carousel
+pubDate: '2025-04-17'
+image: ../../../assets/images/css-3d-carousel.jpg
+ogp: 'images/ogp/css-3d-carousel.jpg'
+category: Coding
+tags:
+  - CSS
+  - 3D
+description: CSSのtransformとperspectiveを使った3Dカルーセルの作り方を解説します。
+relatedPosts:
+  - recommended-book-for-frontend-devs
+---
+import CodePenEmbed from '../../../components/markdown/CodePenEmbed.astro';
+
+## はじめに
+
+今回はCSSの`perspective`プロパティと`preserve-3d`プロパティを使って3Dカルーセルを作ってみたので、その方法を解説します。カールセルの制御などにはJavaScriptを使っていて、3Dの感じはCSSで表現してます。
+
+👇は完成形のCodePenデモです！(画面幅によっては上手く表示されない可能性があるのでCodePen上で画面を広げてみてください)
+
+<CodePenEmbed penId="myybJKY" title="CSS 3D Carousel" />
+
+↓今回のリポジトリです。
+
+https://github.com/nono-k/css-3d-carousel
+
+## HTML
+
+HTMLは下記の通りになります。今回は要素を8個とし`scene`と`carousel`クラスでラップします。「Prev」「Next」ボタンは`carousel__prev`と`carousel__next`クラスとしてます。
+
+```html title="index.html"
+<div class="scene">
+  <div class="carousel">
+    <div class="carousel__item">1</div>
+    <div class="carousel__item">2</div>
+    <div class="carousel__item">3</div>
+    <div class="carousel__item">4</div>
+    <div class="carousel__item">5</div>
+    <div class="carousel__item">6</div>
+    <div class="carousel__item">7</div>
+    <div class="carousel__item">8</div>
+  </div>
+</div>
+<div class="carousel__prev">Prev</div>
+<div class="carousel__next">Next</div>
+```
+
+## CSS
+
+次に基本的なレイアウトを設定します。各カルーセルの間隔を20pxにするため、widthとheightを`calc(100% - 20px)`にしてます。実際のsceneの幅は260pxとしてます。
+
+```scss title="styles.scss"
+.scene {
+  width: 260px;
+  aspect-ratio: 16 / 9;
+  position: relative;
+  perspective: var(--perspective);
+}
+
+.carousel {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  transform-style: preserve-3d;
+  transition: transform 1s;
+  &__item {
+    position: absolute;
+    width: calc(100% - 20px);
+    height: calc(100% - 20px);
+    top: 50%;
+    left: 50%;
+
+    transform: translate(-50%, -50%)
+    　　　　　　　rotateY(var(--rotateY))
+    　　　　　　　translateZ(var(--tz));
+
+    background-color: hsl(var(--hue) 80% 45% / 90%);
+    font-size: 3rem;
+    color: #fff;
+    display: grid;
+    place-items: center;
+  }
+}
+```
+
+3次元を扱えるように、親の`scene`クラスに`perspective`プロパティを指定する必要がありますが、この値は後でJavaScript側で計算して設定します。同様に`rotateY`と`translateZ`もJavaScript側で計算して設定します。
+
+カルーセルアイテムの色(`--hue`)も、JavaScript側で設定します。それでは、JavaScript側のコードを見ていきましょう。
+
+## JavaScript
+
+以下、JavaScriptの全コードになります。
+
+```js title="script.js"
+class Carousel3D {
+  constructor() {
+    this.carousel = document.querySelector('.carousel');
+    this.carouselItems = this.carousel.querySelectorAll('.carousel__item');
+    this.rotation = 0;
+    this.angle = 360 / this.carouselItems.length;
+
+    this.init();
+  }
+  init() {
+    this.setUp();
+    this.clickHandler();
+  }
+  setUp() {
+    const scene = document.querySelector('.scene');
+    const sceneSize = scene.clientWidth;
+    const tz = sceneSize / 2 / Math.tan(Math.PI * this.angle / 180 / 2);
+
+    scene.style.perspective = `${tz * 2}px`;
+
+    this.carouselItems.forEach((item, i) => {
+      item.style.setProperty('--hue', `${i * this.angle}deg`);
+      item.style.setProperty('--rotateY', `${i * this.angle}deg`);
+      item.style.setProperty('--tz', `${tz}px`);
+    });
+  }
+  clickHandler() {
+    const prevBtn = document.querySelector('.carousel__prev');
+    const nextBtn = document.querySelector('.carousel__next');
+
+    prevBtn.addEventListener('click', () => {
+      this.rotation += this.angle;
+      this.carousel.style.setProperty('--rotateY', `${this.rotation}deg`);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      this.rotation -= this.angle;
+      this.carousel.style.setProperty('--rotateY', `${this.rotation}deg`);
+    });
+  }
+}
+
+new Carousel3D();
+```
+
+こちらのコードを順に見ていきましょう。
+
+### 並べる角度を計算する
+
+今回は立体に見えるように並べていくので、並べる角度を計算します。
+並べる角度の計算式としては360度から要素の数を割ることで求めることができます。
+
+```js
+this.angle = 360 / this.carouselItems.length;
+```
+
+今回は要素の数が8つなので、45度ずつ並べることになります。
+
+### 立体に見えるように並べる
+
+ここで、立体に見える並べ方について考えてみましょう。
+下記の図はカールセルを上から見た図になります。
+
+!['カルーセルを上から見た図'](../../../assets/images/post/css-3d-carousel-01.jpg 'カルーセルを上から見た図')
+
+ここで既知の値としては、カルーセルの幅(260px)と角度(45度)になります。立体に見えるように並べるために欲しい値としては図のrの値になります。rの値は図の右の直角三角形から求めることができます。
+
+$$
+r = \frac{130}{\tan(22.5^\circ)}
+$$
+
+諸々の計算をしてるのが、`setUp`メソッドになります。
+
+```js
+setUp() {
+  const scene = document.querySelector('.scene');
+  const sceneSize = scene.clientWidth;
+  const tz = sceneSize / 2 / Math.tan(Math.PI * this.angle / 180 / 2);
+
+  scene.style.perspective = `${tz * 2}px`;
+
+  this.carouselItems.forEach((item, i) => {
+    item.style.setProperty('--hue', `${i * this.angle}deg`);
+    item.style.setProperty('--rotateY', `${i * this.angle}deg`);
+    item.style.setProperty('--tz', `${tz}px`);
+  });
+}
+```
+
+カルーセルを上から見た図を見た通り、親の`scene`クラスの`perspective`プロパティの値は、rの値の2倍になるので2倍して設定してます。後は、各カルーセルの`--hue`、`--rotateY`、`--tz`の値をカスタムプロパティに設定しています。
+
+cssを再掲すると、このようになってます。
+
+```scss
+.carousel {
+
+  &__item {
+    transform: translate(-50%, -50%)
+    　　　　　　　rotateY(var(--rotateY))
+    　　　　　　　translateZ(var(--tz));
+
+    background-color: hsl(var(--hue) 80% 45% / 90%);
+  }
+}
+```
+
+これで立体に見えるように並べることができました。カルーセルの大きさについては、`scene`クラスの`width`プロパティと、`--perspective`の値を変更することで変更できます。最後にカルーセルを回転させるコードを書いていきましょう。
+
+### カルーセルを回転させる
+
+上から見た図を見た通り、カルーセルを回転させるためには、Y軸方向に回転させれば良いです。そのようにボタンをクリックした時に、`--rotateY`の値を変更するコードが以下になります。
+
+```js
+clickHandler() {
+  const prevBtn = document.querySelector('.carousel__prev');
+  const nextBtn = document.querySelector('.carousel__next');
+
+  prevBtn.addEventListener('click', () => {
+    this.rotation += this.angle;
+    this.carousel.style.setProperty('--rotateY', `${this.rotation}deg`);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    this.rotation -= this.angle;
+    this.carousel.style.setProperty('--rotateY', `${this.rotation}deg`);
+  });
+}
+```
+
+これでカルーセルを回転させることができました。
+
+---
+
+## まとめ
+
+CSSの`perspective`プロパティと`preserve-3d`プロパティを使った3Dカルーセルの作り方を解説しました。ほぼCSSのみでリッチなカルーセルを作ることができました🎠
+
+三角関数の使い所など参考になったならば幸いです。
+
+## 参考
+
+- [Intro to CSS 3D transforms - Carousel](https://3dtransforms.desandro.com/carousel)
