@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import { rehypeHeadingIds } from '@astrojs/markdown-remark';
 import { siteMeta } from './src/lib/constants';
 import { h } from 'hastscript';
+import { transformerCopyButton } from '@rehype-pretty/transformers';
 import icon from 'astro-icon';
 import mdx from "@astrojs/mdx";
 import react from '@astrojs/react';
@@ -24,6 +25,12 @@ const {
 const codeOptions = {
   theme: 'one-dark-pro',
   defaultLang: 'plaintext',
+  transformers: [
+    transformerCopyButton({
+      visibility: 'hover',
+      feedbackDuration: 2_500,
+    })
+  ],
   onVistitLine(node) {
     if (node.children.length === 0) {
       node.children = [{
