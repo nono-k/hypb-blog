@@ -23,6 +23,20 @@
     border: 8px solid #3d444d;
     border-radius: 0.5rem;
     overflow-x: auto;
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--green);
+      border-radius: 4px;
+    }
+
   }
   pre > code {
     display: grid;

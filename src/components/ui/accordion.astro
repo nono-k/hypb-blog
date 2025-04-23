@@ -98,7 +98,7 @@ const categoryTagNum = async(
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
-    max-height: 180px;
+    max-height: 220px;
       overflow-y: auto;
       &::-webkit-scrollbar {
         width: 0.75rem;
@@ -116,15 +116,16 @@ const categoryTagNum = async(
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 0.9375rem;
     color: var(--gray-10);
-    padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+    padding: 0.4rem 0.75rem 0.4rem 0.5rem;
     border-radius: 0.5rem;
     transition: 0.3s;
     @media (hover: hover) {
       &:hover {
         color: var(--black);
         background: var(--gray-10);
-        padding: 0.5rem 0.85rem 0.5rem;
+        padding: 0.4rem 0.85rem 0.4rem;
       }
     }
   }
