@@ -1,0 +1,373 @@
+---
+title: GSAP×SVGでスクロール連動で波が動くパララックスアニメーション
+slug: gsap-parallax-image-svg-wave
+pubDate: '2025-04-24'
+image: ../../../assets/images/gsap-parallax-image-svg-wave.jpg
+ogp: 'images/ogp/gsap-parallax-image-svg-wave.jpg'
+category: Coding
+tags:
+  - JavaScript
+  - GSAP
+description: GSAPとSVGを使ってスクロール連動で波が動くパララックスアニメーションを作ってみました。
+relatedPosts:
+  - fadein-01
+  - scrolltrigger-sticky-demo
+---
+import CodePenEmbed from '../../../components/markdown/CodePenEmbed.astro';
+import Warning from '../../../components/markdown/warning.astro';
+
+## はじめに
+
+今回は、GSAPのScrollTriggerを使ったパララックスアニメーションの作り方を解説します！最初に普通のパララックスアニメーションの作り方を解説して、最後にSVGを使ったスクロール連動で画像の下部で波が動くようなアニメーションの作り方を解説します。
+
+👇は完成形のCodePenのデモです！(画面幅によっては上手く表示されない可能性があるのでCodePen上で画面を広げてみてください)
+
+<CodePenEmbed penId="XJJmEOR" title="Parallax Image Scroll SVG Wave" />
+
+
+↓今回のリポジトリです。
+
+https://github.com/nono-k/parallax-image-svg-wave
+
+解説の都合上、Pugを使ってますので適宜読み替えてください。
+Pugの知識が乏しい方は、以前解説した[記事](https://hypb.dev/articles/pug-tutorial/)の方をご参照ください。
+
+それでは見ていきましょう！
+
+## GSAPを使ったパララックスアニメーション
+
+最初にGSAPを使ったパララックスアニメーションの作り方を見ていきましょう！
+CodePenは👇になります
+
+<CodePenEmbed penId="jEEbVBp" title="Parallax Image Scroll" />
+
+### 画像データの用意
+
+簡易的に画像の配置をposition: absoluteで行うので、style属性にカスタムプロパティを設定します。また、楽に書くためにPugを使用してます。
+
+コード例では省略していますが、デモで画像は7枚用意してます。
+
+```pug title="画像データの例"
+-
+  image_data = [
+    {
+      src: "https://picsum.photos/200/250?random=1",
+      style: "--top: 120px; --left: 0"
+    },
+    {
+      src: "https://picsum.photos/360/200?random=3",
+      style: "--top: 220px; --right: 0px",
+      right: true,
+    },
+    // ...
+  ]
+```
+
+ここで、後でSVGで波を表現するので、画像の横幅は200pxと360pxのみにしてます。
+次に全体のHTMLを見てみましょう！
+
+### HTML
+
+全体のHTMLをPugで書くとこのようになります。
+
+```pug title="index.pug"
+body
+  .container
+    section.hero
+      h1.hero__title
+        |Parallax Image
+
+      each image in image_data
+        .parallax__image.js-parallax(style=image.style class=image.right ? "-right" : "")
+          img(src=image.src class="js-parallax-item" alt="")
+```
+
+JavaScriptで取得するように、imgタグをラップしている親クラスを`.js-parallax`としてます。三項演算子の箇所は、右寄せの画像の場合に`.-right`クラスを付与するようにしてます。
+
+続いてCSSを見てみましょう！
+
+### CSS
+
+CSSは今回使う画像部分のみを載せておきます。
+
+```scss title="styles.scss"
+.parallax__image {
+  position: absolute;
+  top: var(--top);
+  left: var(--left);
+  &.-right {
+    left: auto;
+    right: var(--right);
+  }
+}
+
+.js-parallax {
+  overflow: hidden;
+  img {
+    scale: 1.1;
+  }
+}
+```
+
+HTMLの節で説明した通り、位置調整はカスタムプロパティで行ってます。
+
+パララックスアニメーションを実現させるために、imgタグの親クラス(`.js-parallax`)にoverflow: hiddenを設定してます。また、画像にもscale: 1.1を設定し少し大きくしてます。
+
+続いてJavaScriptを見てみましょう！
+
+### JavaScript
+
+JavaScriptの全コードは以下になります。
+
+```js title="script.js"
+class ParallaxScroll {
+  constructor() {
+    this.els = document.querySelectorAll('.js-parallax');
+    if(!this.els.length) return
+    this.init();
+  }
+  init() {
+    this.initSmoothScrolling();
+    this.scroll();
+  }
+  scroll() {
+    this.els.forEach(el => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: el,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: true,
+        }
+      });
+      const item = el.querySelector('.js-parallax-item');
+
+      tl.fromTo(item, {
+        ease: 'none',
+        yPercent: -10,
+      }, {
+        ease: 'none',
+        yPercent: 10,
+      })
+
+    })
+  }
+
+  initSmoothScrolling() {
+    const lenis = new Lenis({ lerp: 0.2, smoothWheel: true });
+    lenis.on('scroll', () => ScrollTrigger.update());
+
+    const scrollFn = (time) => {
+      lenis.raf(time);
+      requestAnimationFrame(scrollFn);
+    };
+
+    requestAnimationFrame(scrollFn);
+  }
+}
+
+new ParallaxScroll();
+```
+
+解説することは少ないですが、解説していきます。
+まず、`initSmoothScrolling`メソッドですが、これはスムーススクロールを実現するためのコードです。ライブラリとして`Lenis`を使用してます。
+
+```js title="initSmoothScrolling"
+initSmoothScrolling() {
+  const lenis = new Lenis({ lerp: 0.2, smoothWheel: true });
+  lenis.on('scroll', () => ScrollTrigger.update());
+
+  const scrollFn = (time) => {
+    lenis.raf(time);
+    requestAnimationFrame(scrollFn);
+  };
+
+  requestAnimationFrame(scrollFn);
+}
+```
+
+続いて、パララックスアニメーションを実現する`scroll`メソッドです。
+
+```js title="scroll"
+scroll() {
+  this.els.forEach(el => {
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: el,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true,
+      }
+    });
+
+    const item = el.querySelector('.js-parallax-item');
+
+    tl.fromTo(item, {
+      ease: 'none',
+      yPercent: -10,
+    }, {
+      ease: 'none',
+      yPercent: 10,
+    })
+
+  })
+}
+```
+
+`.js-parallax`クラスに対してGSAPのタイムラインとscrollTriggerのtriggerを設定してます。`item`は画像に付けられた`.js-parallax-item`クラスを取得しており、この画像に対して`fromTo`でアニメーションを設定してます。
+
+easeは`none`で、`yPercent`を-10から10に変化させることでパララックスアニメーションを実現できました🪂
+
+## SVGでスクロール連動の波の表現
+
+ここからは、先ほどのコードに追加してSVGを使ったスクロール連動で波が動くようなアニメーションを作っていきます。
+
+### 実装の考え方
+
+下記画像のように背景色が同じの波の形をしたSVGを画像の下に配置することで、画像の下が波の形に見えるようになります。画像は分かりやすいように赤線を引いてます。
+
+!['波の形のSVGを画像の下に配置'](../../../assets/images/post/gsap-parallax-image-svg-wave-01.jpg '波の形のSVGを画像の下に配置')
+
+スクロール中は左図で、スクロールが完了したら右図のようになります。これを実現するために、SVGのpathタグの`d`属性の値をGSAPで変化させていきます。
+
+注意点としては、波の形はジェネレーターなどで作成するかと思いますが、波の形とスクロール完了後のパスの数は合わせる必要があります。自分は下記のサイトでスクロール完了後の一直線になった線を作成しましたので参考にしてみてください！
+
+https://yqnn.github.io/svg-path-editor/
+
+### HTML
+
+HTMLは先ほどのコードに追加していきます。
+
+```pug {3-5} title="index.pug"
+.parallax__image.js-parallax(style=image.style class=image.right ? "-right" : "")
+  img(src=image.src class="js-parallax-item" alt="")
+  <svg width="100%" height="100%">
+    <path class="wavePath" d="M 79.7156 0 C 104.231 1.3955 126.153 3.9836 147.73 6.531 C 197.458 12.4017 245.357 18.0565 360 7 V 28 H 0 V 10.1055 C 16.397 5.7112 36.8899 1.0858 59.8978 0 H 79.7156 Z"></path>
+  </svg>
+```
+
+ここで追加しているSVGは波の形のSVGです。また、JavaScriptでSVGのpathタグを取得するために`wavePath`クラスを付与してます。
+
+### CSS
+
+CSSも先ほどのコードに追加していきます。
+
+```scss title="styles.scss"
+.parallax__image {
+  // ...
+
+  svg {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 20px;
+    fill: #eee;
+  }
+}
+```
+
+波の形のSVGをposition: absoluteで画像の下に配置しましょう。また、fillプロパティで背景色と同じ色を設定してます。
+
+### JavaScript
+
+最後にJavaScriptです。スクロール中かどうかの判定とSVGのpathタグの`d`属性の値を変化させる処理を追加します。
+
+まずは、`init()`にパスの値などを追加します。
+
+```js title="init"
+init() {
+  this.initSmoothScrolling();
+  this.scroll();
+  this.scrollTimeout = null;
+
+  // スクロール後の直線のパス
+  this.flatD = `M 79.7156 20 C 104.231 20 126.153 20 147.73 20 C 197.458 20 245.357 20 360 20 V 20 H 0 V 20 C 16 20 37 20 59.8978 20 H 79.7156 Z`;
+  // スクロール中の波のパス
+  this.waveD = `M 79.7156 0 C 104.231 1.3955 126.153 3.9836 147.73 6.531 C 197.458 12.4017 245.357 18.0565 360 7 V 28 H 0 V 10.1055 C 16.397 5.7112 36.8899 1.0858 59.8978 0 H 79.7156 Z`;
+
+  window.addEventListener('scroll', this.handleScroll.bind(this));
+}
+```
+
+`flatD`はスクロール完了後の直線のパス、`waveD`はスクロール中の波のパスです。scrollイベントで`handleScroll`メソッドを呼び出しています。
+
+続いて、`handleScroll`メソッドです。
+
+```js title="handleScroll"
+handleScroll() {
+  this.setWave();
+
+  clearTimeout(this.scrollTimeout);
+
+  this.scrollTimeout = setTimeout(() => {
+    this.resetWave();
+  }, 150);
+}
+```
+
+処理の流れを詳しく見ていきましょう。
+
+```js
+this.setWave();
+```
+
+- スクロールが発生した瞬間に`setWave`メソッドを呼び出し波の形をSVGに反映させます。
+- つまり、「スクロール中は波の形を変える」動作をします。
+
+```js
+clearTimeout(this.scrollTimeout);
+```
+
+- 前回の`setTimeout`がまだ残っていればキャンセルします。これはスクロールが続いている間はリセット処理を遅らせたいからです。
+
+```js
+this.scrollTimeout = setTimeout(() => {
+  this.resetWave();
+}, 150);
+```
+
+- 最後のスクロールイベントから150ms経ったとき（スクロールが止まったとみなせるタイミング）に`resetWave`メソッドを呼び出し波形を直線に戻します。
+
+最後にSVGのパスを変化させる`setWave`メソッドと`resetWave`メソッドになります。
+
+```js title="setWave resetWave"
+setWave() {
+  this.els.forEach(el => {
+    const svg = el.querySelector('.wavePath');
+
+    gsap.to(svg, {
+      attr: { d: this.waveD },
+      duration: 0.5,
+      ease: "power2.out",
+      overwrite: "auto"
+    });
+  })
+}
+
+resetWave() {
+  this.els.forEach(el => {
+    const svg = el.querySelector('.wavePath');
+    gsap.to(svg, {
+      attr: { d: this.flatD },
+      duration: 0.5,
+      ease: "power2.out",
+      overwrite: "auto"
+    });
+  })
+}
+```
+
+GSAPを用いてSVGのpathタグの`d`属性の値を変化させています。`overwrite`プロパティは、同じプロパティを扱っている場合に、前回のアニメーションをキャンセルしてくれるオプションです。ここでは`auto`に設定し不要なアニメーションをキャンセルしています。
+
+これで完成です！他の波の形なども試してみてください！
+
+<Warning text="今回の実装では、スクロールイベントで毎度処理が走るようになっているので、実際に実装では画面内に入ったかどうかを判定して処理を走らせるようにしてみてください。" />
+
+---
+
+## まとめ
+
+GSAPとSVGを使ってスクロール連動で波が動くパララックスアニメーションの作り方を解説しました。
+
+この記事が参考になれば幸いです。
