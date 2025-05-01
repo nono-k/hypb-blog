@@ -8,6 +8,7 @@ import Layout from "@/layouts/layout";
 import Hero from "@/components/pages/hero/hero.astro";
 import NewArticle from "@/components/new-article.astro";
 import SearchArea from "@/components/search-area.astro";
+import TopAdUnit from "@/components/adUnit/TopAdUnit.astro";
 
 interface Props {
   page: Page<CollectionEntry<"articles">>;
@@ -33,6 +34,9 @@ const { page } = Astro.props;
   <section class="hero">
     <Hero />
   </section>
+  <div class="topAdUnit">
+    <TopAdUnit />
+  </div>
   <section class="new-article">
     <NewArticle page={page} />
   </section>
@@ -44,12 +48,17 @@ const { page } = Astro.props;
 <style lang="scss">
   .hero {
     margin-top: 3.75rem;
-    margin-bottom: 10rem;
   }
   .new-article {
     margin-bottom: 15rem;
     max-width: calc(1380px - 4rem);
     margin-left: auto;
+  }
+  .topAdUnit {
+    max-width: 1000px;
+    margin-inline: auto;
+    padding-inline: 2rem;
+    margin-block: 4rem;
   }
   @include mixin.mobile {
     .new-article {
@@ -59,10 +68,12 @@ const { page } = Astro.props;
   @include mixin.phone {
     .hero {
       margin-top: 1.5rem;
-      margin-bottom: 6rem;
     }
     .new-article {
       margin-bottom: 5rem;
+    }
+    .topAdUnit {
+      margin-block: 2rem;
     }
   }
 </style>
