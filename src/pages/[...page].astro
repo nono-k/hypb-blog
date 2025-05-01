@@ -8,7 +8,7 @@ import Layout from "@/layouts/layout";
 import Hero from "@/components/pages/hero/hero.astro";
 import NewArticle from "@/components/new-article.astro";
 import SearchArea from "@/components/search-area.astro";
-import TopAdUnit from "@/components/adUnit/TopAdUnit.astro";
+import WideAdUnit from "@/components/adUnit/WideAdUnit.astro";
 
 interface Props {
   page: Page<CollectionEntry<"articles">>;
@@ -35,7 +35,7 @@ const { page } = Astro.props;
     <Hero />
   </section>
   <div class="topAdUnit">
-    <TopAdUnit />
+    <WideAdUnit />
   </div>
   <section class="new-article">
     <NewArticle page={page} />

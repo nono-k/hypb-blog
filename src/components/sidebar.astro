@@ -1,6 +1,7 @@
 ---
 import Accordion from "./ui/accordion.astro";
 import TableOfContents from "./tableOfContents.astro";
+import SquareAdUnit from "./adUnit/SquareAdUnit.astro";
 import { category, tags } from "../lib/constants";
 
 const categoryTag = [
@@ -31,6 +32,9 @@ const { blog } = Astro.props;
   }
   </div>
   {blog ? <TableOfContents /> : ''}
+  <div class="adUnit">
+    <SquareAdUnit />
+  </div>
 </div>
 
 <style lang="scss">
@@ -42,5 +46,8 @@ const { blog } = Astro.props;
       position: sticky;
       top: 32px;
     }
+  }
+  .adUnit {
+    margin-top: 2rem;
   }
 </style>
