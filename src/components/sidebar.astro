@@ -31,10 +31,18 @@ const { blog } = Astro.props;
     })
   }
   </div>
-  {blog ? <TableOfContents /> : ''}
-  <div class:list={["adUnit", blog && 'blog' ]}>
-    <SquareAdUnit />
-  </div>
+  {blog ?
+    <div class="tableOfContent-wrapper">
+      <TableOfContents />
+      <div class="adUnit">
+        <SquareAdUnit />
+      </div>
+    </div>
+    :
+    <div class="adUnit sticky">
+      <SquareAdUnit />
+    </div>
+  }
 </div>
 
 <style lang="scss">
@@ -42,17 +50,20 @@ const { blog } = Astro.props;
     display: flex;
     flex-direction: column;
     gap: 24px;
-    &.sticky {
-      position: sticky;
-      top: 24px;
-    }
+    // &.sticky {
+    //   position: sticky;
+    //   top: 24px;
+    // }
+  }
+  .tableOfContent-wrapper {
+    position: sticky;
+    top: 24px;
   }
   .adUnit {
     margin-top: 1.5rem;
-    position: sticky;
-    top: 340px;
-    &.blog {
-      top: 301px;
+    &.sticky {
+      position: sticky;
+      top: 24px;
     }
   }
 </style>
