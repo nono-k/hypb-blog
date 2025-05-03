@@ -22,12 +22,12 @@ const generatePaginationLinks = (
 
   for (let i = 1; i <= lastPage; i++) {
     if (i === 1) {
-      links.push({ page: i, url: `/articles` });
+      links.push({ page: i, url: `${page.url.current}` });
     } else if (
       i === lastPage ||
       (i >= currentPage - range && i <= currentPage + range)
     ) {
-      links.push({ page: i, url: `/articles/${i}` });
+      links.push({ page: i, url: `${page.url.current}/${i}` });
     }  else if (links[links.length - 1]?.page !== "...") {
       links.push({ page: "..." });
     }
