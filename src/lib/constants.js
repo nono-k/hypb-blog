@@ -20,6 +20,7 @@ export const tags = [
   { name: 'JavaScript', slug: 'javascript' },
   { name: 'Next.js', slug: 'nextjs' },
   { name: 'Astro', slug: 'astro' },
+  { name: 'Three.js', slug: 'threejs' },
   { name: 'GSAP', slug: 'gsap' },
   { name: 'Swiper', slug: 'swiper' },
   { name: 'Markdown', slug: 'markdown' },
