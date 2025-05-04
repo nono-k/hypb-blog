@@ -18,6 +18,7 @@ import type { Page, PaginateFunction } from "astro";
 interface Props {
   page: Page<CollectionEntry<"articles">>;
   name: string;
+  slug: string;
   filteredPosts: CollectionEntry<"articles">[];
 }
 
@@ -36,11 +37,11 @@ export async function getStaticPaths({
     });
     return paginate(filteredPosts, {
       params: { slug },
-      props: { name, filteredPosts },
+      props: { name, slug, filteredPosts },
     })
   })
 }
-const { page, name, filteredPosts } = Astro.props;
+const { page, name, slug, filteredPosts } = Astro.props;
 const categoryNum = filteredPosts.length;
 
 ---
@@ -60,7 +61,7 @@ const categoryNum = filteredPosts.length;
         })
       }
       </ArticleList>
-      <Pagination page={page} />
+      <Pagination page={page} baseUrl=`/articles/category/${slug}` />
     </ArticleContainer>
   </Container>
 </Layout>
