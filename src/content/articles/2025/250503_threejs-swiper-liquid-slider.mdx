@@ -14,6 +14,7 @@ relatedPosts:
   - astrojs-swiper-01
 ---
 import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import Warning from '../../../components/markdown/warning.astro';
 
 <DemoBtn url="https://nono-k.github.io/liquid-slider-threejs-swiper" />
 
@@ -128,6 +129,8 @@ window.addEventListener('DOMContentLoaded', () => {
 LiquidSliderクラスのcontainerには、Three.jsで使うCanvasを指定します。imagesには、スライダー画像のパスを配列で渡します。noiseImageには、ノイズ画像のパスを渡します。
 
 ノイズ画像は今回は[このような画像](https://github.com/nono-k/liquid-slider-threejs-swiper/blob/main/public/disp.webp)を使ってます。ノイズ画像によってLiquidスライダーの表現が変わるので、いろいろ試してみてください！
+
+<Warning text="画像のサイズが異なるとカクつくので、スライダーに使う画像のサイズは全て同じにしてください。" />
 
 それでは、LiquidSliderクラスのコードを見ていきましょう！
 
