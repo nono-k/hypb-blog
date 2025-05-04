@@ -3,6 +3,7 @@ import Layout from "@/layouts/layout";
 import Container from "@/components/container.astro";
 import ArticleContainer from "@/components/pages/article/article-container.astro";
 import Sidebar from "@/components/sidebar.astro";
+import Pagination from "@/components/ui/pagination.astro";
 
 import { getCollection } from "astro:content";
 import { compareDesc } from 'date-fns';
@@ -17,6 +18,7 @@ import type { Page, PaginateFunction } from "astro";
 interface Props {
   page: Page<CollectionEntry<"articles">>;
   name: string;
+  filteredPosts: CollectionEntry<"articles">[];
 }
 
 export async function getStaticPaths({
@@ -34,16 +36,12 @@ export async function getStaticPaths({
     });
     return paginate(filteredPosts, {
       params: { slug },
-      props: { name },
+      props: { name, filteredPosts },
     })
   })
 }
-const {
-  page: {
-    data,
-  },
-  name } = Astro.props;
-const categoryNum = data.length;
+const { page, name, filteredPosts } = Astro.props;
+const categoryNum = filteredPosts.length;
 
 ---
 
@@ -54,7 +52,7 @@ const categoryNum = data.length;
       <Sidebar />
       <ArticleList>
       {
-        data.map((post) => {
+        page.data.map((post) => {
           const { slug, data: { image, title, pubDate, category, tags }} = post;
           return (
             <Card url={`/articles/${slug}`} src={image} title={title} time={pubDate} category={category} tags={tags} />
@@ -62,6 +60,7 @@ const categoryNum = data.length;
         })
       }
       </ArticleList>
+      <Pagination page={page} />
     </ArticleContainer>
   </Container>
 </Layout>
