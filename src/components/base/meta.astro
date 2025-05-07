@@ -6,6 +6,7 @@ const {
   pageTitle,
   description = siteDesc,
   articleOgp,
+  isPost = false,
 } = Astro.props;
 
 const title = pageTitle ? `${pageTitle} | ${siteTitle}` : siteTitle;
@@ -39,6 +40,10 @@ const socialImageURL = new URL(ogpImg, Astro.site);
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="sitemap" href="/sitemap-index.xml" />
 <meta name="google-adsense-account" content="ca-pub-1925354235806523">
+{isPost && (
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1925354235806523"crossorigin="anonymous"></script>
+)}
+
 <!-- Google tag (gtag.js) -->
 <script
   type="text/partytown"

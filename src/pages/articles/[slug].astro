@@ -18,6 +18,7 @@ import AmazonLink from "@/components/pages/article/AmazonLink.astro";
 import Figure from "@/components/markdown/Figure.astro";
 import ShareCard from "@/components/pages/article/ShareCard.astro";
 import Related from '@/components/pages/article/Related.astro';
+import PostAdUnit from "@/components/adUnit/PostAdUnit.astro";
 
 interface Props {
   post: CollectionEntry<"articles">;
@@ -57,7 +58,7 @@ const tagsName = post.data.tags;
 const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
 ---
 
-<Layout pageTitle={title} description={description} articleOgp={ogp}>
+<Layout pageTitle={title} description={description} articleOgp={ogp} isPost={true}>
   <div class="container">
     <ArticleContainer>
       <Sidebar blog />
@@ -88,6 +89,9 @@ const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
               記事内に商品プロモーションを含む場合があります
             </div>
           )}
+          <div class="postAdUnit">
+            <PostAdUnit />
+          </div>
         </header>
         <ArticleBody>
           <Content components={{ img: Figure }} />
@@ -149,6 +153,9 @@ const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
   }
   .thumbnail {
     margin-top: 1rem;
+  }
+  .postAdUnit {
+    margin-top: 2rem;
   }
   @include mixin.mobile {
     .article {
