@@ -13,6 +13,7 @@ description: Next.js + Hono + Cloudflare D1でToDoアプリを作る方法を解
 relatedPosts:
   - book-review-practical-nextjs
 ---
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
 
 ## はじめに
 
@@ -73,6 +74,8 @@ export const POST = handle(app);
 ```
 
 これで/api/helloにアクセスするとHello World!がJSON形式で返ってくるのが確認できるかと思います。
+
+<PostAdUnit />
 
 ## データベース作成
 
@@ -186,7 +189,7 @@ npx wrangler d1 execute d1-todo-app --local --file=./dummy-data.sql
 npx wrangler d1 execute d1-todo-app --local --command="SELECT * FROM todos"
 ```
 
----
+<PostAdUnit />
 
 ## HonoとDrizzle ORMでCRUDの作成
 
@@ -342,6 +345,8 @@ export const PUT = handle(app);
 
 CRUD操作ができるかどうか確認するために、Postmanなどを使って確認してみましょう。
 これでHonoとDrizzle ORMでCRUDの作成ができました。次にNext.jsでToDoの一覧表示を作成していきます。
+
+<PostAdUnit />
 
 ## ToDoの一覧表示
 
@@ -548,7 +553,7 @@ export default function TodoCard({ todo }: { todo: Todo }) {
 
 続いてはToDoデータの登録を作成していきましょう！
 
----
+<PostAdUnit />
 
 ## ToDoの登録
 
@@ -920,6 +925,8 @@ export async function updateTodo(id: number, data: CreateTodo) {
 ```
 
 これでToDoの編集ができるようになりました！
+
+<PostAdUnit />
 
 ## ToDoの内容をMarkdownで書けるようにする
 

@@ -14,6 +14,7 @@ relatedPosts:
   - astrojs-tocbot
   - astro-template
 ---
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
 
 ## はじめに
 
@@ -62,6 +63,8 @@ export default defineConfig({
 
 この記事では、ファイル名の表示と行の強調表現まで書きます。
 行番号の表示などのやり方はドキュメントを見てください。
+
+<PostAdUnit />
 
 ## Astroで使うための準備
 
@@ -178,7 +181,3 @@ rehype-pretty-codeを使うことでMarkdownにtitleを記入すると`<figure d
 
 Astroでのコードブロックのハイライトにrehype-pretty-codeを使った実装方法を紹介しました。
 CSSについては、デフォルトでは用意されて無く自分でスタイリングをつける必要がありますが、その分自由にデザインできるのでいいですね。
-
-## 参考サイト
-
-https://kohan.dev/posts/markdown-reader-astro-rehype-pretty-code/

@@ -15,6 +15,7 @@ relatedPosts:
 ---
 import CodePenEmbed from '../../../components/markdown/CodePenEmbed.astro';
 import Warning from '../../../components/markdown/warning.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
 
 ## はじめに
 
@@ -23,7 +24,6 @@ import Warning from '../../../components/markdown/warning.astro';
 👇は完成形のCodePenのデモです！(画面幅によっては上手く表示されない可能性があるのでCodePen上で画面を広げてみてください)
 
 <CodePenEmbed penId="XJJmEOR" title="Parallax Image Scroll SVG Wave" />
-
 
 ↓今回のリポジトリです。
 
@@ -217,6 +217,8 @@ scroll() {
 `.js-parallax`クラスに対してGSAPのタイムラインとscrollTriggerのtriggerを設定してます。`item`は画像に付けられた`.js-parallax-item`クラスを取得しており、この画像に対して`fromTo`でアニメーションを設定してます。
 
 easeは`none`で、`yPercent`を-10から10に変化させることでパララックスアニメーションを実現できました🪂
+
+<PostAdUnit />
 
 ## SVGでスクロール連動の波の表現
 

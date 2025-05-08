@@ -12,6 +12,8 @@ relatedPosts:
   - first-post
 ---
 
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+
 ## はじめに
 
 Astroプロジェクトを作る時に、毎回`npm create astro@latest`で作成していて、sassとかの導入が面倒なので自分用のテンプレを作りました。まだ、Astroの実践投入の機会は少ないので今後このテンプレをアップグレードしていく予定です。
@@ -452,6 +454,8 @@ import { headerLink } from "@/config";
 
 config.tsで設定したリンク情報をmap関数を使って表示させてます。以上、ヘッダーの例になりました！
 
+<PostAdUnit />
+
 ## ページルーティング
 
 ページルーティングについても見ていきましょう！TOPページとAboutページを以下のように作成しましょう。
@@ -612,6 +616,8 @@ import Layout from '@/layouts/Layout.astro';
 ```
 
 Topページに移動して、カードが表示されていることを確認してください！Astroでも、コンポーネントやデータを別ファイルに分離することで、コードの再利用性や保守性を高めることができコーディングの速度の向上も期待できます。
+
+<PostAdUnit />
 
 ## テンプレートの利用方法
 
