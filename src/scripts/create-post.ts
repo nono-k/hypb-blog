@@ -36,6 +36,7 @@ description:
 relatedPosts:
   - recommended-book-for-frontend-devs
 ---
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
   `;
 
   try {

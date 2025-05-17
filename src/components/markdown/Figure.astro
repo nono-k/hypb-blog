@@ -1,10 +1,25 @@
 ---
 import { Image } from "astro:assets";
+import { CldImage } from 'astro-cloudinary';
+import { CldVideoPlayer } from 'astro-cloudinary';
+
 const { title, src, alt } = Astro.props;
+const cloudName = import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME;
+
+const isStingSrc = typeof src === 'string';
+const isCloudinaryImage = isStingSrc && src.startsWith(`https://res.cloudinary.com/${cloudName}/image/`);
+const isCloudinaryVideo = isStingSrc && src.startsWith(`https://res.cloudinary.com/${cloudName}/video/`);
 ---
 
 <figure class="figure">
-  <Image src={src} alt={alt} width="1200" height="675" />
+  { isCloudinaryVideo ? (
+    <CldVideoPlayer src={src} width="1200" height="675" />
+  ) : isCloudinaryImage ? (
+    <CldImage src={src} alt={alt} width={1200} height={675} />
+  ) : (
+    <Image src={src} alt={alt} width="1200" height="675" />
+  )
+  }
   { title && (
       <figcaption class="figcaption">
         <Fragment set:html={title} />
