@@ -1,0 +1,464 @@
+---
+title: AstroのView Transitionsを試してみる(Three.jsを使った例もあるよ)
+slug: astro-view-transitons
+pubDate: '2025-05-19'
+image: ../../../assets/images/astro-view-transitons.jpg
+ogp: 'images/ogp/astro-view-transitons.jpg'
+category: Coding
+tags:
+  - Astro
+  - Three.js
+description: AstroのView Transitionsを試してみました。自由に要素を出し入れする方法やThree.jsを使ったスムーズなページ遷移の方法も解説してます。
+relatedPosts:
+  - threejs-swiper-liquid-slider
+  - recommended-book-for-frontend-devs
+---
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+
+<DemoBtn url="https://nono-k.github.io/astro-view-transitions-demo/" />
+
+## はじめに
+
+AstronのView Transitionsを試してみました。View Transitionsを用いてページ遷移でテキストを自由に出し入れする方法や、画像の遷移、Three.jsで作った物体のスムーズな移動方法などのやり方を解説していきます。
+
+実際の動作はデモページをご覧ください。
+(スマホは考慮してないのでPCで見てください)
+
+👇は今回のリポジトリになります！
+
+https://github.com/nono-k/astro-view-transitions-demo
+
+## AstroでView Transitonsを有効にする
+
+[公式ページ](https://docs.astro.build/en/guides/view-transitions/)を参考にAstroでView Transitions を有効にしましょう！
+Astroでは`<ClientRouter />`コンポーネントをページに追加するだけでView Transitionsを実現できます。
+
+このコンポーネントを追加すると、サイト全体でアニメーション化されたページ遷移が可能になります(SPAモード)。
+
+それでは、ページ全体で利用するので`Layout.astro`の`<head>`の中に追加しましょう。
+
+```astro {4,16} title="Layout.astro"
+---
+import '@/styles/styles.scss';
+
+import { ClientRouter } from 'astro:transitions';
+import Footer from '@/components/base/Footer.astro';
+import Header from '@/components/base/Header.astro';
+import Meta from '@/components/base/Meta.astro';
+
+const props = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <Meta {...props} />
+    <ClientRouter fallback='swap' />
+  </head>
+  <body>
+    <div class="container">
+      <Header />
+      <slot />
+      <Footer />
+    </div>
+  </body>
+</html>
+```
+
+ここで`fallback='swap'`は、ブラウザがView Transitions APIをサポートしていない場合に、アニメーションをしない設定になります。代わりに、古いページはすぐに新しいページに置き換えられます。
+
+`<ClientRouter />`コンポーネントを追加するだけで、ページ遷移アニメーションができるようになるのを確認しましょう。デフォルトのアニメーションは`fade`になりopacityが変化するアニメーションになります。
+
+## アニメーションのカスタマイズ
+
+`transition:name`とCSSアニメーションを利用することで独自のアニメーションを付けることができます。デモページではTopページとMemberページではタイトルは左から、テキストは下から出現し、Aboutページではタイトルは右から、テキストは上から出現するようにしています。
+
+![テキストのアニメーション](https://res.cloudinary.com/dy8ftemi0/video/upload/v1747499341/astro-view-transitons-video-01_vyadm9.mov 'テキストのアニメーション')
+
+ここでは、Topページのアニメーションを例に解説していきます。
+
+### Topページのアニメーション
+
+それでは、Topページの`index.astro`に`transition:name`でアニメーションの種類を追加しましょう。
+
+```astro title="index.astro"
+---
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout>
+  <h1 class="title" transition:name="slide-left">Top Page</h1>
+  <p class="desc" transition:name="fade-up">Lorem ipsum dolor sit amet consectetur adipisicing elit. Iusto alias facilis assumenda laudantium consequuntur esse itaque aut dolor est quaerat? Similique labore natus neque libero vero consectetur magni ipsum fuga.</p>
+</Layout>
+```
+
+タイトルには`slide-left`を、テキストには`fade-up`と独自のアニメーション名を付与しました。
+
+このアニメーション名を元にCSSアニメーションを作りましょう。
+scssを使っているので、`animation.scss`というscssファイルを作成して、以下のようにアニメーションを記述します。
+
+```scss title="animation.scss"
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-to-left {
+  to {
+    transform: translateX(-40px);
+  }
+}
+
+@keyframes slide-from-left {
+  from {
+    transform: translateX(-40px);
+  }
+}
+
+@keyframes slide-to-bottom {
+  to {
+    transform: translateY(40px);
+  }
+}
+
+@keyframes slide-from-bottom {
+  from {
+    transform: translateY(40px);
+  }
+}
+
+::view-transition-old(slide-left) {
+  animation:
+    0.09s cubic-bezier(0.4, 0, 1, 1) both fade-out,
+    0.3s cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+}
+
+::view-transition-new(slide-left) {
+  animation:
+    0.21s cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+    0.3s cubic-bezier(0.4, 0, 0.2, 1) both slide-from-left;
+}
+
+::view-transition-old(fade-up) {
+  animation:
+    0.09s cubic-bezier(0.4, 0, 1, 1) both fade-out,
+    0.3s cubic-bezier(0.4, 0, 0.2, 1) both slide-to-bottom;
+}
+
+::view-transition-new(fade-up) {
+  animation:
+    0.21s cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
+    0.3s cubic-bezier(0.4, 0, 0.2, 1) both slide-from-bottom;
+}
+```
+
+`::view-transition-old`は前のページの状態（アニメーション開始時）で`::view-transition-new`は次のページの状態（アニメーション終了時）を表します。
+
+上記のように設定することで、Topページに飛んだ際(古い表示)は左から出現し、別ページに飛ぶ際(新しい表示)は左に消えていきます。
+
+今回のデモの全アニメーションの設定は[ここ](https://github.com/nono-k/astro-view-transitions-demo/blob/main/src/styles/utility/animation.scss)にあるので、ぜひ試してみてください！
+
+<PostAdUnit />
+
+## スムーズな画像の移動
+
+続いては、画像リンクをクリックした際にスムーズに画像が移動するようにしてみましょう。
+デモページの[memberページ](https://nono-k.github.io/astro-view-transitions-demo/member)で確認ください。
+
+![スムーズな画像の移動](https://res.cloudinary.com/dy8ftemi0/video/upload/v1747555138/astro-view-transitons-video-02_ihatyr.mp4 'スムーズな画像の移動')
+
+
+同様にスムーズな画像の移動には、`transition:name`を利用します。今回の例ではimgタグにラップするdivタグにtransition:nameに付与しています。
+
+```astro title="/member/index.astro"
+<div class="grid" id="tabContent">
+  {memberData.map(member => (
+    <a href=`member/${member.id}` class="member__card" id={member.id}>
+      <div
+        class="member__img"
+        transition:name=`member-${member.id}`
+      >
+        <Image
+          src={member.image}
+          alt={member.name}
+          width={200}
+          height={200}
+        />
+      </div>
+    </a>
+  ))}
+</div>
+```
+
+transition:nameに付与する名前は`member-${member.id}`として一意な名前になるようにしましょう。
+リンク先の`/member/[id].astro`でも同様にtransition:nameを設定します。
+
+```astro title="/member/[id].astro"
+<div class="member">
+  <div class="member__img" transition:name=`member-${id}`>
+    <Image
+      src={member.image}
+      alt={member.name}
+      width={200}
+      height={200}
+    />
+  </div>
+  <p class="member__job">Job: {member.job}</p>
+  <p class="member__desc">{member.desc}</p>
+</div>
+```
+
+これで、画像リンクをクリックした際にスムーズに画像が移動するようになりました。
+全コードはmemberページは[こちら](https://github.com/nono-k/astro-view-transitions-demo/blob/main/src/pages/member/index.astro)に、リンク先は[こちら](https://github.com/nono-k/astro-view-transitions-demo/blob/main/src/pages/member/%5Bid%5D.astro)にあるので、確認してみてください！
+
+<PostAdUnit />
+
+## Three.jsで作った物体のスムーズな移動
+
+最後にThree.jsで作った物体を、ページ遷移でも維持しながらスムーズな移動ができるか確認します。
+
+![Three.jsもちゃんと動く](https://res.cloudinary.com/dy8ftemi0/video/upload/v1747580729/astro-view-transitons-video-03_vczb2t.mp4 'Three.jsもちゃんと動く')
+
+今回のデモのThree.jsのシェーダーなどはCodropsの[この記事](https://tympanus.net/codrops/2021/01/26/twisted-colorful-spheres-with-three-js/)を参考にしています。Three.js部分のコードは詳しく解説しないので気になる方はデモのリポジトリを参照ください。
+
+まずは、Three.jsを使うため`Layout.astro`にcanvasタグとscriptを追加しましょう。
+
+```astro title="Layout.astro"
+<body>
+  <div class="container">
+    <Header />
+    <slot />
+    <Footer />
+  </div>
+  <canvas class="webgl" transition:persist transition:name="webgl"></canvas>
+</body>
+
+<style lang="scss">
+  ::view-transition-old(webgl),
+  ::view-transition-new(webgl) {
+    animation: none;
+  }
+</style>
+
+<script src="../scripts/index.js"></script>
+```
+`transition:persist`を使用すると、ページ間の移動でコンポーネントとHTML要素を保持することができます。また、`transition:name`を付与してanimation: noneすることで、canvasに関してはview transitionのアニメーションが発生しないようにしましょう。（自分はこれに気づかず時間を無駄にしました...）
+
+次に`scripts/index.js`のコードを載せます。
+詳しく解説しないですが、importしている`GL`はThree.jsのセットアップを行っているクラスで、`Blob`はシェーダーなどで球体みたいな物体を作っているクラスです
+
+```js title="scripts/index.js"
+// Three.js の描画処理を管理するクラス
+import GL from './gl';
+// カスタム Blob メッシュクラス
+import Blob from './gl/Blog';
+
+import gsap from 'gsap';
+
+class App {
+  constructor(pageType) {
+    // GL（Three.js の初期化とレンダリング）インスタンスを生成
+    this.gl = new GL();
+
+    // 現在のページタイプ（パス）を保存
+    this.pageType = pageType;
+
+    // Blob メッシュを作成
+    this.blob = this.createBlob();
+    // Three.js のシーンに blob を追加
+    this.gl.scene.add(this.blob);
+    // 初期ページの blob の状態を設定（位置・回転・uniform）
+    this.initPage(this.pageType);
+  }
+
+  createBlob() {
+    // Blob のサイズ、ノイズ速度、色相、ノイズ周波数、密度、強度、オフセットを設定
+    return new Blob(1.7, 0.1, 0.7, 1.5, 0.1, Math.PI * 2);
+  }
+
+  initPage(type) {
+    // 現在のページパスから設定を取得
+    const cfg = this.getSettings(type);
+
+    // 初期位置と回転を設定
+    this.blob.position.set(...cfg.pos);
+    this.blob.rotation.set(...cfg.rot);
+
+    // Shader の uniform 変数を初期化
+    this.blob.material.uniforms.uHue.value = cfg.uniforms.color;
+    this.blob.material.uniforms.uNoiseStrength.value = cfg.uniforms.strength;
+  }
+
+  setPageType(path) {
+    // ページ遷移後のパスに基づいて設定を取得
+    const cfg = this.getSettings(path);
+
+    // 位置・回転・uniform を GSAP でアニメーション付きで更新
+    gsap.to(this.blob.position, {
+      x: cfg.pos[0],
+      y: cfg.pos[1],
+      z: cfg.pos[2],
+      duration: 1.5,
+      ease: 'power2.inOut',
+    });
+
+    gsap.to(this.blob.rotation, {
+      x: cfg.rot[0],
+      y: cfg.rot[1],
+      z: cfg.rot[2],
+      duration: 1.5,
+      ease: 'power2.inOut',
+    });
+
+    gsap.to(this.blob.material.uniforms.uHue, {
+      value: cfg.uniforms.color,
+      duration: 1.5,
+      ease: 'power2.inOut',
+    });
+
+    gsap.to(this.blob.material.uniforms.uNoiseStrength, {
+      value: cfg.uniforms.strength,
+      duration: 1.5,
+      ease: 'power2.inOut',
+    });
+  }
+
+  getSettings(path) {
+    // Astro の base パスを取得（GitHub Pages などで対応）
+    const base = import.meta.env.BASE_URL;
+
+    // baseURL を除去して純粋なページパスを取得
+    let type = path.replace(base, '');
+
+    // /member/xxxx のような詳細ページも /member として処理
+    if (type.startsWith('/member')) {
+      type = '/member';
+    }
+
+    // パスごとの Blob の状態（位置・回転・uniform）を定義
+    let settings;
+    switch (type) {
+      case '/about/':
+        settings = {
+          pos: [-2.8, 0.3, 2],
+          rot: [0.1, 0.5, 0],
+          uniforms: { color: 0.4, strength: 0.5 },
+        };
+        break;
+      case '/member':
+        settings = {
+          pos: [-1.5, 2.0, -0.5],
+          rot: [0, 0, 0],
+          uniforms: { color: 0.6, strength: 0.2 },
+        };
+        break;
+      case '/':
+        settings = {
+          pos: [2.8, -0.8, 1],
+          rot: [-0.4, 0, -0.5],
+          uniforms: { color: 0.7, strength: 0.1 },
+        };
+        break;
+    }
+    return settings;
+  }
+}
+
+let app;
+
+// 初期化またはページ遷移時に呼ばれる関数
+function initOrUpdateApp() {
+  const path = window.location.pathname;
+
+  // 初回のみインスタンスを作成、それ以降はアニメーションで切り替え
+  if (!app) {
+    app = new App(path);
+  } else {
+    app.setPageType(path);
+  }
+}
+
+// Astro のページ遷移イベントに対応（View Transitions 対応）
+document.addEventListener('astro:after-swap', initOrUpdateApp);
+document.addEventListener('astro:page-load', initOrUpdateApp);
+```
+
+AstroでView Transitionsを有効にすると、下記のようなloadのイベントリスナーが効かなくなります。
+
+```js
+window.addEventListener('load', () => {
+  // View Transitionsを有効にすると発火しない
+  initOrUpdateApp();
+})
+```
+
+そのため、View Transitionsを有効にした状態でloadイベントを発火させるために、`astro:page-load`イベントを利用します。
+
+また、`astro:after-swap`イベントは新しいページが古いページを置き換えた直後に発火するイベントです。View Transitionsを有効にした状態でJavaScriptを実行したい場合はこちらも利用しましょう。
+
+```js
+let app;
+
+// 初期化またはページ遷移時に呼ばれる関数
+function initOrUpdateApp() {
+  const path = window.location.pathname;
+
+  // 初回のみインスタンスを作成、それ以降はアニメーションで切り替え
+  if (!app) {
+    app = new App(path);
+  } else {
+    app.setPageType(path);
+  }
+}
+
+// Astro のページ遷移イベントに対応（View Transitions 対応）
+document.addEventListener('astro:after-swap', initOrUpdateApp);
+document.addEventListener('astro:page-load', initOrUpdateApp);
+```
+
+コードのやっていることを簡単に説明すると、ページをロードして初回のみインスタンスを作成します。`initPage`で初期ページのBlobの状態を設定することで、ロードしても各ページのBlobの状態を維持することができます。
+
+`getSettings`ではページパスに応じてBlobの状態を設定します。「/member/[id]」のような詳細ページもmemberページとして処理するようにしています。
+
+ページごとのページ遷移のアニメーションは、x,y,zの位置と、回転のx,y,zの値、色とノイズ強度をアニメーションするようにしています。
+
+ページ遷移したときに`setPageType`が呼ばれ、gsapを用いてページ遷移時のBlobの状態をアニメーション付きで更新します。
+
+これで、Three.jsの物体もスムーズにページ遷移でアニメーションできることが確認できました。
+
+<PostAdUnit />
+
+## まとめ
+
+AstronのView Transitionsを試してみました。テキストの出し入れの自由さや、画像のスムーズな移動がJavaScriptを使わずにCSSアニメーションで実現できるのは便利ですね。
+
+またThree.jsを使ってもスムーズなページ遷移ができることが分かりました。swupやbarba.jsなどのライブラリーを使わなくてもリッチなページ遷移ができるのは嬉しいです。
+
+今後、WebGLを使ったリッチな表現に挑戦してみたいと思いました！
+
+この記事が参考になれば幸いです。
+
+## 参考
+
+- Astro公式ドキュメント
+[View transitions - Astro](https://docs.astro.build/en/guides/view-transitions/)
+
+- Three.jsのシェーダーなど参考
+[Twisted Colorful Spheres with Three.js](https://tympanus.net/codrops/2021/01/26/twisted-colorful-spheres-with-three-js/)
+
+- View TransitionsとThree.jsのモデルの組み合わせ方の参考リポジトリ
+[astro-3d-view-transitions](https://github.com/Charca/astro-3d-view-transitions/tree/main)
+
+- View Transitions APIの参考01
+[Astro View Transitions](https://developer.chrome.com/blog/astro-view-transitions?hl=ja)
+
+- View Transitions APIの参考02
+[＜Astro3.0＞View Transition APIをサポート！ページ間のトランジションが簡単実装可能に！](https://cumak.net/blog/astro-view-transition/)
