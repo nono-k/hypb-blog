@@ -13,9 +13,9 @@ const isCloudinaryVideo = isStingSrc && src.startsWith(`https://res.cloudinary.c
 
 <figure class="figure">
   { isCloudinaryVideo ? (
-    <video src={src} width="1200" height="675" controls />
+    <CldVideoPlayer src={src} width="1200" height="675" />
   ) : isCloudinaryImage ? (
-    <Image src={src} alt={alt} width={1200} height={675} />
+    <CldImage src={src} alt={alt} width={1200} height={675} />
   ) : (
     <Image src={src} alt={alt} width="1200" height="675" />
   )
@@ -31,10 +31,6 @@ const isCloudinaryVideo = isStingSrc && src.startsWith(`https://res.cloudinary.c
 <style lang="scss">
   .figure {
     margin-block: 2.5rem;
-    video {
-      width: 100%;
-      height: 100%;
-    }
   }
   .figcaption {
     margin-top: 0.5rem;
