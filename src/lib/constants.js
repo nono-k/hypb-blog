@@ -18,8 +18,9 @@ export const category = [
 export const tags = [
   { name: 'CSS', slug: 'css' },
   { name: 'JavaScript', slug: 'javascript' },
-  { name: 'Next.js', slug: 'nextjs' },
   { name: 'Astro', slug: 'astro' },
+  { name: 'Next.js', slug: 'nextjs' },
+  { name: 'Nuxt.js', slug: 'nuxtjs' },
   { name: 'Three.js', slug: 'threejs' },
   { name: 'GSAP', slug: 'gsap' },
   { name: 'Swiper', slug: 'swiper' },
