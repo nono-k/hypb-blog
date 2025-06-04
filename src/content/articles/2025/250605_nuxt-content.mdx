@@ -1,0 +1,663 @@
+---
+title: Nuxt Contentで簡単なブログを作る
+slug: nuxt-content
+pubDate: '2025-06-05'
+image: ../../../assets/images/nuxt-content.jpg
+ogp: 'images/ogp/nuxt-content.jpg'
+category: Coding
+tags:
+  - Nuxt.js
+description: Vue.jsのフレームワークのNuxtを触りたかったのと、マークダウンファイルとNuxtを連携するNuxt Contentを試してみました。
+relatedPosts:
+  - recommended-book-for-frontend-devs
+---
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+
+<DemoBtn url="https://nuxt-content-demo.pages.dev/" />
+
+## はじめに
+
+個人開発で初心者向けのWeb制作情報をまとめるWebメディアサイトを作りたいと思っています。そこでコンテンツの管理がしやすいNuxt Contentで作成することにしたので簡単にNuxt Contentの使い方をまとめてみました。記事の後半では簡単なブログも作成してみますので、ぜひ参考にしてみてください！
+
+また、今回の解説ではcssの記述については省略してますので気になる方はリポジトリを御覧ください。
+リポジトリは👇こちらになります。実際の動作を確認したい方はデモページをご覧ください。
+
+https://github.com/nono-k/nuxt-content-demo
+
+## Nuxt Contentの基本機能
+
+Nuxt Contentは、アプリケーションのコンテンツをシンプルに管理できるNuxtのモジュールです。Markdown,YAML,CSV,JSONでファイルを作成することができ、それらをNuxtのページに表示することができます。SQLデータベースに影響を受けており、コンテンツから柔軟にページを生成できます。
+
+また、VueコンポーネントをMarkdownに埋め込むことができ、表現豊かなブログやドキュメントサイトを作成することができます。
+
+それでは、Nuxt Contentのインストール方法から見ていきましょう！
+
+### Nuxt Contentのインストール
+
+Nuxtで作るので[公式サイト](https://nuxt.com/docs/getting-started/installation)の手順どおりにNuxtをインストールしましょう。プロジェクト名はnuxt-content-demoとします。
+
+```
+npm create nuxt nuxt-content-demo
+```
+
+導入できたら、以下のコマンドでNuxt Contentライブラリをインストールします。
+
+```
+npm install @nuxt/content
+```
+
+### モジュールを追加する
+
+次に、`nuxt.config.ts`にモジュールを追加します。`module`フィールドに`@nuxt/content`を追加しましょう。
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  modules: ['@nuxt/content']
+});
+```
+
+### コレクションを作成する
+
+続いて、コレクションを作成します。コンテンツの定義をコレクションというファイルでもつようになり、型レベルでコンテンツの情報を取得できるようになります。
+
+ルート直下に`content.config.ts`ファイルを作成し、以下のように記述します。
+
+```ts title="content.config.ts"
+import { defineContentConfig, defineCollection } from '@nuxt/content'
+
+export default defineContentConfig({
+  collections: {
+    content: defineCollection({
+      type: 'page',
+      source: '**/*.md'
+    })
+  }
+})
+```
+
+この設定で、`content`フォルダにある全てのMarkdownファイルを処理するデフォルトのコレクションが作成されます。詳細については[公式ドキュメント](https://content.nuxt.com/docs/collections/define)を参照してください。
+
+### 最初のMarkdownページを作成する
+
+ルート直下に`content/index.md`ファイルを作成し最初のMarkdownページを作成しましょう。
+試しに以下のようなMarkdownファイルを作成します。
+
+```md title="content/index.md"
+# はじめてのMarkdownページ
+
+これは最初のMarkdownページです。
+```
+
+### ページを表示する
+
+最初のMarkdownページを表示しましょう！ルートにある`app.vue`を以下のように書き換えます。
+
+```vue title="app.vue"
+<script setup lang="ts">
+const { data } = await useAsyncData(() => queryCollection('content').path('/').first())
+</script>
+
+<template>
+  <ContentRenderer v-if="data" :value="data" />
+  <div v-else>コンテンツが見つかりませんでした。</div>
+</template>
+```
+
+この場合は以下のようなHTMLで表示されます。
+
+```html title="レンダリング結果"
+<h1>はじめてのMarkdownページ</h1>
+<p>これは最初のMarkdownページです。</p>
+```
+
+ここまでが簡単なNuxt Contentの基本機能になります。次は、Nuxt Contentを使った簡単なブログを作ってみましょう。
+
+<PostAdUnit />
+
+## ブログを作る
+
+ここからは簡単なブログを作ってみます。その前にscssの設定や、layoutの設定などを行います。
+
+### scssの設定
+
+scssを使うので、下記コマンドでscssをインストールしましょう。
+
+```
+npm i -D sass
+```
+
+scssをインストールしたら、`nuxt.config.ts`にscssの設定を追加します。初期化やmixin、共通のscssファイルはルート直下の`styles`フォルダに入れています。今回作成するブログのscssの設定に関しては[リポジトリ](https://github.com/nono-k/nuxt-content-demo/tree/main/styles)を御覧ください。
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  // ...
+  css: ['@/styles/styles.scss'],
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: '@use "@/styles/mixin.scss";',
+        }
+      }
+    }
+  }
+});
+```
+
+これで`.vue`ファイルで以下のようにscssを使えるようになりました！
+
+```vue title="app.vue"
+<template>
+  <h1 class="top__title">Top</h1>
+</template>
+
+<style lang="scss" scoped>
+  .top {
+    &__title {
+      color: var(--text-color);
+      font-size: 2rem;
+      @include mixin.mobile {
+        font-size: 1.5rem;
+      }
+    }
+  }
+</style>
+```
+
+### layoutの設定
+
+共通のレイアウトを作成します。まずは、`app.vue`を以下のように書き換えましょう。
+
+```vue title="app.vue"
+<template>
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
+</template>
+```
+
+`<NuxtLayout>`コンポーネントは`layouts`フォルダにある`default.vue`を共通のレイアウトとして表示します。`<NuxtPage>`コンポーネントは`pages`フォルダにあるページを表示します。
+
+それでは`layouts/default.vue`を作成し以下のように記述しましょう。
+
+```vue title="layouts/default.vue"
+<template>
+  <Header />
+  <div class="container">
+    <slot />
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.container {
+  max-width: 1000px;
+  margin-inline: auto;
+  padding-inline: 20px;
+  margin-top: 60px;
+}
+</style>
+```
+
+レイアウトファイルでは、ページの内容が`<slot />`コンポーネントに表示されます。headerは共通で使用するので別コンポーネントに分けましょう。
+
+まずはheaderの情報を管理するために、`data/navLinks.ts`を作成します。
+
+```ts title="data/navLinks.ts"
+export const navLinks = [
+  { name: 'Home', link: '/' },
+  { name: 'Blog', link: '/blog' },
+]
+```
+
+次に、`components/Header.vue`を作成し以下のように記述しましょう。
+
+```vue title="components/Header.vue"
+<script setup lang="ts">
+import { navLinks } from '@/data/navLinks';
+</script>
+
+<template>
+  <header class="header">
+    <nav>
+      <ul class="header__list">
+        <li v-for="link in navLinks" :key="link.name">
+          <NuxtLink :to="link.link">{{ link.name }}</NuxtLink>
+        </li>
+      </ul>
+    </nav>
+  </header>
+</template>
+
+<style scoped lang="scss">
+.header {
+  padding: 20px;
+  background: #000;
+  display: flex;
+  justify-content: flex-end;
+  color: #fff;
+  &__list {
+    display: flex;
+    gap: 20px;
+  }
+}
+</style>
+```
+
+別ファイルで管理したheaderの情報はimportすることで、`v-for`で展開することができます。
+`<NuxtLink>`コンポーネントはNuxtのページ遷移をするためのコンポーネントです。詳しくは[公式ドキュメント](https://nuxt.com/docs/api/components/nuxt-link)を参照してください。
+
+Topページに関しては解説しないので、[リポジトリ](https://github.com/nono-k/nuxt-content-demo/blob/main/pages/index.vue)を御覧ください。
+
+### タイトルなどのhead情報を設定する
+
+今のままだと、ページのタイトルやメタ情報などが設定されていませんので設定しましょう。`nuxt.config.ts`にheadの設定を追加します。
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  // ...
+  app: {
+    head: {
+      htmlAttrs: {
+        lang: 'ja',
+      },
+      title: 'Nuxt Content Demo',
+    }
+  },
+})
+```
+
+`htmlAttrs`でhtmlの属性を設定できます。`title`ではサイトのタイトルを設定できます。今回は簡単なデモなのでtitleのみ設定しています。詳細は[公式ドキュメント](https://nuxt.com/docs/getting-started/seo-meta)を参照してください。
+
+それではブログ一覧ページを作成していきましょう。
+
+### ブログ一覧ページを作成する
+
+続いてブログ一覧ページを作成しましょう。
+`content.config.ts`にブログ用のコレクションを追加します。
+
+```ts title="content.config.ts"
+import { defineContentConfig, defineCollection, z } from "@nuxt/content";
+
+export default defineContentConfig({
+  collections: {
+    blog: defineCollection({
+      type: 'page',
+      source: 'blog/*.md',
+      schema: z.object({
+        draft: z.boolean(),
+        date: z.date(),
+        tags: z.array(z.string()),
+        image: z.string(),
+      })
+    })
+  }
+})
+```
+
+`blog`コレクションには、`draft`、`date`、`tags`、`image`の4つのフィールドを持つデータを作成します。
+役割は以下の通りです。
+
+- `draft`: 下書きかどうかを判定するフラグ
+- `date`: 投稿日
+- `tags`: タグを配列で持つ
+- `image`: ブログのサムネイル画像
+
+記事は`content/blog`フォルダにマークダウンで作成していきます。
+フロントマターは下記のように記述します。
+
+```md title="content/blog/first-post.md"
+---
+title: "初めての投稿"
+description: "これは初めての投稿です。"
+date: 2025-01-01
+tags:
+  - "blog"
+image: "/images/image01.jpg"
+---
+```
+
+サムネ画像は`public/images`フォルダに配置してください。
+それでは、`pages/blog/index.vue`を作成し一覧を表示しましょう。
+
+```vue title="pages/blog/index.vue"
+<script setup lang="ts">
+import { parseDate } from '@/utils/parseDate';
+
+const { data: posts } = await useAsyncData('blog', () =>
+  queryCollection('blog')
+    .order('date', 'DESC')
+    .all()
+);
+
+useSeoMeta({
+  title: 'Blog一覧 | Nuxt Content Demo',
+  description: 'Blog一覧ページです。',
+})
+</script>
+
+<template>
+  <h1 class="title">Blog</h1>
+  <ul v-if="posts" class="card__list">
+    <li v-for="post in posts" :key="post.path">
+      <NuxtLink :to="post.path" class="card">
+        <div class="card__img">
+          <img :src="post.image" alt="">
+        </div>
+        <div class="card__body">
+          <div class="card__tag-wrap">
+            <span v-for="tag in post.tags" :key="tag" class="card__tag">{{tag}}</span>
+          </div>
+          <p class="card__title">{{post.title}}</p>
+          <span class="card__date">{{parseDate(post.date)}}</span>
+        </div>
+      </NuxtLink>
+    </li>
+  </ul>
+</template>
+```
+
+`queryCollection`で`blog`コレクションの記事を取得します。一覧ページではフロントマターに記述した日付(date)順に並べたいので、`order`メソッドで日付順に並び替えます。
+
+![ブログ一覧の例](https://res.cloudinary.com/dy8ftemi0/image/upload/v1748847604/nuxt-content-01_z9kkmb.jpg 'ブログ一覧の例')
+
+これでブログ一覧ページを作成できました。
+
+### ブログ詳細ページを作成する
+
+ブログ詳細ページを作成します。`pages/blog/[...slug].vue`を作成し、以下のように記述しましょう。
+
+```vue title="pages/blog/[...slug].vue"
+<script setup lang="ts">
+import { parseDate } from '@/utils/parseDate';
+
+const route = useRoute();
+const { data } = await useAsyncData(route.path, () =>
+  queryCollection('blog').path(route.path).first()
+);
+
+useSeoMeta({
+  title: `${data.value?.title} | Nuxt Content Demo`,
+  description: data.value?.description,
+})
+</script>
+
+<template>
+  <article v-if="data" class="article">
+    <h1 class="title">{{data.title}}</h1>
+    <span class="date">{{parseDate(data.date)}}</span>
+    <ContentRenderer :value="data" class="content" />
+  </article>
+  <div v-else>
+    <h1>記事が見つかりませんでした</h1>
+  </div>
+</template>
+```
+
+現在のパスに該当する記事を取得するため、`queryCollection`関数に`path`メソッドを繋げて、現在のパスを引数にして、`first`メソッドで該当する記事を取得できます。これにより、パスが一致する記事のみを取得できました。
+
+### タグページを作成する
+
+タグをクリックしたら、そのタグに該当する記事のみを表示するページを作ります。
+
+まずは、記事にあるタグを全て取得して、表示するようにしましょう。`components/TagLinks.vue`を作成し、以下のように記述します。
+
+```vue title="components/TagLinks.vue"
+<script setup lang="ts">
+const { data } = await useAsyncData('tags', () =>
+  queryCollection('blog').where('tags', 'IS NOT NULL').all()
+);
+const tags = computed(() => {
+  const arr = data.value
+    ?.map(post => post.tags)
+    .flat()
+    .filter(tag => !!tag)
+  return new Set(arr)
+});
+</script>
+
+<template>
+  <ul>
+    <li><NuxtLink to="/blog" class="tag">All</NuxtLink></li>
+    <li v-for="tag in tags" :key="tag">
+      <NuxtLink :to="`/blog/tag/${tag}`" class="tag">{{tag}}</NuxtLink>
+    </li>
+  </ul>
+</template>
+```
+
+blogコレクションから、`tags`が存在する記事を取得し、取得したタグを表示してます。この`TagLinks`コンポーネントを一覧ページの上部に配置します。
+
+```vue title="pages/blog/index.vue"
+<template>
+  <h1 class="title">Blog</h1>
+  <TagLinks />
+  // ...
+</template>
+```
+
+続いてタグをクリックしたら、そのタグに該当する記事のみを表示するようにします。リンク先が`pages/blog/tag/[tag].vue`なので作成し、以下のように記述しましょう。
+
+```vue title="pages/blog/tag/[tag].vue"
+<script setup lang="ts">
+import { parseDate } from '@/utils/parseDate';
+
+const route = useRoute();
+const { data: posts } = await useAsyncData(route.path, () =>
+  queryCollection('blog')
+    .where('tags', 'LIKE', `%${route.params.tag}%`)
+    .order('date', 'DESC')
+    .all()
+);
+
+useSeoMeta({
+  title: `タグ「${route.params.tag}」の記事一覧 | Nuxt Content Demo`,
+  description: `タグ「${route.params.tag}」の記事一覧ページです。`,
+})
+</script>
+
+<template>
+  <h1 class="title">{{`「${route.params.tag}」タグ`}}</h1>
+  <TagLinks />
+  <ul v-if="posts" class="card__list">
+    <li v-for="post in posts" :key="post.path">
+      <NuxtLink :to="post.path" class="card">
+        <div class="card__img">
+          <img :src="post.image" alt="">
+        </div>
+        <div class="card__body">
+          <div class="card__tag-wrap">
+            <span v-for="tag in post.tags" :key="tag" class="card__tag">{{tag}}</span>
+          </div>
+          <p class="card__title">{{post.title}}</p>
+          <span class="card__date">{{parseDate(post.date)}}</span>
+        </div>
+      </NuxtLink>
+    </li>
+  </ul>
+</template>
+```
+
+Nuxt ContentではSQLと同じことが多く行えます。ここでは、`queryCollection`に`where`メソッドを使って、`tags`フィールドに`LIKE`検索を行っています。
+
+これにより、該当するタグのみ記事を表示できました。
+
+### VueコンポーネントをMarkdownファイルで使用する
+
+最後に、VueコンポーネントをMarkdownファイルで使用する方法を紹介します。
+Nuxt ContentではVueコンポーネントをMarkdownファイルで使用できます。
+
+Vueコンポーネントを使用するには、コンポーネントを`components/content`フォルダに配置します。ここでは簡単な例として、ボタンコンポーネントとタブコンポーネントを作成します。
+
+#### ボタンコンポーネント
+
+`components/content/Button.vue`を作成し、以下のように記述します。
+
+```vue title="components/content/Btn.vue"
+<script setup lang="ts">
+const props = defineProps<{
+  color?: string,
+  link: string,
+}>();
+</script>
+
+<template>
+  <div>
+    <a :href="link" class="btn" :class="color">
+      <slot mdc-unwrap="p" />
+    </a>
+  </div>
+</template>
+
+<style scoped lang="scss">
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 1px solid currentColor;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+  &.blue {
+    background-color: #0000ff;
+    color: #fff;
+  }
+}
+</style>
+```
+
+propsでリンク情報とオプションで色を受け取ります。blueのクラスがきたら青色のボタンになります。通常、`slot`では`p`タグでラップされるので、`mdc-unwrap`属性に`p`を指定することで、`p`タグで囲むことを防げます。
+
+このボタンコンポーネントの使用方法としては、以下のようになります。
+
+```md
+::btn{link="https://www.google.com"}
+通常のボタン
+::
+
+::btn{color="blue" link="https://www.google.com"}
+青いボタン
+::
+```
+
+<details>
+<summary>タブコンポーネントの例を見る</summary>
+<div>
+長くなるので、折りたたみました。
+`components/content/Tab.vue`を作成し、以下のように記述しましょう。
+
+```vue title="components/content/Tab.vue"
+<script setup lang="ts">
+const props = defineProps({
+  tabs: {
+    type: Array,
+    required: true
+  }
+})
+
+const activeTab = ref(0)
+</script>
+
+<template>
+  <div class="tabs-container">
+    <div class="tab-buttons">
+      <button
+        v-for="(tab, index) in tabs"
+        :key="index"
+        @click="activeTab = index"
+        :class="['tab-button', { active: activeTab === index }]"
+      >
+        {{ tab.title }}
+      </button>
+    </div>
+    <div class="tab-content">
+      <div
+        v-for="(tab, index) in tabs"
+        :key="index"
+        v-show="activeTab === index"
+        class="tab-panel"
+      >
+        {{ tab.content }}
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.tabs-container {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.tab-buttons {
+  display: flex;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tab-button {
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.tab-button:hover {
+  background-color: #e2e8f0;
+}
+
+.tab-button.active {
+  background-color: white;
+  color: #1e293b;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.tab-content {
+  background-color: white;
+}
+
+.tab-panel {
+  padding: 1.5rem;
+}
+</style>
+```
+
+このタブコンポーネントの使用方法としては、以下のようになります。
+
+```md
+::tab
+---
+tabs:
+  - title: "JavaScript"
+    content: "JavaScriptの説明です"
+  - title: "Vue"
+    content: "Vueの説明です"
+  - title: "React"
+    content: "Reactの説明です"
+---
+::
+```
+</div>
+</details>
+
+以下のように、マークダウンに埋め込んだコンポーネントも**スクリプトが実行される**のでタブが動くことが確認できるかと思います！
+
+![タブコンポーネントの例](https://res.cloudinary.com/dy8ftemi0/video/upload/v1748936564/nuxt-content-video-01_vqrarm.mp4 'タブコンポーネントの例')
+
+Astroでも、マークダウン内にコンポーネントを埋め込めますが、Nuxt Contentではより簡単にコンポーネントを埋め込めることを実感しました！
+
+## まとめ
+
+簡単なブログを作りながら、Nuxt Contentの基本的な使い方を紹介しました。Astroでも似たようにコンテンツ内のマークダウンをレンダリングしてブログを簡単に作れますが、Nuxt Contentではimportの宣言なしでコンポーネントなどを使えるのが楽で便利ですね！
+
+この記事が参考になれば幸いです。
+
+## 参考
+
+- [マークダウンの力を引き出す！Nuxt Contentで快適なウェブサイト制作](https://ics.media/entry/241108/)
+- [NuxtJSを使ってブログを作ってみた【Nuxt Content/TailwindCSS/daisyUI】](https://blog.ashcolor.jp/blog/programming/nuxt-blog)
+- [Nuxt Content v3 + Nuxt Hub を使って爆速で個人ブログを作って公開する](https://tsukiyama.blog/tech/nuxt-content-v3-blog)
