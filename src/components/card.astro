@@ -33,17 +33,19 @@ const pubDateJA = format(time, 'yyyy.MM.dd');
   .inner {
     height: max-content;
     padding: 1.25rem;
-    border: 2px solid transparent;
     border-radius: 1.5rem;
     transition: .2s;
+    position-anchor: --card;
   }
   .image {
     aspect-ratio: 16 / 9;
     margin-bottom: 1rem;
+    border-radius: 1.5rem;
+    overflow: hidden;
     img {
       height: 100%;
-      border-radius: 1.5rem;
       object-fit: cover;
+      transition: 0.3s;
     }
   }
   .title {
@@ -55,6 +57,7 @@ const pubDateJA = format(time, 'yyyy.MM.dd');
     overflow: hidden;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    transition: 0.3s;
   }
   .list {
     color: var(--color);
@@ -80,7 +83,15 @@ const pubDateJA = format(time, 'yyyy.MM.dd');
   @media (hover: hover) {
     .inner {
       &:hover {
-        border: 2px solid var(--color);
+        anchor-name: --card;
+        .title {
+          color: var(--yellow);
+        }
+        .image {
+          img {
+            scale: 1.1;
+          }
+        }
       }
     }
   }
