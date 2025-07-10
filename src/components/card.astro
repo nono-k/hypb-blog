@@ -95,6 +95,19 @@ const pubDateJA = format(time, 'yyyy.MM.dd');
       }
     }
   }
+  @supports not (anchor-name: --card) {
+    .inner {
+      border: 2px solid transparent;
+      transition: 0.3s;
+    }
+    @media (hover: hover) {
+      .inner {
+        &:hover {
+          border: 2px solid var(--gray-10);
+        }
+      }
+    }
+  }
   @include mixin.phone {
     .inner {
       padding: 0.75rem;
