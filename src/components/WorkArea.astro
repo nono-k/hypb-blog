@@ -1,0 +1,56 @@
+---
+import { Image } from "astro:assets";
+import Container from "./container.astro";
+import work01 from '../assets/images/work-01.png';
+import work02 from '../assets/images/work-02.png';
+---
+
+<Container maxWidth="1000px">
+  <ul class="list">
+    <li class="item">
+      <a href="https://munus.dev" class="link" target="_blank">
+        <Image src={work01} alt="munus" />
+      </a>
+    </li>
+    <li class="item">
+      <a href="https://feylo.dev" class="link" target="_blank">
+        <Image src={work02} alt="feylo" />
+      </a>
+    </li>
+  </ul>
+</Container>
+
+<style lang="scss">
+  .list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 2rem;
+    margin-inline: 1rem;
+  }
+  .link {
+    display: block;
+    border-radius: 1.25rem;
+    overflow: hidden;
+    border: 4px solid var(--gray-10);
+    transition: 0.3s;
+  }
+  @media (hover: hover) {
+    .link {
+      &:hover {
+        border-color: var(--yellow);
+      }
+    }
+  }
+  @include mixin.mobile {
+    .list {
+      grid-template-columns: 1fr;
+      row-gap: 2rem;
+      max-width: 500px;
+      margin-inline: auto;
+    }
+    .link {
+      border-radius: 1rem;
+      border-width: 2px;
+    }
+  }
+</style>

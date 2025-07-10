@@ -1,8 +1,10 @@
 ---
+import { Image } from "astro:assets";
 import Accordion from "./ui/accordion.astro";
 import TableOfContents from "./tableOfContents.astro";
 import SquareAdUnit from "./adUnit/SquareAdUnit.astro";
 import { category, tags } from "../lib/constants";
+import feylo from '../assets/images/feylo.jpg';
 
 const categoryTag = [
   {
@@ -22,6 +24,10 @@ const categoryTag = [
 const { blog } = Astro.props;
 ---
 <div class="sidebar for-large">
+  <div class="adUnit">
+    <SquareAdUnit />
+  </div>
+
   <div class:list={["accordion-wrapper", !blog && 'sticky' ]}>
     {categoryTag.map((item, i) => {
       const { title, items } = item;
@@ -34,14 +40,14 @@ const { blog } = Astro.props;
   {blog ?
     <div class="tableOfContent-wrapper">
       <TableOfContents />
-      <div class="adUnit">
-        <SquareAdUnit />
+      <div class="feylo">
+        <div class="title">運用中のサイト🚀</div>
+        <a href="https://feylo.dev" class="link" target="_blank">
+          <Image src={feylo} alt="feylo" />
+        </a>
       </div>
     </div>
-    :
-    <div class="adUnit sticky">
-      <SquareAdUnit />
-    </div>
+    : ''
   }
 </div>
 
@@ -50,20 +56,48 @@ const { blog } = Astro.props;
     display: flex;
     flex-direction: column;
     gap: 24px;
-    // &.sticky {
-    //   position: sticky;
-    //   top: 24px;
-    // }
+    &.sticky {
+      position: sticky;
+      top: 24px;
+    }
   }
   .tableOfContent-wrapper {
     position: sticky;
     top: 24px;
   }
   .adUnit {
-    margin-top: 1.5rem;
+    margin-bottom: 2.5rem;
     &.sticky {
       position: sticky;
       top: 24px;
+    }
+  }
+  .feylo {
+    margin-top: 2rem;
+    background: var(--black);
+    border: 2px solid var(--gray-10);
+    border-radius: 1rem;
+    overflow: hidden;
+    .title {
+      background: var(--yellow);
+      padding: 0.5rem 1rem;
+      border-bottom: 2px solid var(--gray-10);
+      font-weight: 500;
+    }
+    .link {
+      display: block;
+      margin: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      border: 4px solid transparent;
+      overflow: hidden;
+      transition: 0.3s;
+    }
+  }
+  @media (hover: hover) {
+    .feylo .link {
+      &:hover {
+        border-color: var(--yellow);
+      }
     }
   }
 </style>

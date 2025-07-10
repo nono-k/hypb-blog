@@ -7,6 +7,7 @@ import type { Page, PaginateFunction } from "astro";
 import Layout from "@/layouts/layout";
 import Hero from "@/components/pages/hero/hero.astro";
 import NewArticle from "@/components/new-article.astro";
+import WorkArea from "@/components/WorkArea.astro";
 import SearchArea from "@/components/search-area.astro";
 import WideAdUnit from "@/components/adUnit/WideAdUnit.astro";
 
@@ -40,6 +41,9 @@ const { page } = Astro.props;
   <section class="new-article">
     <NewArticle page={page} />
   </section>
+  <section class="work">
+    <WorkArea />
+  </section>
   <section class="search">
     <SearchArea />
   </section>
@@ -50,9 +54,12 @@ const { page } = Astro.props;
     margin-top: 3.75rem;
   }
   .new-article {
-    margin-bottom: 15rem;
+    margin-bottom: 6rem;
     max-width: calc(1380px - 4rem);
     margin-left: auto;
+  }
+  .work {
+    margin-bottom: 6rem;
   }
   .topAdUnit {
     max-width: 1000px;
@@ -60,17 +67,15 @@ const { page } = Astro.props;
     padding-inline: 2rem;
     margin-block: 4rem;
   }
-  @include mixin.mobile {
-    .new-article {
-      margin-bottom: 10rem;
-    }
-  }
   @include mixin.phone {
     .hero {
       margin-top: 1.5rem;
     }
     .new-article {
-      margin-bottom: 5rem;
+      margin-bottom: 4rem;
+    }
+    .work {
+      margin-bottom: 4rem;
     }
     .topAdUnit {
       margin-block: 2rem;
