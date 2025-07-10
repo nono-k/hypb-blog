@@ -3,6 +3,7 @@
 ---
 
 <div class="article-list">
+  <div class="card__border" />
   <slot />
 </div>
 
@@ -10,9 +11,21 @@
   .article-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+    // gap: 0.5rem;
     margin-top: -1.25rem;
     flex: 1;
+    position: relative;
+  }
+  .card__border {
+    position: absolute;
+    border: 2px solid var(--gray-10);
+    border-radius: 1.5rem;
+    pointer-events: none;
+    transition: 0.3s;
+    left: anchor(--card left);
+    top: anchor(--card top);
+    width: anchor-size(--card width);
+    height: anchor-size(--card height);
   }
   @include mixin.phone {
     .article-list {
