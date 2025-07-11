@@ -46,6 +46,28 @@ button {
   background: none
 }
 
+table {
+  width: 100%;
+  margin-top: 1.5rem;
+  margin-inline: auto;
+  border-collapse: collapse;
+  background: var(--black);
+  color: var(--gray-10);
+
+  thead {
+    background: var(--green);
+    font-weight: 700;
+    color: var(--black);
+  }
+
+  th,
+  td {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--gray-10);
+    font-size: 0.95rem;
+  }
+}
+
 // safari対策でデフォルトの三角形を消す
 summary::-webkit-details-marker {
   display: none;

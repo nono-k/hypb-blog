@@ -1,0 +1,216 @@
+---
+title: CSS Anchor Positioningを利用してホバーで追従するボーダーを作る
+slug: anchor-positioning-follow-border
+pubDate: '2025-07-12'
+image: ../../../assets/images/anchor-positioning-follow-border.jpg
+ogp: 'images/ogp/anchor-positioning-follow-border.jpg'
+category: Coding
+tags:
+  - CSS
+description: Anchor Positioningを利用してJavaScriptを使わずにホバーで追従するボーダーを作る方法を解説します。
+relatedPosts:
+  - recommended-book-for-frontend-devs
+  - css-3d-carousel
+---
+import CodePenEmbed from '../../../components/markdown/CodePenEmbed.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import BaseLineStatus from '../../../components/markdown/BaseLineStatus.astro';
+
+## はじめに
+
+今回は、このブログの[記事一覧ページ](https://hypb.dev/articles)のホバーアニメーションをCSSのAnchor Positioningを利用した、ホバーでボーダーが追従するアニメーションに改修しましたので、その方法を解説します。
+
+![記事一覧ページのアニメーション](https://res.cloudinary.com/dy8ftemi0/video/upload/v1752053567/2025-07-09_18.26.57_c9l7sg.mp4 "記事一覧ページのアニメーション")
+
+このようなアニメーションは、従来はJavaScriptを使用しないと実装できませんでしたが、現在ではCSSのAnchor Positioningを利用することで、手軽に実装できるようになりましたのでその方法を解説します。
+
+👇はCodePenのデモです！
+
+<CodePenEmbed penId="RNWwQaK" title="CSS 3D Carousel" />
+
+## CSS Anchor Positioningとは
+
+CSS Anchor Positioningは、CSSの新しいプロパティで、他の要素（アンカー）を基準として要素の位置を指定できるためWeb開発においてより便利な機能になります。この機能を使うことで、メニューやサブメニュー、ツールチップなどのUI機能の複雑なレイアウト要件を簡易的に実装できるようになります。
+
+今回の場合は、このCSS Anchor Positioningを利用して、ホバーでボーダーが追従するアニメーションを実装します。
+
+### Anchor Positioningのサポート状況
+
+Anchor Positioningは、執筆時点(2025/07)ではChromeとEdge、Safariが26.0以上からサポートしており、Firefoxではまだサポートされておりません。
+
+<BaseLineStatus featureId="anchor-positioning" />
+
+そこで、Anchor Positioningをサポートしていないブラウザでは、ホバーしたら通常のボーダーを表示するだけのフォールバックを行うようにします。こちらは解説の最後で説明します！
+
+## 実装方法
+
+それでは、実際にAnchor Positioningを使ってホバーで追従するボーダーを作ってみましょう。
+
+### HTML
+
+まずは、HTMLを作成します。
+
+```html title="index.html"
+<div class="card__wrapper">
+  <div class="card__border"></div>
+  <div class="card">
+    <div class="card__img">
+      <img src="https://picsum.photos/300/200?random=0" alt="">
+    </div>
+    <div class="card__body">
+      <h2>タイトル01</h2>
+      <p>Lorem ipsum dolor sit amet consectetur.</p>
+    </div>
+  </div>
+  // カードの数だけ繰り返す
+</div>
+```
+
+カードを並べるために`card__wrapper`クラスを付与した`div`タグを作成し、その中にカードを作成します。ホバーで追従するボーダーは`card__border`クラスとし、`card__wrapper`の中に配置します。
+
+### CSS
+
+CSSは下記の通りです。
+
+```scss title="style.css"
+.card__wrapper {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  position: relative;
+
+  &:hover .card__border {
+    opacity: 1;
+  }
+}
+
+.card {
+  padding: 1rem;
+  position-anchor: --card;
+
+  &:hover {
+    anchor-name: --card;
+  }
+}
+
+.card__border {
+  position: absolute;
+  border-radius: 0.5rem;
+  border: 2px solid #E8EAED;
+  pointer-events: none;
+  opacity: 0;
+  transition-property: left, top, width, height;
+  transition-duration: 0.3s;
+
+  /* anchorの位置・サイズに従って追従させる */
+  left: anchor(--card left);
+  top: anchor(--card top);
+  width: anchor-size(--card width);
+  height: anchor-size(--card height);
+}
+```
+
+それでは、解説していきます。
+
+#### .card
+
+```scss
+.card {
+  position-anchor: --card;
+}
+```
+
+Anchor Positioningを使用するために`position-anchor`プロパティを使用します。ここでは、`--card`という名前のAnchorを作成します。
+
+```scss
+.card {
+  &:hover {
+    anchor-name: --card;
+  }
+}
+```
+
+`.card`をホバーしたら、この要素を「アンカー」として扱うために`anchor-name`プロパティに`--card`を指定します。
+
+#### .card__bg
+
+```scss
+.card__border {
+  position: absolute;
+  border-radius: 0.5rem;
+  border: 2px solid #E8EAED;
+  pointer-events: none;
+  opacity: 0;
+  transition-property: left, top, width, height;
+  transition-duration: 0.3s;
+
+  /* anchorの位置・サイズに従って追従させる */
+  left: anchor(--card left);
+  top: anchor(--card top);
+  width: anchor-size(--card width);
+  height: anchor-size(--card height);
+}
+```
+
+`card__border`は、`.card`をアンカーとして、その位置・サイズにぴったり追従します。
+
+ぴったり追従するために、`left`、`top`、`width`、`height`に`anchor`関数を使用して、それぞれの値をアンカーの位置・サイズに合わせています。ここで、`transition`はこの位置の移動のみに適用したいので、`transition-property`にはこの4つのプロパティを指定しています。
+
+#### Anchor Positioningのプロパティの説明
+
+ここで今回使用した、Anchor Positioningのプロパティの役割については以下の通りです。
+
+| プロパティ                     | 役割                     |
+| ------------------------- | ---------------------- |
+| `position-anchor: --xxx;` | この要素はアンカー候補になる（位置を与える） |
+| `anchor-name: --xxx;`     | 実際にアンカーとして参照される名前      |
+| `anchor(--xxx left)` など   | アンカー要素の位置を参照       |
+| `anchor-size(--xxx width)` など   | アンカー要素のサイズを参照       |
+
+#### ホバーしたらボーダーを表示する
+
+このままだと、ホバーしなくても左上に`card__border`が表示されてしまうので、ホバーしたらボーダーを表示するようにします。そのためには、カードを並べている`card__wrapper`がホバーしたら、`card__border`の`opacity`を`1`にして表示するようにします。
+
+```scss
+.card__wrapper {
+  &:hover .card__border {
+    opacity: 1;
+  }
+}
+```
+
+以上が、Anchor Positioningを利用してホバーで追従するボーダーを作る解説になります。
+
+## Anchor Positioningをサポートしていないブラウザの対応
+
+先述の通りにAnchor Positioningをサポートしていないブラウザに対しては、`@supports`を使用して、ホバーしたら背景色を表示するだけのフォールバックを行いましょう。
+
+```scss
+@supports not (anchor-name: --card) {
+  .card {
+    border: 2px solid transparent;
+    transition: 0.3s;
+
+    &:hover {
+      border-color: #E8EAED;
+    }
+  }
+}
+```
+
+サポートされてないブラウザでは、単純なボーダーが表示されるので確認してみてください！
+
+## 注意事項
+
+今回のようにカードコンポーネントを並べる場合、`grid`を使用しますが、ここで`gap`プロパティを使用して間隔を調整すると、ホバー要素が途切れてしまい、うまく機能しなくなります。
+
+なので、カードコンポーネントの間隔は、`.card`に対して`padding`プロパティで調整しましょう。
+
+## まとめ
+
+今回は、CSS Anchor Positioningを利用して、ホバーでボーダーが追従するアニメーションを実装しました。このブログの記事一覧でも同様のアニメーションを実装していますので、ぜひ確認してみてください！
+
+この記事が参考になれば幸いです。
+
+## 参考
+
+- [CSS アンカー ポジショニング API のご紹介 - chrome for developers](https://developer.chrome.com/blog/anchor-positioning-api?hl=ja)

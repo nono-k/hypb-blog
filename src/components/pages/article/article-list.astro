@@ -21,11 +21,22 @@
     border: 2px solid var(--gray-10);
     border-radius: 1.5rem;
     pointer-events: none;
-    transition: 0.3s;
+    opacity: 0;
+    transition-property: left, top, width, height;
+    transition-duration: 0.3s;
     left: anchor(--card left);
     top: anchor(--card top);
     width: anchor-size(--card width);
     height: anchor-size(--card height);
+  }
+  @media (hover: hover) {
+    .article-list {
+      &:hover {
+        .card__border {
+          opacity: 1;
+        }
+      }
+    }
   }
   @include mixin.phone {
     .article-list {
