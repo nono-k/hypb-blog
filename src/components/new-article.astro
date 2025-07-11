@@ -15,6 +15,7 @@ const { page } = Astro.props;
   <h2>新着記事</h2>
   <div class="wrapper">
     <div class="card-content">
+      <div class="card__border" />
       {
         page.data.map((post) => {
           const { slug, data: { image, title, pubDate, category, tags }} = post;
@@ -47,9 +48,31 @@ const { page } = Astro.props;
   .card-content {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
     margin-top: -1.25rem;
     margin-bottom: 4rem;
+    position: relative;
+  }
+  .card__border {
+    position: absolute;
+    border: 2px solid var(--black);
+    border-radius: 1.5rem;
+    pointer-events: none;
+    opacity: 0;
+    transition-property: left, top, width, height;
+    transition-duration: 0.3s;
+    left: anchor(--card left);
+    top: anchor(--card top);
+    width: anchor-size(--card width);
+    height: anchor-size(--card height);
+  }
+  @media (hover: hover) {
+    .card-content {
+      &:hover {
+        .card__border {
+          opacity: 1;
+        }
+      }
+    }
   }
   @include mixin.mobile {
     .inner {
