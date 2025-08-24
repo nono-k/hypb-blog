@@ -4,7 +4,7 @@ export const siteMeta = {
   siteUrl: 'https://hypb.dev',
   siteType: 'website',
   siteLocale: 'ja_JP',
-  siteIcon: '/favicon.svg',
+  siteIcon: '/favicon.png',
   siteImg: '/ogp.png',
 };
 
