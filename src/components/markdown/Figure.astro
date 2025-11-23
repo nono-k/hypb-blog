@@ -15,7 +15,7 @@ const isCloudinaryVideo = isStingSrc && src.startsWith(`https://res.cloudinary.c
   { isCloudinaryVideo ? (
     <CldVideoPlayer src={src} width="1200" height="675" />
   ) : isCloudinaryImage ? (
-    <CldImage src={src} alt={alt} width={1200} height={675} />
+    <CldImage src={src} alt={alt} />
   ) : (
     <Image src={src} alt={alt} width="1200" height="675" />
   )

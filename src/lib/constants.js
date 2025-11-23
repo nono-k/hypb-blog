@@ -22,6 +22,7 @@ export const tags = [
   { name: 'Next.js', slug: 'nextjs' },
   { name: 'Nuxt.js', slug: 'nuxtjs' },
   { name: 'Three.js', slug: 'threejs' },
+  { name: 'GLSL', slug: 'glsl' },
   { name: 'GSAP', slug: 'gsap' },
   { name: 'Swiper', slug: 'swiper' },
   { name: 'Markdown', slug: 'markdown' },
@@ -31,6 +32,7 @@ export const tags = [
   { name: 'Pug', slug: 'pug' },
   { name: 'Gulp', slug: 'gulp' },
   { name: '3D', slug: '3d' },
+  { name: '画像処理', slug: 'image-processing' },
   { name: 'Chrome拡張機能', slug: 'chrome-extensions' },
   { name: 'フロントエンド雑記', slug: 'frontend' },
 ];
