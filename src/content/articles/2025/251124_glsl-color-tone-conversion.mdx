@@ -1,0 +1,303 @@
+---
+title: GLSLで画像処理プログラミング【色調変換を用いたエフェクト処理】
+slug: glsl-color-tone-conversion
+pubDate: '2025-11-24'
+image: ../../../assets/images/glsl-color-tone-conversion.jpg
+ogp: 'images/ogp/glsl-color-tone-conversion.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回は色調変換を用いたエフェクト処理の実装方法を解説します！
+relatedPosts:
+  - recommended-book-for-frontend-devs
+---
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+
+## はじめに
+
+今回から画像処理のプログラムをGLSLでの実装でやっていきます。デモでは素のWebGLを用いていますが、画面全体の板ポリを貼っているだけなのでGLSLのコードだけ解説します。
+
+コードは下記のGitHubのリポジトリで公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## 色調変換とは
+
+画像処理のなかでももっとも単純な、色調変換を用いたエフェクト処理を紹介します。色調とは色彩の強弱・濃淡など色合いの調子を指します。色調変換の処理は、処理対象となる画像上でひとつの画素値から出力後の画素値を求め、その値に変化させることにより行われます。
+
+数式で書くと、もとの画素の値を$P_i$、変化後の値を$P_o$としたときに次の演算を全画素に対して施します。
+
+$$
+P_o = f({P_i})
+$$
+
+ここで、$f$は色調変換などを起こすための関数で、この関数を工夫することでさまざまな効果を得ることができます。
+
+下図のように、もとの画素の値$P_i$と変化後の値$P_o$のグラフを考えてみます。$P_o = P_i$の点線の上側をとおるように関数$f$を設定すると、値が大きくなる方向に変化するので全体に画像を明るくすることができます（左図）。逆に下側をとおるように設定すると、全体に画像が暗くなります（右図）。
+
+![明るくする関数と暗くする関数](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763397769/glsl-color-tone-conversion-01_wpu3zb.jpg '明るくする関数と暗くする関数')
+
+最初は、明度を調整するような関数をみていきましょう！
+
+## 明度の調整
+
+上で説明したとおり、色調変換は明度の調整に利用できます。
+今回は線形関数とガンマ補正・シグモイド関数、ヒストグラム均等化の処理をGLSLで実装します。
+
+### 線形関数
+
+線形関数は次のような形になる関数になります。
+
+$$
+P_o = aP_i + b
+$$
+
+先ほどの図のように、明るくする関数と暗くする関数を考えてみます。
+GLSLで実装するので、uniform変数として0.0 ~ 1.0の範囲での`param1`と`param2`を与え、これを用いて線形関数を実装します。
+
+数式としては次のような関数になります。
+
+$$
+P_o = (param2 - param1)P_i + param1
+$$
+
+この関数をグラフで表すと次のようになるでしょう。
+
+![param1とparam2のとり方](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763480943/glsl-color-tone-conversion-02_cy7ltm.jpg 'param1とparam2のとり方')
+
+式とグラフの通りに、$param1=0.0$、$param2=1.0$の場合は元の画像のままになります。また、$param1$の値を上げていくと明るい画像になり、$param2$の値を下げていくと暗い画像になることが分かるでしょう。
+
+GLSLで書くと次のようになります。
+
+```glsl title="線形関数のGLSLコード"
+uniform sampler2D uTexture;
+uniform float param1;
+uniform float param2;
+
+in vec2 vUv;
+out vec4 fragColor;
+
+void main() {
+  vec2 uv = vUv;
+  vec4 texture = texture(uTexture, uv);
+
+  float p1 = param1;
+  float p2 = param2;
+
+  vec3 color = (p2 - p1) * texture.rgb + p1;
+
+  fragColor = vec4(color, texture.a);
+}
+```
+
+結果は次の画像になります。デモではパラメータをいじれるようにしてるので、ぜひ試してみてください！
+
+![param1=0.2,param2=0.8の線形関数の例](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763481647/glsl-color-tone-conversion-03_gyqtvp.jpg 'param1=0.2,param2=0.8の線形関数の例')
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/linear-effect/" />
+
+### ガンマ補正
+
+ガンマ補正では、次のような数式を用いて行います。
+
+$$
+P_o = P_i^\frac{1}\gamma
+$$
+
+この関数はグラフで表すと、曲線のトーンカーブになります。
+
+![ガンマ補正のトーンカーブ](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763483377/glsl-color-tone-conversion-04_bk9uao.jpg 'ガンマ補正のトーンカーブ')
+
+このグラフのように、$\gamma$の値により形状が変化し、$\gamma > 1$のときは上に凸、$\gamma < 1$のときは下に凸のトーンカーブになります。また、$\gamma$の値を上げていくと明るい画像になり、下げていくと暗い画像になります。
+
+$\gamma$をuniform変数として、GLSLで書くと次のようになります。
+
+```glsl title="ガンマ補正のGLSLコード"
+uniform sampler2D uTexture;
+uniform float gamma;
+
+in vec2 vUv;
+out vec4 fragColor;
+
+void main() {
+  vec2 uv = vUv;
+  vec4 texture = texture(uTexture, uv);
+
+  vec3 color = pow(texture.rgb, vec3(1.0 / gamma));
+
+  fragColor = vec4(color, texture.a);
+}
+```
+
+GLSLで累乗を計算するには、`pow`関数を使用します。
+結果は次の画像になります。こちらもデモでパラメータをいじってみてください！
+
+![ガンマ補正の例](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763484258/glsl-color-tone-conversion-05_e794uq.jpg 'ガンマ補正の例')
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/gamma-correction/" />
+
+### シグモイド関数の利用(S字型トーンカーブ)
+
+続いてはシグモイド関数を利用した例を考えてみましょう。
+シグモイド関数は次のような関数になります。
+
+$$
+f(x) = \frac{1}{1 + e^{-ax}}
+$$
+
+ここで$a$はゲイン(gain)と呼びます。このパラメータを変更することでトーンカーブの形状を変更できます。グラフで表すと次のようになります。($a = 5$のとき)
+
+![シグモイド関数の例](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763793879/glsl-color-tone-conversion-06_vbgfuq.jpg "シグモイド関数の例")
+
+画像処理で使う場合は、画像値の半分が中間地点になるように式を変形します。
+
+$$
+f(x) = \frac{1}{1 + e^{-a(x - \frac{1}{2})}}
+$$
+
+![S字型トーンカーブの例](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763794390/glsl-color-tone-conversion-07_tjpzeo.jpg "S字型トーンカーブの例")
+
+ゲイン$a$の値を大きくすれば坂の部分が急になるので、より強くコントラストが強調されます。逆に$a$の値を小さくすれば、坂の部分がなだらかになるので、コントラスト強調の度合いが和らぎます。
+
+グラフを見るとおり、シグモイド関数を利用するとS字型のトーンカーブになります。それでは、GLSLで実装してみましょう。
+
+GLSLでシグモイド関数を式のように用意します。
+
+```glsl title="sigmoid"
+vec3 sigmoid(vec3 texture, float a) {
+  return 1.0 / (1.0 + exp(-a * (texture - 0.5)));
+}
+```
+
+第2引数のゲインを変えることで、画像の処理が変化します。
+このシグモイド関数を利用したmain関数は次のようになります。
+
+```glsl title="シグモイド関数を利用した画像処理"
+void main() {
+  vec2 uv = vUv;
+  vec4 texture = texture(uTexture, uv);
+
+  vec3 color = sigmoid(texture.rgb, gain);
+
+  fragColor = vec4(color, texture.a);
+}
+```
+
+シグモイド関数の第1引数にテクスチャのrgb値を渡すだけで、S字型のトーンカーブが適用されます。実装結果は次のようになります。デモでもゲインの値を変えられるので試してみてください！
+
+![S字型トーンカーブの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763795249/glsl-color-tone-conversion-08_gxjy1y.jpg "S字型トーンカーブの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/sigmoid-effect/" />
+
+<PostAdUnit />
+
+## 特殊効果をもたらす色調変換
+
+先程までの色調変換の関数は、主に画像の明度調整に利用されます。適用する関数しだいでは、さまざまな特殊効果をもたらす画像処理を行えます。ここでは、ネガ化処理・ソラリゼーション・ポスタリゼーションについて紹介します。
+
+### ネガ化処理
+
+![ネガ化処理](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763795798/glsl-color-tone-conversion-09_hefypg.jpg "ネガ化処理")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/negative-conversion/" />
+
+ネガ化処理は色の明暗を反転させ、ネガフィルムのように変化させるものです。
+反転させるので次の式で実装できます。
+
+$$
+P_o = 1 - P_i
+$$
+
+GLSLで実装すると次のようになります。
+
+```glsl title="ネガ化処理のGLSLコード"
+void main() {
+  vec2 uv = vUv;
+  vec4 texture = texture(uTexture, uv);
+
+  vec3 color = 1.0 - texture.rgb;
+
+  fragColor = vec4(color, texture.a);
+}
+```
+
+### ソラリゼーション
+
+![ソラリゼーション](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763826974/glsl-color-tone-conversion-10_zoxjuj.jpg "ソラリゼーション")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/solarization-effect/" />
+
+ソラリゼーションは色を急峡に変化させるような特殊効果を与える処理です。ある周期を持った関数なら、どのような関数を用いてもよいのですが、ここではsin波を用いて実装します。
+
+式としては、次の式を使用します。
+
+$$
+f(x) = sin(2\pi x)*0.6 + x
+$$
+
+この式の意味はグラフを見てもらえると分かるかと思います。
+
+![ソラリゼーションの関数](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763829120/glsl-color-tone-conversion-11_ond1my.jpg "ソラリゼーションの関数")
+
+要するに0~1の範囲で山が2つできるような関数を今回は使用して実装します。
+GLSLのコードは次のようになります。
+
+```glsl title="ソラリゼーション"
+const float PI = 3.1415926;
+
+vec3 solarization(vec3 texture) {
+  return sin(texture * PI * 2.0) * 0.6 + texture;
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec4 texture = texture(uTexture, uv);
+
+  vec3 color = solarization(texture.rgb);
+
+  fragColor = vec4(color, texture.a);
+}
+```
+
+振幅や周期の値を変えることで、さまざまな特殊効果を得ることができるのでまずはグラフで波形を試しながら実装してみてください！
+
+### ポスタリゼーション
+
+![ポスタリゼーション](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763829768/glsl-color-tone-conversion-12_maazyq.jpg "ポスタリゼーション")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/posterization-effect/" />
+
+ポスタリゼーションは、画素値の階調を落とすような処理になります。次の図のようにトーンカーブは階段状になります。
+
+![ポスタリゼーションのトーンカーブ](https://res.cloudinary.com/dy8ftemi0/image/upload/v1763859583/glsl-color-tone-conversion-13_xon2kd.jpg "ポスタリゼーションのトーンカーブ")
+
+階段の段数を少なくするほど階調が大きく落とされることになり、変化が大きくなります。写真などの自然画像にこの処理を施すと、元画像の細かな色の変化がなくなり、イラストのようになります。逆にイラストのようにもともと色の変化が少ない画像にこの処理を適用してもあまり大きな変化は得られません。
+
+GLSLのコードは次のようになります。
+
+```glsl title="ポスタリゼーション"
+vec3 posterization(vec3 texture, float level) {
+  return vec3(floor(texture * level) / (level - 1.0));
+}
+```
+
+階調の調整はuniformの`level`で調整できるようにしてるので、デモでぜひ試してみてください！
+
+## まとめ
+
+GLSLで基本的な画像処理として、色調変換の方法を紹介しました。
+デモではパラメータを変化できるようにしているので、ぜひ試してみてください！
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
