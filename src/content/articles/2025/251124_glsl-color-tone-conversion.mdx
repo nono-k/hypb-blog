@@ -10,17 +10,18 @@ tags:
   - 画像処理
 description: GLSLで画像処理をやっていくシリーズです。今回は色調変換を用いたエフェクト処理の実装方法を解説します！具体的には、線形関数、ガンマ補正、シグモイド関数、ネガ化、ソラリゼーション、ポスタリゼーションの処理をGLSLで実装します。
 relatedPosts:
-  - recommended-book-for-frontend-devs
+  - glsl-spatial-filtering
 ---
 import DemoBtn from '../../../components/markdown/DemoBtn.astro';
 import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
 import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
 
 ## はじめに
 
 今回から画像処理のプログラムをGLSLでの実装でやっていきます。デモでは素のWebGLを用いていますが、画面全体の板ポリを貼っているだけなのでGLSLのコードだけ解説します。
 
-コードは下記のGitHubのリポジトリで公開しています。
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
 
 https://github.com/nono-k/webgl-study-note
 
@@ -290,6 +291,19 @@ vec3 posterization(vec3 texture, float level) {
 
 GLSLで基本的な画像処理として、色調変換の方法を紹介しました。
 デモではパラメータを変化できるようにしているので、ぜひ試してみてください！
+
+次回は、GLSLで空間フィルタリングについて紹介します。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで空間フィルタリング【平滑化・加重平均化・エッジ摘出・先鋭化・エンボス処理】",
+      link: "glsl-spatial-filtering",
+      image: "glsl-color-tone-conversion.jpg",
+    },
+  ]}
+/>
 
 ## 画像処理のおすすめ本
 
