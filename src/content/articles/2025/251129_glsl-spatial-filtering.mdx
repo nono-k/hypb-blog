@@ -1,0 +1,348 @@
+---
+title: GLSLで空間フィルタリング【平滑化・加重平均化・エッジ摘出・先鋭化・エンボス処理】
+slug: glsl-spatial-filtering
+pubDate: '2025-11-29'
+image: ../../../assets/images/glsl-spatial-filtering.jpg
+ogp: 'images/ogp/glsl-spatial-filtering.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回は空間フィルタリングの実装方法を解説します！具体的には、平滑化・加重平均化・エッジ摘出・先鋭化・エンボス処理をGLSLで実装します。
+relatedPosts:
+  - glsl-color-tone-conversion
+---
+import Warning from '../../../components/markdown/warning.astro';
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+
+## はじめに
+
+[前回](/articles/glsl-color-tone-conversion/)はGLSLでの画像処理の基本的な方法として、色調変換の方法を紹介しました。
+今回は空間フィルタリングについて解説します。
+
+<Warning text="サンプルコードでは分かりやすさを重視しているので、最適化などはしておらずパフォーマンスは悪いと思うので実際の実装では注意してください。" />
+
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## 空間フィルタリングとは
+
+前回紹介した色調変換では、1画素ごと処理を行っていました。**空間フィルタリング**では1画素だけでなく、周辺の画素を考慮して計算を行うことで、さらに複雑な変化をもたらすことができます。空間フィルタリングは、**線形フィルタ**と**非線形フィルタ**に分けられます。
+
+線形フィルタを入力画像を$f(i,j)$、出力画像を$g(i,j)$とするとき、次の式により計算されます。
+
+$$
+g(i,j) = \sum_{n=-w}^{w} \sum_{m=-w}^{w} f(i+m,j+n) h(m,n)
+$$
+
+$h(m,n)$はフィルタの係数を表す配列であり、**重み係数行列**と呼ばれます。
+空間フィルタリングは、画像の平滑化、エッジ検出、先鋭化、エンボス処理など、様々な画像処理の基礎となります。それではまずは、平滑化の処理についてみていきましょう。
+
+## 平滑化
+
+平滑化処理は、画像の色の変化を緩やかにする処理です。この処理を行うと、輪郭など色の変化が大きい部分も色の変化が乏しくなり、画像全体がぼやけた感じになります。平滑化は、画像に含まれるノイズなどの不要な濃淡変動を軽減するためにも用いられます。
+
+ここでは、2種類の平滑化処理についてみていきます。
+
+### 単純平滑化
+
+単純平滑化は周辺の画素値の平均の値を求めます。下図は3x3と5x5のフィルタになります。
+
+![単純平滑化のフィルタ](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764001242/glsl-spatial-filtering-01_btyz4i.jpg "単純平滑化のフィルタ")
+
+3x3ならフィルタの総計は9に、5x5なら25になるのでこの総計で割ることで周辺画素の平均値を求めることができます。
+
+GLSLでの3x3の単純平滑化の実装は次のようになります。
+
+```glsl title="3x3の単純平滑化"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  vec3 col = vec3(0.0);
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      col += texture(uTexture, uv + vec2(x, y) * pos).rgb;
+    }
+  }
+
+  col /= 9.0;
+
+  fragColor = vec4(col, 1.0);
+}
+```
+
+周辺画素の範囲を広げることで、広い範囲を平均化するために、さらに強い平滑化を行うことができます。下図は7x7のフィルタを使用した場合になります。
+
+![7x7の単純平滑化の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764002535/glsl-spatial-filtering-02_wusqks.jpg "7x7の単純平滑化の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/averaging-filter/" />
+
+デモでは、3x3と5x5,7x7のフィルタの違いを確認できるので試してみてください。
+
+### 加重平均化
+
+**加重平均化**では、単純な平均ではなく、フィルタの中央に近いほど大きな重みを付けます。下図は3x3と5x5の加重平均化フィルタの例になります。
+
+![加重平均化のフィルタ](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764034690/glsl-spatial-filtering-03_mngmj7.jpg "加重平均化のフィルタ")
+
+図より、3x3フィルタの方は総計が16に、5x5フィルタは256になるのでこの値で割ります。
+加重平均化では、もとの色をできるだけ保持するようにして平滑化を行います。
+
+GLSLでの上図の3x3フィルタの加重平均化の実装は次のようになります。
+
+```glsl title="3x3の加重平均化"
+// 3x3フィルタ
+float kernel16[9] = float[] (
+  1.0, 2.0, 1.0,
+  2.0, 4.0, 2.0,
+  1.0, 2.0, 1.0
+);
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  vec3 sum = vec3(0.0);
+  int k = 0;
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec3 c = texture(uTexture, uv + vec2(x, y) * pos).rgb;
+      sum += c * kernel16[k++];
+    }
+  }
+
+  //総計の16で割る
+  sum /= 16.0;
+
+  fragColor = vec4(sum, 1.0);
+}
+```
+
+`kernel16`は3x3の加重平均化のフィルタで配列で値を用意します。周辺画素の画像値を取得し、このフィルタで重み付けを加えて合計を計算します。最後に、この合計の16で割ることで加重平均化処理が行えます。デモでは違いが分かりづらいですが、3x3フィルタと5x5フィルタを用意しています。
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/weighted-averaging-filter/" />
+
+加重平均化では、フィルタの中央が大きい値をあらかじめ用意していました。この重みをガウス分布に近づけたものを**ガウシアンフィルタ**と呼びます。数式で表すと次のようになります。
+
+$$
+h_g(x,y) = \frac{1}{2\pi\sigma^2}e^{-\frac{x^2+y^2}{2\sigma^2}}
+$$
+
+ここで、$\sigma$はパラメータとして与え、この値によって平滑化の度合いを変化させることができます。
+
+以上、平滑化処理の例として、単純平滑化と加重平均化の2種類を紹介しました。平滑化処理では対象画素は周辺画素との平均をとることが基本になります。どのように平均値を計算するかによって、さまざまな応用が考えられるでしょう。
+
+## エッジ摘出
+
+エッジ摘出とは、画像中に含まれる物体の輪郭部分(エッジ)を摘出する処理です。多くの場合、輪郭部分は色の変化が激しくなっています。
+
+エッジ摘出は微分処理が基本となります。デジタルデータにおいて微分は差分と等価と考えられるので、下図のようなフィルタを利用できます。
+
+![エッジ摘出のフィルタパターン](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764085379/glsl-spatial-filtering-04_sacsmi.jpg "エッジ摘出のフィルタパターン")
+
+図(a)は横方向の境界を検出し、縦方向にはこれを90度回転させた図(b)のようなフィルタを使用します。このようにエッジには方向があり、方向によってエッジの強度が異なります。画像解析を行う場合には、エッジの方向も重要な情報となります。
+
+また、両側の画素との差分も求めることができます。この場合は図(c)のようなフィルタを使用します。
+今回は図(c)のフィルタを使用してエッジ摘出をしてみます。
+
+GLSLのコードは次のようになります。
+
+```glsl title="エッジ摘出"
+float kernel[9] = float[] (
+  0.0, -1.0, 0.0,
+  -1.0, 0.0, 1.0,
+  0.0, 1.0, 0.0
+);
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  vec3 sum = vec3(0.0);
+  int k = 0;
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec3 c = texture(uTexture, uv + vec2(x, y) * pos).rgb;
+      sum += c * kernel[k++];
+    }
+  }
+
+  fragColor = vec4(abs(sum), 1.0);
+}
+```
+
+先ほどの加重平均化のコードの`kernel`を変更しただけなので難しくはないでしょう。エッジは方向によっては負数となることがあるので、最後に絶対値で求めます。
+
+結果は次のようになり、エッジが摘出されているのが分かるでしょう。
+
+![エッジ摘出の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764086272/glsl-spatial-filtering-05_ih9ehj.jpg "エッジ摘出の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/edge-extraction-01/" />
+
+<PostAdUnit />
+
+## 先鋭化
+
+先鋭化は、画像を構成する各部分の境界部分を鮮明にする処理です。エッジ摘出のところで述べたとおり、多くの場合、境界部分は色の変化が大きくなっています。そこで、色の変化の大きい部分を検出し、さらに色の変化を激しくしてやれば、境界部がはっきりすることになります。
+
+この処理は、入力画像に対してある平滑化処理を施して、その結果を元の画像から引きます。つぎに、引き算された画像を定数倍したうえで、入力画像と足し合わせることで先鋭化処理が行えます。
+
+下図は3x3の平均化フィルタで、この処理のようすを表してます。
+
+![先鋭化の処理](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764170613/glsl-spatial-filtering-06_s3jgcq.png "先鋭化の処理")
+
+ここで$k=9$の場合の先鋭化フィルタは次のようになります。
+
+![k=9のときの先鋭化フィルタ](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764170851/glsl-spatial-filtering-07_nwzbet.png "k=9のときの先鋭化フィルタ")
+
+上記の3x3フィルタでパラメータ付きの先鋭化処理をする画像処理をGLSLで実装する場合は次のようになります。
+
+```glsl title="先鋭化"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform int k;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  vec3 sum = vec3(0.0);
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      float w;
+
+      // カーネルを動的に評価
+      if (x == 0 && y == 0) {
+        w = float(9 + 8 * k); // 中央係数
+      } else {
+        w = float(-k); // 周辺係数
+      }
+
+      vec3 c = texture(uTexture, uv + vec2(x, y) * pos).rgb;
+      sum += c * w;
+    }
+  }
+
+  sum /= 9.0;
+
+  fragColor = vec4(sum, 1.0);
+}
+```
+
+ここでパラメータkをuniformで変更したいので、ループの中でフィルタを用意してあげます。3x3フィルタのため、x=0とy=0のときが中央の値になり、それ以外は周辺画素となります。
+
+```glsl
+for (int y = -1; y <= 1; y++) {
+  for (int x = -1; x <= 1; x++) {
+    float w;
+
+    // カーネルを動的に評価
+    if (x == 0 && y == 0) {
+      w = float(9 + 8 * k); // 中央係数
+    } else {
+      w = float(-k); // 周辺係数
+    }
+    // ...
+  }
+}
+```
+
+下図は、$k=9$と$k=18$のときの先鋭化フィルタの結果になります。結果をみるように、kの値が大きいほど、先鋭化が度合いが増していることが分かります。
+
+![先鋭化の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764174419/glsl-spatial-filtering-08_zy4wdv.jpg "先鋭化の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/sharpening/" />
+
+## 簡易的なエンボス加工
+
+エンボス処理は、エッジ摘出のように境界部が線分の形で表れた画像ではなく、レリーフのように輪郭部分が立体化されたような特殊な効果が得られます。
+
+エッジ摘出で述べたとおり、画像の微分を計算すれば境界部が求められます。これの中間値(0.5)を足すことで浮き彫りのような立体感(陰影)が得られます。
+
+GLSLで実装すると次のようになります。フィルタはエッジ摘出で使用した3x3フィルタを使用します。
+
+```glsl title="簡易的なエンボス加工"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+float kernel[9] = float[] (
+  0.0, -1.0, 0.0,
+  -1.0, 0.0, 1.0,
+  0.0, 1.0, 0.0
+);
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  vec3 sum = vec3(0.0);
+  int k = 0;
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec3 c = texture(uTexture, uv + vec2(x, y) * pos).rgb;
+      sum += c * kernel[k++];
+    }
+  }
+
+  sum = sum + 0.5;
+
+  fragColor = vec4(sum, 1.0);
+}
+```
+
+結果は次のようになります。
+
+![エンボスの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764255265/glsl-spatial-filtering-09_cu6nch.jpg "エンボスの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/emboss-01/" />
+
+デモではカラー画像のままエンボス加工しているので、グレースケールにしてから処理をするとまた変わった感じになります。また、フィルタの値を変更することで陰影の方向を変えることができるので試してみてください。
+
+## まとめ
+
+画像処理として空間フィルタリングの考え方を紹介し、GLSLで実装してみました。
+次回はエッジ摘出について詳しく解説していきたいと思います！
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
