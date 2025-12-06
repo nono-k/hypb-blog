@@ -11,15 +11,29 @@ tags:
 description: GLSLで画像処理をやっていくシリーズです。今回は空間フィルタリングの実装方法を解説します！具体的には、平滑化・加重平均化・エッジ摘出・先鋭化・エンボス処理をGLSLで実装します。
 relatedPosts:
   - glsl-color-tone-conversion
+  - glsl-edge-extraction
 ---
 import Warning from '../../../components/markdown/warning.astro';
 import DemoBtn from '../../../components/markdown/DemoBtn.astro';
 import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
 import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
 
 ## はじめに
 
 [前回](/articles/glsl-color-tone-conversion/)はGLSLでの画像処理の基本的な方法として、色調変換の方法を紹介しました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで画像処理プログラミング【色調変換を用いたエフェクト処理】",
+      link: "glsl-color-tone-conversion",
+      image: "glsl-color-tone-conversion.jpg",
+    },
+  ]}
+/>
+
 今回は空間フィルタリングについて解説します。
 
 <Warning text="サンプルコードでは分かりやすさを重視しているので、最適化などはしておらずパフォーマンスは悪いと思うので実際の実装では注意してください。" />
@@ -335,6 +349,17 @@ void main() {
 
 画像処理として空間フィルタリングの考え方を紹介し、GLSLで実装してみました。
 次回はエッジ摘出について詳しく解説していきたいと思います！
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "画像処理のエッジ摘出の手法を詳しく解説し、GLSLで実装してみる",
+      link: "glsl-edge-extraction",
+      image: "glsl-edge-extraction.jpg",
+    },
+  ]}
+/>
 
 ## 画像処理のおすすめ本
 

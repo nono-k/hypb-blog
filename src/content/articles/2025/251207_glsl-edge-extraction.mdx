@@ -1,0 +1,370 @@
+---
+title: 画像処理のエッジ摘出の手法を詳しく解説し、GLSLで実装してみる
+slug: glsl-edge-extraction
+pubDate: '2025-12-07'
+image: ../../../assets/images/glsl-edge-extraction.jpg
+ogp: 'images/ogp/glsl-edge-extraction.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回は画像処理において重要なエッジ摘出の手法を詳しく解説し、GLSLで実際に実装してみます。具体的には、微分フィルタ・Prewittフィルタ・Sobelフィルタ・ラプラシアンフィルタ・LoGフィルタについてGLSLのコード付きで紹介します。
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+
+## はじめに
+
+[前回](/articles/glsl-spatial-filtering/)は、空間フィルタリングについて解説し、その中でエッジ摘出について簡単に説明しました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで空間フィルタリング【平滑化・加重平均化・エッジ摘出・先鋭化・エンボス処理】",
+      link: "glsl-spatial-filtering",
+      image: "glsl-spatial-filtering.jpg",
+    },
+  ]}
+/>
+
+今回はエッジ摘出の手法について詳しく解説していきます。
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## エッジ摘出とは
+
+エッジ摘出とは簡単にいうと、画素値が急峡に変化する部分を求める処理であるといえます。
+
+![エッジとは](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764490650/glsl-edge-extraction-01_j4nihe.jpg "エッジとは")
+
+画素値が急峡に変化する部分は、画像中では領域の境界を示すことが多いため、領域の境界を求める処理とも考えられます。
+
+### エッジ摘出の手法
+
+画像中からエッジを摘出するためには、次のように2つの手法があります。
+
+- フーリエ変換などを用いて周波数成分を求め、その高周波領域を摘出する
+- 画像に微分処理を行う
+
+1つ目のフーリエ変換では、変化の乏しい部分(低周波成分)から変化の大きい部分(高周波成分)を求められます。エッジは画素値が大きく変化する部分なので、高周波成分に集中して含まれます。そこで、フーリエ変換をしたあとに高周波成分を摘出すれば、エッジの摘出ができます。
+
+一方、前回説明したように微分を用いることでエッジを摘出することもできます。デジタルデータにおいては、**微分は差分を求める**ことなので、画像全体に差分処理を適用すればエッジを摘出できます。
+
+しかし、実際には画像にはノイズが乗っていたり、エッジ部分の濃度差がはっきりでていなかったりで、単純に差分をとるだけではうまくいきません。きれいにエッジを摘出するために工夫が必要になります。今回は2つ目の微分処理による方法を詳しく紹介していきます。
+
+## 微分フィルタ
+
+連続関数の場合、関数$f(x)$の微分$f'(x)$は次のように定義されます。
+
+$$
+f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}
+$$
+
+ここで、関数$f(x)$が微分可能なら、上式の$h \to +0$(右側微分)の場合も、$h \to -0$(左側微分)の場合も、極限値は等しくなります。一方、デジタル画像の場合には、上式右辺は注目画素とその隣接画素との差分で表されますが、その隣接画素を右側にとるか、左側にとるかによって、一般に差分値は異なります。
+
+そのため、**微分フィルタ**(derivative filter)には、下図のようにいくつかの種類があります。
+
+![微分フィルタ(横方向)](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764603109/glsl-edge-extraction-03_iwhr5r.jpg "微分フィルタ(横方向)")
+
+- (a)は、注目画素とその右隣の画素との差を出力するフィルタ
+- (b)は、注目画素とその左隣の画素との差を出力するフィルタ
+- (c)は、左右両方の差分値の平均をとって注目画素の微分値とするフィルタ
+
+このフィルタでは、横方向の微分(差分)を求めるので、画像の縦方向のエッジが強くでます。同様に縦方向の差分をとるフィルタは下図のようになります。
+
+![微分フィルタ(縦方向)](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764604122/glsl-edge-extraction-04_elh94v.jpg "微分フィルタ(縦方向)")
+
+微分フィルタ(縦方向)では、画像の横方向のエッジが強くでます。
+
+各画素における横方向の差分を$\varDelta_xf(i,j)$、縦方向の差分を$
+\varDelta_yf(i,j)$としたとき、$(\varDelta_xf(i,j), \varDelta_yf(i,j))$は、画素値の**勾配**(gradient)を表します。勾配の大きさと方向は次の式で表されます。
+
+$$
+\sqrt{\varDelta_xf(i,j)^2 + \varDelta_yf(i,j)^2}
+$$
+
+$$
+\tan^{-1}\frac{\varDelta_yf(i,j)}{\varDelta_xf(i,j)}
+$$
+
+それでは、GLSLで微分フィルタを用いてエッジ摘出を実装してみましょう。コードでは`select`はuniform変数で用意し、0のときは横方向の微分を、1のときは縦方向の微分、2のときは勾配の大きさを表示します。
+
+```glsl title="微分フィルタ"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform int select;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+// 微分フィルタ(横方向)
+float kernelX[9] = float[] (
+  0.0, 0.0, 0.0,
+  0.0, -1.0, 1.0,
+  0.0, 0.0, 0.0
+);
+
+// 微分フィルタ(縦方向)
+float kernelY[9] = float[] (
+  0.0, 1.0, 0.0,
+  0.0, -1.0, 0.0,
+  0.0, 0.0, 0.0
+);
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  float gx = 0.0;
+  float gy = 0.0;
+
+  int k = 0;
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      // グレースケールにしてエッジ強度を取りやすくする
+      float g = dot(texture(uTexture, uv + vec2(x, y) * pos).rgb, vec3(0.299, 0.587, 0.114));
+      gx += g * kernelX[k];
+      gy += g * kernelY[k];
+      k++;
+    }
+  }
+
+  // selectが0の場合は横方向の差分を、1のときは縦方向の差分
+  float v = (select == 0) ? gx : gy;
+  vec3 color = vec3(0.0);
+
+  if (select == 0 || select == 1) {
+    color = v > 0.0 ?
+      vec3(1.0, 1.0, 0.0) * v : // 差分のプラスの値は黄色
+      vec3(0.0, 1.0, 1.0) * abs(v); // 差分のマイナスの値はシアン
+  } else {
+    // 勾配の大きさ
+    color = vec3(sqrt(gx * gx + gy * gy));
+  }
+
+  // エッジを強調するために定数倍かける
+  color *= 4.0;
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+実装ではエッジ強度を取りやすくするために、フィルタの計算の前に画像をグレースケールにしてます。微分フィルタではプラスの値とマイナスの値が出てくるので、このデモではプラスの値を黄色で、マイナスの値をシアンで表示しています。また、エッジを強調するために定数倍をかけています。
+
+![微分フィルタの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764816301/glsl-edge-extraction-05_y6kzpw.jpg "微分フィルタの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/derivative-filter/" />
+
+結果の画像だけみると分かりづらいので、デモで確認してみてください！
+
+## Prewittフィルタ・Sobelフィルタ
+
+多くの画像はノイズなどの影響を受けているため、エッジが不鮮明になることがあります。ノイズなどの影響を解決するためのアプローチのひとつとして、隣り合う画素だけでなく、多くの画素を参照して結果を計算する方法があります。多くの画素を参照することによって、ひとつの画素がノイズの影響を受けていても、他の部分で補うことができるので、ノイズの影響を軽減することができます。
+
+このアプローチによるフィルタに**Prewittフィルタ**・**Sobelフィルタ**があります。
+下図はPrewittフィルタの例になります。
+
+![Prewittフィルタの例](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764690948/glsl-edge-extraction-06_d1qbwb.jpg "Prewittフィルタの例")
+
+このフィルタは斜め方向の値も参照しているので、ノイズが乗っている場合でも全体として平均化され、より良好な結果が得られます。しかし、斜め方向も縦横方向と同じように差分を求めるため、斜め方向のエッジが強く現れる可能性があります。そこで、縦横方向と斜め方向を重み付けしたものが、Sobelフィルタです。
+
+下図はSobelフィルタの例になります。
+
+![Sobelフィルタの例](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764691161/glsl-edge-extraction-07_vbbvgx.jpg "Sobelフィルタの例")
+
+このデモでは、微分フィルタとPrewittフィルタ、Sobelフィルタの勾配の大きさの結果を比較しています。GLSLのコードは長くなったので[こちら](https://github.com/nono-k/webgl-study-note/blob/main/src/canvas/derivative-prewitt-sobel/index.frag)を参照してください。
+
+参考文献のディジタル画像処理の本によると、Prewittフィルタは微分フィルタの6倍に、Sobelフィルタは8倍に相当するとのことなので、求めた勾配の大きさに最小公倍数の24を最後に掛けてます。
+
+PrewittフィルタとSobelフィルタの違いは、結果だけだと分からなかったですが、微分フィルタと比較するとノイズが軽減されてるのが確認できるかと思います。
+
+![微分フィルタとPrewittフィルタ、Sobelフィルタの勾配の大きさの比較](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764694144/glsl-edge-extraction-08_pncd2v.jpg "微分フィルタとPrewittフィルタ、Sobelフィルタの勾配の大きさの比較")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/derivative-prewitt-sobel/" />
+
+こちらも結果の画像だけみると分かりづらいので、デモで確認してみてください！
+
+<PostAdUnit />
+
+## 2次微分とラプラシアンフィルタ
+
+先述までは、画像の1次微分に相当するものについて説明してきました。ここでは画像の2次微分に対応する処理をみていきます。2次微分は、微分を2回繰り返すことであるので、デジタル画像では差分を2回繰り返せば2次微分の結果を得ることができます。
+
+2次微分フィルタの考え方は、注目画素の右と左に半画素ずれたフィルタの差分を求めます。下図は横方向の処理を表した図になります。
+
+![2次微分フィルタ(横方向)](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764817608/glsl-edge-extraction-09_d5hl1p.jpg "2次微分フィルタ(横方向)")
+
+同様に縦方向に対して行うと、次のようなフィルタになります。
+
+```glsl
+float kernelY[9] = float[] (
+  0.0, 1.0, 0.0,
+  0.0, -2.0, 0.0,
+  0.0, 1.0, 0.0
+);
+```
+
+### ラプラシアンフィルタ
+
+続いては**ラプラシアンフィルタ**についてみていきます。ラプラシアンフィルタは2次微分の値をもちいて得ることができます。一般に関数$f(x,y)$のラプラシアンは次のように定義されます。
+
+$$
+\frac{\partial^2}{\partial x^2}f(x,y) + \frac{\partial^2}{\partial y^2}f(x,y)
+$$
+
+これは下図のように、横方向の2次微分と縦方向の2次微分の和を求めることになります。
+
+![ラプラシアンフィルタ](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764857742/glsl-edge-extraction-10_bxtmpo.jpg "ラプラシアンフィルタ")
+
+それでは、GLSLでラプラシアンフィルタを実装していきます。ここでもプラスの値は黄色で、マイナスの値をシアンで表示します。
+
+```glsl title="ラプラシアンフィルタ"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+float kernel[9] = float[] (
+  0.0, 1.0, 0.0,
+  1.0, -4.0, 1.0,
+  0.0, 1.0, 0.0
+);
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  float v = 0.0;
+  int k = 0;
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      // グレースケールにしてエッジ強度を取りやすくする
+      float g = dot(texture(uTexture, uv + vec2(x, y) * pos).rgb, vec3(0.299, 0.587, 0.114));
+      v += g * kernel[k];
+      k++;
+    }
+  }
+
+  vec3 color = vec3(0.0);
+
+  color = v > 0.0 ?
+    vec3(1.0, 1.0, 0.0) * v : // 差分のプラスの値
+    vec3(0.0, 1.0, 1.0) * abs(v); // 差分のマイナスの値
+
+  // エッジを強調するために定数倍かける
+  color *= 4.0;
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+結果は次のようになります。結果からわかるように、ラプラシアンフィルタでは方向に依存しないエッジが摘出できるのが分かります。
+
+![ラプラシアンフィルタの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764858469/glsl-edge-extraction-11_d6ml4w.jpg "ラプラシアンフィルタの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/laplacian-filter/" />
+
+## LoGフィルタ
+
+先ほどのラプラシアンフィルタでは、本質では微分を繰り返すことになるため、ノイズを強調してしまう場合があります(実際にデモを確認してみてください)。これを避けるために、ガウシアンフィルタを適用して平滑したあとにラプラシアンフィルタを適用することがよく行われます。このようなフィルタを**LoGフィルタ**(Laplacian of Gaussian)とよびます。
+
+これらの2つの処理は、1つにまとめて表すことができます。2次元ガウス分布のラプラシアンを計算すると数式は次のようになります。
+
+$$
+h_g(x,y) = \frac{x^2+y^2-2\sigma^2}{2\pi\sigma^6}\exp({-\frac{x^2+y^2}{2\sigma^2}})
+$$
+
+下図は$h_g(x,y)$のx軸に沿った断面を示したグラフになります。
+
+![σ=1のときのガウス分布関数のラプラシアン](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764947108/glsl-edge-extraction-12_oq052d.jpg "σ=1のときのガウス分布関数のラプラシアン")
+
+[desmos](https://www.desmos.com/)などでガウス分布関数のラプラシアンの$\sigma$の値を操作してみると分かりますが、$\sigma$の値を下げるほど、鐘の形は鋭くなり、$\sigma$の値を上げていくと緩やかな形になります。
+
+それではGLSLでLoGフィルタを実装していきます。$\sigma$の値を変えられるようにuniform変数で用意してあげます。
+
+```glsl title="LoGフィルタ"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform float sigma;
+
+in vec2 vUv;
+out vec4 fragColor;
+
+const float PI = 3.14159265359;
+
+float LoG(vec2 offset) {
+  float r2 = offset.x * offset.x + offset.y * offset.y;
+  float norm = 1.0 / (2.0 * PI * pow(sigma, 6.0));
+  return norm * (r2 - 2.0 * sigma * sigma) * exp(-r2 / (2.0 * sigma * sigma));
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  float v = 0.0;
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      float g = dot(texture(uTexture, uv + vec2(x, y) * pos).rgb, vec3(0.299, 0.587, 0.114));
+      v += g * LoG(vec2(x, y));
+    }
+  }
+
+  vec3 color = vec3(v);
+  // 適当な倍率をかける
+  color *= 4.0;
+  // 中間的な濃淡になるように一定値を足す
+  color += 0.5;
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+出力画像のプラスとマイナスの値を表示するために、適当な倍率をかけたうえで、中間的な濃淡になるように一定値を足して表示しています。結果は次のようになります。
+
+![LoGフィルタの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1764948840/glsl-edge-extraction-13_dkq8uz.jpg "LoGフィルタの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/laplacian-of-gaussian/" />
+
+$\sigma$の値を調整することによって、画像から摘出する対象の細かさを選択することができます。先ほど述べたとおり、$\sigma$の値が大きすぎると、ガウス分布関数のラプラシアンの値が一定に近づき変化がないことと、$\sigma$の値が小さいとエッジが細かくなることが確認できるかと思います。
+
+## まとめ
+
+画像処理において重要なエッジ摘出の手法を詳しく解説し、GLSLで実装してみました。
+記事で貼っている結果の画像だけでは、分かりづらいかと思いますので、ぜひデモで試してみてください！
+
+次回は、ゼロ交差によるエッジ検出と、Cannyエッジ検出について解説したいと思います。
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
