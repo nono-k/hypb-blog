@@ -8,7 +8,7 @@ category: Coding
 tags:
   - GLSL
   - 画像処理
-description: GLSLで画像処理をやっていくシリーズです。今回は画像処理において重要なエッジ摘出の手法を詳しく解説し、GLSLで実際に実装してみます。具体的には、微分フィルタ・Prewittフィルタ・Sobelフィルタ・ラプラシアンフィルタ・LoGフィルタについてGLSLのコード付きで紹介します。
+description: GLSLで画像処理をやっていくシリーズです。今回は画像処理において重要なエッジ摘出の手法を詳しく解説し、GLSLで実際に実装してみます。具体的には、微分フィルタ・Prewittフィルタ・Sobelフィルタ・ラプラシアンフィルタ・LoGフィルタ・ゼロ交差についてGLSLのコード付きで紹介します。
 relatedPosts:
   - glsl-color-tone-conversion
   - glsl-spatial-filtering
@@ -351,12 +351,77 @@ void main() {
 
 $\sigma$の値を調整することによって、画像から摘出する対象の細かさを選択することができます。先ほど述べたとおり、$\sigma$の値が大きすぎると、ガウス分布関数のラプラシアンの値が一定に近づき変化がないことと、$\sigma$の値が小さいとエッジが細かくなることが確認できるかと思います。
 
+## ゼロ交差によるエッジ検出
+
+先ほど紹介したラプラシアンフィルタは2次微分を行うフィルタでした。下図は入力画像に1次微分と2次微分を適用したグラフになります。赤の点線が画像のエッジになります。
+
+![エッジの2次微分](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765062506/glsl-zero-crossing-canny-edge-detector-01_mn0ip7.jpg "エッジの2次微分")
+
+入力画像に2次微分を適用すると、エッジ位置の両側にプラスの値とマイナスの値が対になって表れます。そこで、エッジの位置を求めたい場合は、値がプラスからマイナスへ、またはマイナスからプラスへ変化する間の0の位置を求めてこれをエッジの位置とします。この位置を**ゼロ交差**(zero crossing)と呼びます。
+
+実装ではちょうど0の値で判別すると、エッジがうまく取れないのでしきい値をうまく調整してあげます。
+それではGLSLで実装してみましょう。LoGフィルタを適用した値に対してゼロ交差を判別します。デモではエッジを白で、それ以外を黒にします。
+
+```glsl title="LoGフィルタのゼロ交差によるエッジ検出"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform float sigma;
+uniform float threshold;
+
+in vec2 vUv;
+out vec4 fragColor;
+
+const float PI = 3.14159265359;
+
+float LoG(vec2 offset) {
+  float r2 = offset.x * offset.x + offset.y * offset.y;
+  float norm = 1.0 / (2.0 * PI * pow(sigma, 6.0));
+  return norm * (r2 - 2.0 * sigma * sigma) * exp(-r2 / (2.0 * sigma * sigma));
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  float v = 0.0;
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      float g = dot(texture(uTexture, uv + vec2(x, y) * pos).rgb, vec3(0.299, 0.587, 0.114));
+      v += g * LoG(vec2(x, y));
+    }
+  }
+
+  vec3 color = vec3(v);
+  // 適当な倍率をかける
+  color *= 4.0;
+  // 中間的な濃淡になるように一定値を足す
+  color += 0.5;
+
+  // ゼロ交差判定
+  if (color.r >= -threshold && color.r <= threshold) {
+    color = vec3(1.0);
+  } else {
+    color = vec3(0.0);
+  }
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+![ゼロ交差の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765095330/glsl-zero-crossing-canny-edge-detector-02_hbzjkq.jpg "ゼロ交差の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/zero-crossing-for-log-filter/" />
+
 ## まとめ
 
 画像処理において重要なエッジ摘出の手法を詳しく解説し、GLSLで実装してみました。
 記事で貼っている結果の画像だけでは、分かりづらいかと思いますので、ぜひデモで試してみてください！
 
-次回は、ゼロ交差によるエッジ検出と、Cannyエッジ検出について解説したいと思います。
+次回は画像処理の特殊処理としてブラー効果を紹介します！
 
 ## 画像処理のおすすめ本
 
