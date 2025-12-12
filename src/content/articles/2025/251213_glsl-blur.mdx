@@ -1,0 +1,389 @@
+---
+title: GLSLでブラー処理を実装する
+slug: glsl-blur
+pubDate: '2025-12-13'
+image: ../../../assets/images/glsl-blur.jpg
+ogp: 'images/ogp/glsl-blur.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回は特殊効果としてブラー処理について紹介します。斜め方向にブラーを掛ける方法や、極座標変換を利用したブラー処理をGLSLのコード付きで解説します。
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+
+## はじめに
+
+[前回](/articles/glsl-edge-extraction/)は、エッジ摘出の手法について詳しく解説し、LoGフィルタのゼロ交差でのエッジ検出まで実装しました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "画像処理のエッジ摘出の手法を詳しく解説し、GLSLで実装してみる",
+      link: "glsl-edge-extraction",
+      image: "glsl-edge-extraction.jpg",
+    },
+  ]}
+/>
+
+今回は、画像に視覚的な特殊効果を与える処理としてブラー処理の手法についていくつか解説します。
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## ブラー処理とは
+
+**ブラー(Blur)処理**とは、一定方向に流れたような「ぶれ」の効果を与える処理です。「モーションブラー」と呼ばれることもあります。ブラー処理により、画像に動きを与え躍動感を与える事ができます。
+
+ブラー処理の基本は、以前紹介した平滑化処理の特殊なものになります。平滑化処理は注目画素の周囲にある画素値の平均値をとり、その値を新しい画素値とする処理を画像全体に適用します。この処理によって、画像全体にピントがずれたような、ぼけた感じの画像が得られます。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで空間フィルタリング【平滑化・加重平均化・エッジ摘出・先鋭化・エンボス処理】",
+      link: "glsl-spatial-filtering",
+      image: "glsl-spatial-filtering.jpg",
+    },
+  ]}
+/>
+
+これに対しブラー処理では、ある方向の線分上にある画素に対して平均値を求めるようにします。このことで、ある方向にだけ平滑化を行うことになり、縦・横にのみ伸ばされたようになり、ぶれたような効果を得られます。このとき、より多くの範囲を参照して平滑化すれば、より強いぶれを表現できます。
+
+## 斜め方向のブラー処理
+
+ブラー処理をする際に、参照する画素を下図のように斜めにとって平均値を求めることで、斜め方向のブラー処理が可能になります。この図では、5x5フィルタの場合なので平均を求めるには5で割れば平均値を求めることが可能です。
+
+![5x5フィルタでの斜め方向のブラー処理](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765269356/glsl-blur-01_bmryie.jpg "5x5フィルタでの斜め方向のブラー処理")
+
+それではGLSLで実装してみましょう。デモではフィルタサイズを変更できるように`kernelSize`をuniform変数とします。
+
+```glsl title="斜め方向のブラー処理"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform int kernelSize;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  vec3 col = vec3(0.0);
+  float weight = 0.0;
+
+  for (int y = -kernelSize; y <= kernelSize; y++) {
+    for (int x = -kernelSize; x <= kernelSize; x++) {
+      if (x == y) {
+        col += texture(uTexture, uv + vec2(x, y) * pos).rgb;
+        weight += 1.0;
+      }
+    }
+  }
+
+  fragColor = vec4(col / weight, 1.0);
+}
+```
+
+ループの`x`と`y`が等しい場合に処理をしてあげれば、斜め方向のブラー処理になります。またその場合に`weight`を1足して割ってあげます。結果は次のようになります。
+
+
+![斜め方向のブラー処理の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765269442/glsl-blur-02_z6g16o.jpg "斜め方向のブラー処理の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/blur-diagonal/" />
+
+`kernelSize`の値を変更することでブラーの強さも変わるので、デモで確かめてみてください！
+
+## 任意方向のブラー処理
+
+先ほどは斜め方向にブラー処理をしましたが、このデモでは任意方向にブラー処理を施します。コードでは角度`angle`を受け取るようにして任意方向にブラー処理を適用します。
+
+また、位置は三角関数を用いて以下の数式で求まります。
+
+$$
+\begin{cases}
+x = \cos(\theta) \\
+y = \sin(\theta)
+\end{cases}
+$$
+
+この位置に値を掛けることで、ブラーの強さを調整できるようにします。このデモでは`radius`としてます。コードで書くと次のようになるでしょう。
+
+```glsl
+float rad = angle * PI / 180.0; // 度 → ラジアンに変換
+vec2 dir = vec2(cos(rad), sin(rad));
+vec2 step = dir * pos * radius;
+```
+
+任意方向のブラー処理のデモの全コードは次のようになります。
+
+
+```glsl title="任意方向のブラー処理"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform float angle;
+uniform float radius;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+const float PI = 3.1415926;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  float rad = angle * PI / 180.0;
+  vec2 dir = vec2(cos(rad), sin(rad));
+  vec2 step = dir * pos * radius;
+
+  vec3 color = vec3(0.0);
+  float total = 0.0;
+
+  for (int i = -2; i <= 2; i++) {
+    color += texture(uTexture, uv + step * float(i)).rgb;
+    total += 1.0;
+  }
+
+  fragColor = vec4(color / total, 1.0);
+}
+```
+
+結果は次のようになります。
+
+![任意方向のブラー処理の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765469556/glsl-blur-03_zaudm0.jpg "任意方向のブラー処理の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/blur-arbitrary-direction/" />
+
+<PostAdUnit />
+
+## 放射状ブラー処理
+
+ブラーを掛ける処理は、一定方向にかぎる必要なありません。場所によってぼかす方向を変化させることで、さまざまな効果を得られます。このデモでは、放射状にぼかす処理を施します。ある中心点を決め、そこから放射されるように引いた線分の方向にブラーを行います。
+
+このデモからは、各ピクセルを中心からの **極座標(r, θ)** に変換してから処理を行います。
+**動径**と**偏角**の数式は次のようになります。
+
+$$
+\begin{cases}
+r = \sqrt{x^2 + y^2} \\
+\theta = \tan^{-1}\left(\frac{y}{x}\right)
+\end{cases}
+$$
+
+この数式を用いて、直交座標を極座標に変換する関数と、極座標を直交座標に変換する関数は次のようになります。
+
+```glsl
+// 偏角を求めるatanの拡張版
+float atan2(float y, float x) {
+  return x == 0.0 ? sign(y) * PI / 2.0 : atan(y, x);
+}
+
+// 直交座標を極座標に変換
+vec2 xy2pol(vec2 xy) {
+  return vec2(length(xy), atan2(xy.y, xy.x));
+}
+
+// 極座標を直交座標に変換
+vec2 pol2xy(vec2 pol) {
+  float r = pol.x;
+  float theta = pol.y;
+  return r * vec2(cos(theta), sin(theta));
+}
+```
+
+GLSLの偏角を求める組み込み関数`atan`は、$x=0$のときが定義されていないので、拡張版の`atan2`関数を用意してあげます。
+
+極座標上の動径(`polar.x`)に対して処理を施すことにより、方向は偏角$\theta$を固定して動径rを動かすのでブラーは放射状のみになります。放射状ブラー処理のデモの全コードは次のようになります。中心点`center`は、`xPos`と`yPos`で変更できるようにしています。
+
+```glsl title="放射状ブラー処理"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform float xPos;
+uniform float yPos;
+uniform float radius;
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+const float PI = 3.1415926;
+
+// 偏角を求めるatanの拡張版
+float atan2(float y, float x) {
+  return x == 0.0 ? sign(y) * PI / 2.0 : atan(y, x);
+}
+
+// 直交座標を極座標に変換
+vec2 xy2pol(vec2 xy) {
+  return vec2(length(xy), atan2(xy.y, xy.x));
+}
+
+// 極座標を直交座標に変換
+vec2 pol2xy(vec2 pol) {
+  float r = pol.x;
+  float theta = pol.y;
+  return r * vec2(cos(theta), sin(theta));
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+  vec2 center = vec2(xPos, yPos);
+
+  vec2 d = uv - center;
+  vec2 polar = xy2pol(d);
+
+  vec3 color = vec3(0.0);
+  float total = 0.0;
+
+  for (int i = -2; i <= 2; i++) {
+    float t = float(i) / 2.0;
+    float r = polar.x + t * radius * pos.x;
+    vec2 sampleUv = pol2xy(vec2(r, polar.y)) + center;
+
+    color += texture(uTexture, sampleUv).rgb;
+    total += 1.0;
+  }
+
+  fragColor = vec4(color / total, 1.0);
+}
+```
+
+結果は次のようになります。
+
+![放射状ブラーの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765471187/glsl-blur-04_ja0lvp.jpg "放射状ブラーの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/blur-radial/" />
+
+`radius`の値を変えることでブラーの強さを調整でき、中心点も変更できるので、ぜひ試してみてください。
+
+## 回転ブラー処理
+
+放射状ブラーでは、極座標に変換してから動径に対して処理を施してました。回転ブラーでは、偏角(`polar.y`)に対して処理を施すことで実現できます。ブラー方向は角度$\theta$に対して$\pm$angleだけずらしながらサンプリングします。動径rは固定なので、回転を施したブラー効果になります。
+
+```glsl title="回転ブラー処理"
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+  vec2 center = vec2(xPos, yPos);
+
+  vec2 d = uv - center;
+  vec2 polar = xy2pol(d);
+
+  float rad = angle * PI / 180.0;
+
+  vec3 color = vec3(0.0);
+  float total = 0.0;
+
+  for (int i = -2; i <= 2; i++) {
+    float t = float(i) / 2.0;
+    float theta = polar.y + t * rad;
+    vec2 sampleUv = pol2xy(vec2(polar.x, theta)) + center;
+
+    color += texture(uTexture, sampleUv).rgb;
+    total += 1.0;
+  }
+
+  fragColor = vec4(color / total, 1.0);
+}
+```
+
+結果は次のようになります。
+
+![回転ブラーの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765504690/glsl-blur-05_g0okar.jpg "回転ブラーの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/blur-swirl/" />
+
+## 放射状ブラー + 回転ブラー
+
+最後に放射状ブラーと回転ブラーを組み合わせてみましょう。これらを組み合わせることで、**渦巻き状のブラー効果**を得ることができます。
+
+```glsl title="放射状ブラー + 回転ブラー"
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+  vec2 center = vec2(xPos, yPos);
+
+  vec2 d = uv - center;
+  vec2 polar = xy2pol(d);
+
+  float rad = angle * PI / 180.0;
+  // 動径rの距離に応じて強くする
+  float strength = polar.x;
+
+  vec3 color = vec3(0.0);
+  float total = 0.0;
+
+  for (int i = -6; i <= 6; i++) {
+    float t = float(i) / 6.0;
+    float r = polar.x + t * radius * pos.x * strength;
+    float theta = polar.y + t * rad * strength;
+    vec2 sampleUv = pol2xy(vec2(r, theta)) + center;
+
+    color += texture(uTexture, sampleUv).rgb;
+    total += 1.0;
+  }
+
+  fragColor = vec4(color / total, 1.0);
+}
+```
+
+ここで、動径(`polar.x`)の距離に応じて強く効くようにしたいので、変数`strength`に保持させておき、サンプリングするときにこの値を掛けてあげます。
+
+```glsl
+// 動径rの距離に応じて強くする
+float strength = polar.x;
+
+for (int i = -6; i <= 6; i++) {
+  float t = float(i) / 6.0;
+  float r = polar.x + t * radius * pos.x * strength;
+  float theta = polar.y + t * rad * strength;
+  vec2 sampleUv = pol2xy(vec2(r, theta)) + center;
+}
+```
+
+また、ループ処理のサンプリング範囲の数値を変更することで、ブラーの効き方も変わってきます。
+結果は次のようになります。
+
+![放射状ブラー + 回転ブラーの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765504978/glsl-blur-06_lfawww.jpg "放射状ブラー + 回転ブラーの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/blur-radial-and-swirl/" />
+
+## まとめ
+
+GLSLでのブラー処理の方法について、何種類か紹介していきました。特殊効果として値を変えることで、さまざまな効果を得ることができますので、ぜひいろいろな数値で試してみてください！
+
+次回は、陰影付け処理を応用した特殊効果の画像処理をやっていきたいと思います！
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
