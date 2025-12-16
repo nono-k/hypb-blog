@@ -1,0 +1,245 @@
+---
+title: GLSLで法線マップを作成する
+slug: glsl-normal-map
+pubDate: '2025-12-16'
+image: ../../../assets/images/glsl-normal-map.jpg
+ogp: 'images/ogp/glsl-normal-map.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回は解説します。
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+---
+import Warning from '../../../components/markdown/warning.astro';
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+
+## はじめに
+
+[前回](/articles/glsl-blur/)は、GLSLでブラー処理を実装する方法について解説しました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLでブラー処理を実装する",
+      link: "glsl-blur",
+      image: "glsl-blur.jpg",
+    },
+  ]}
+/>
+
+今回は、GLSLで簡易的な法線マップを生成する方法について解説します。
+
+<Warning text="この記事では、簡易的な法線マップの生成について解説しているので、実際に法線マップを作成するさいには、既存の法線マップ作成ツールで作成してください。" />
+
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## 法線マップ(Normal Map)とは
+
+法線マップとは、各ピクセルにおける法線ベクトルをRGB値として格納した画像です。RGBと法線の対応は次のようになります。
+
+- R : x成分
+- G : y成分
+- B : z成分
+
+今回のデモで画像を法線マップに変換すると次のような画像になります。
+
+![法線マップ](https://res.cloudinary.com/dy8ftemi0/image/upload/v1765724310/glsl-normal-map-01_q93oej.jpg "法線マップ")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/normal-map/" />
+
+多くの法線マップにおいて、青っぽく見える理由は、z成分がほぼ1になるためです。
+3DCGにおいては、法線マップを使用することで、表面の凹凸を表現することができます。
+
+## 法線マップ生成の数式
+
+法線ベクトルの数学的定義をみていき、GLSLのコードで実装してみます。
+
+### 高さマップ
+
+高さマップとは、**画像の輝度を高さとして解釈するデータ**です。明るい部分は高く、暗い部分は低いとみなします。2D画像を次のような3D曲面として扱います。
+
+$$
+z = h(x, y)
+$$
+
+ここで、$x,y$は画像上の座標で、$h(x, y)$はその位置の高さ(輝度)になります。
+これは3次元空間で$(x, y, h(x, y))$という点の集合です。
+
+GLSLのコードでは、取得した画像のRGB値からグレースケールに変換して輝度を計算するようにします。
+
+```glsl title="高さマップ"
+// 高さマップ(輝度取得)
+float height(vec2 uv) {
+  vec3 c = texture(uTexture, uv).rgb;
+  return dot(c, vec3(0.299, 0.587, 0.114));
+}
+```
+
+法線はこの高さ関数の勾配から求めることになります。
+
+### 高さマップの接ベクトルを考える
+
+曲面上の点$P(x,y)$を次のようにします。
+
+$$
+P(x, y) = (x, y, h(x, y))
+$$
+
+x方向・y方向の接ベクトルは上記の式を偏微分することで得られます。
+
+$$
+P_x = \frac{\partial P}{\partial x} = (1, 0, \frac{\partial h}{\partial x})
+$$
+
+$$
+P_y = \frac{\partial P}{\partial y} = (0, 1, \frac{\partial h}{\partial y})
+$$
+
+プログラムで偏微分するには、差分を求めて近似します。
+
+$$
+\frac{\partial h}{\partial x} \approx h(x + \Delta x) - h(x - \Delta x)
+$$
+
+$$
+\frac{\partial h}{\partial y} \approx h(y + \Delta y) - h(y - \Delta y)
+$$
+
+GLSLで書くと、`uv`に対して`pos.x`や`pos.y`で足したり引いたりした値を、先ほどの輝度を求める関数`height`に渡してあげてから引けばよいでしょう。
+
+```glsl title="偏微分の近似"
+// 偏微分の近似を行うため差分を求める
+float hL = height(uv - vec2(pos.x, 0.0));
+float hR = height(uv + vec2(pos.x, 0.0));
+float hD = height(uv - vec2(0.0, pos.y));
+float hU = height(uv + vec2(0.0, pos.y));
+
+// 偏微分
+float dx = (hR - hL);
+float dy = (hU - hD);
+```
+
+### 接ベクトルの外積を求めて法線ベクトルを得る
+
+曲面の法線は、2本の接ベクトルの**外積**で求めることができます。
+
+$$
+n = P_x \times P_y
+$$
+
+この外積を計算すると
+
+$$
+n = (0 \cdot \frac{\partial h}{\partial y} - \frac{\partial h}{\partial x} \cdot 1, \frac{\partial h}{\partial x} \cdot 0 \cdot -1 \cdot \frac{\partial h}{\partial_y}, 1 \cdot 1 - 0 \cdot 0)
+$$
+
+0で掛けている部分は消えるので整理すると
+
+$$
+n = (-\frac{\partial h}{\partial x}, -\frac{\partial h}{\partial y}, 1)
+$$
+
+となります。
+
+### 正規化
+
+**単位法線**が必要なので、先ほどの法線ベクトルを正規化します。正規化するには、法線ベクトルの長さで割る必要があります。長さは次の式のようになります。
+
+$$
+n = \sqrt{(\frac{\partial h}{\partial x})^2 + (\frac{\partial h}{\partial y})^2 + 1^2}
+$$
+
+ですので、法線マップを生成する最終的な式は次のようになります。
+
+$$
+n = \frac{(-\frac{\partial h}{\partial x}, -\frac{\partial h}{\partial y}, 1)}{\sqrt{(\frac{\partial h}{\partial x})^2 + (\frac{\partial h}{\partial y})^2 + 1^2}}
+$$
+
+これをGLSLで書くと次のようになります。
+
+```glsl title="法線マップの生成"
+// 法線計算
+vec3 normal = normalize(vec3(-dx, -dy, 1.0));
+
+// [-1, 1] → [0, 1]に正規化
+vec3 color = normal * 0.5 + 0.5;
+```
+
+GLSLでは、`normalize`関数があるので、先ほどの偏微分の`dx`と`dy`をそのまま使えばよいです。
+また、`normal`の値の範囲は$[-1, 1]$になるので、$[0, 1]$の範囲にしてます。
+
+
+## 法線マップを生成するGLSLコード
+
+今回のデモの全コードは次のようになります。
+
+```glsl title="法線マップ"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform float strength; // 凸凹の強さ
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+// 高さマップ(輝度取得)
+float height(vec2 uv) {
+  vec3 c = texture(uTexture, uv).rgb;
+  return dot(c, vec3(0.299, 0.587, 0.114));
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  // 偏微分の近似を行うため差分を求める
+  float hL = height(uv - vec2(pos.x, 0.0));
+  float hR = height(uv + vec2(pos.x, 0.0));
+  float hD = height(uv - vec2(0.0, pos.y));
+  float hU = height(uv + vec2(0.0, pos.y));
+
+  // 偏微分
+  float dx = (hR - hL) * strength;
+  float dy = (hU - hD) * strength;
+
+  // 法線計算
+  vec3 normal = normalize(vec3(-dx, -dy, 1.0));
+
+  // [-1, 1] → [0, 1]に正規化
+  vec3 color = normal * 0.5 + 0.5;
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+デモでは、凸凹の強さを変化させられるように`strength`をuniform変数で用意してあり、偏微分を求める箇所で掛けています。
+
+## まとめ
+
+法線マップを作成するために必要な法線ベクトルの数式での導出方法を説明し、GLSLで実際に実装してみました。冒頭でも書いたとおり、このデモの法線マップの生成は簡易的なものになっているので、参考程度にみてください。
+
+次回は、陰影付け処理を応用した特殊効果の画像処理をやっていきたいと思います！
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
