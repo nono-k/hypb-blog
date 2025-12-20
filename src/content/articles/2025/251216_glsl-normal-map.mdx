@@ -8,11 +8,12 @@ category: Coding
 tags:
   - GLSL
   - 画像処理
-description: GLSLで画像処理をやっていくシリーズです。今回は解説します。
+description: GLSLで画像処理をやっていくシリーズです。今回はGLSLで法線マップを作成する方法について、数式を用いながら解説します。
 relatedPosts:
   - glsl-color-tone-conversion
   - glsl-spatial-filtering
   - glsl-edge-extraction
+  - glsl-shading-image-processing
 ---
 import Warning from '../../../components/markdown/warning.astro';
 import DemoBtn from '../../../components/markdown/DemoBtn.astro';
@@ -232,6 +233,17 @@ void main() {
 法線マップを作成するために必要な法線ベクトルの数式での導出方法を説明し、GLSLで実際に実装してみました。冒頭でも書いたとおり、このデモの法線マップの生成は簡易的なものになっているので、参考程度にみてください。
 
 次回は、陰影付け処理を応用した特殊効果の画像処理をやっていきたいと思います！
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで陰影付け処理を応用した特殊効果の画像処理を実装する【波状面・波紋・エンボス】",
+      link: "glsl-shading-image-processing",
+      image: "glsl-shading-image-processing",
+    },
+  ]}
+/>
 
 ## 画像処理のおすすめ本
 
