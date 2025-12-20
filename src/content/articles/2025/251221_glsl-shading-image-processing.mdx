@@ -1,0 +1,451 @@
+---
+title: GLSLで陰影付け処理を応用した特殊効果の画像処理を実装する【波状面・波紋・エンボス】
+slug: glsl-shading-image-processing
+pubDate: '2025-12-21'
+image: ../../../assets/images/glsl-shading-image-processing.jpg
+ogp: 'images/ogp/glsl-shading-image-processing.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回は陰影付け処理を応用した画像処理を解説します。具体的には波状面・波紋・エンボスをGLSLで実装していきます
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+  - glsl-normal-map
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+
+## はじめに
+
+[前回](/articles/glsl-normal-map/)は、GLSLで法線マップを作成する方法について解説しました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで法線マップを作成する",
+      link: "glsl-normal-map",
+      image: "glsl-normal-map.jpg",
+    },
+  ]}
+/>
+
+今回は、GLSLで陰影付け処理を応用した特殊効果の画像処理について解説します。
+
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## 陰影付けの考え方
+
+陰影付けの処理は、物体に光が当たったときの色の明るさを計算によって求めて表示することで、波状面や波紋の表現を可能にします。陰影付けを行ったときに表示すべき色を具体的に求めるときは、光に関する物理法則を利用しますが、このデモでは環境光(ambient)・拡散反射(diffuse)・鏡面反射(specular)の3種類の反射を合成する**フォン反射モデル**を使用します。この記事では詳しくは解説しないので、適宜調べてみてください。
+
+それでは、デモで使用するライティング関数`lighting()`のGLSLは次のようになります。
+
+```glsl title="lighting()関数"
+// ライティング処理
+vec3 lighting(vec3 color, vec3 normal) {
+  // 法線ベクトル
+  vec3 N = normalize(normal);
+  // ライト方向(zは固定で正面から)
+  vec3 L = normalize(vec3(lightDirectionX, lightDirectionY, 1.0));
+  // 拡散反射
+  float Id = max(dot(N, L), 0.0);
+
+  // 環境光
+  float Ia = ambient;
+
+  // 視線方向(カメラ正面)
+  vec3 V = normalize(vec3(0.0, 0.0, 1.0));
+  // ハーフベクトル
+  vec3 H = normalize(L + V);
+  // 鏡面反射
+  float Is = pow(max(dot(N, H), 0.0), 32.0);
+
+  return color * (Id + Ia + Is);
+}
+```
+
+`lighting()`の第1引数には、`texture()`で取得した画像のRGB値を渡します。第2引数には、デモで使用する形状の法線ベクトルを渡します。
+
+法線ベクトルは`lighting`関数内で`normalize`で正規化します。`lightDirectionX`と`lightDirectionY`は、x,y方向の視線になりuniform変数にしてあるのでパラメータで動かせるようにしてます。z軸は常にカメラ正面からの光となるので固定で1.0にしてます。
+
+これらの`N`と`L`の内積を取ることで**ランバートの拡散反射**が得られます。ここの内積を取る意味としては、面が光を向いているほど、角度が0に近くなるので明るくなります。
+
+環境光は`ambient`でuniform変数をとり操作できるようにし、鏡面反射はカメラ正面の視線方向とライト方向を足して正規化することで、ハーフベクトルが得られるので、このハーフベクトルと法線ベクトルとの内積を取ったうえで、`pow`で累乗することで得られます。
+
+最後に、拡散反射と環境光、鏡面反射の3種類の反射を合成することで、最終的な色が得られます。今回の3種類のデモでは、この`lighting`関数を使用していきます。それでは、波状面・波紋・エンボスの法線ベクトルを求める方法についてみていきます。
+
+## 波状面
+
+xとyのどちらか一方向の場合を考えます。この記事では、x方向での波状面で解説します。波はsin関数で表現できるので、高さ関数$z(x,y)$を次式で表します。
+
+$$
+z(x,y) = A\sin(\omega x)
+$$
+
+この高さ関数から、法線ベクトルを求めるにはx、yで偏微分を取ることで得られます。
+x方向の偏微分は
+
+$$
+\frac{\partial z}{\partial x} = A\omega\cos(\omega x)
+$$
+
+y方向の偏微分は
+
+$$
+\frac{\partial z}{\partial y} = 0
+$$
+
+になるので、法線ベクトル$N$は次のようになります。
+
+$$
+N = (-A\omega\cos(\omega x), 0 , 1)
+$$
+
+ここまでをGLSLで書くと次のようになります。
+
+```glsl title="波状面の法線ベクトル"
+void main() {
+  vec2 uv = vUv;
+
+  // 角周波数
+  float omega = 2.0 * PI / wavelength;
+
+  float dx = 0.0;
+  dx = amplitude * omega * cos(omega * uv.x);
+
+  // 波による擬似法線
+  vec3 normal = vec3(-dx, 0.0, 1.0);
+
+  vec3 texColor = texture(uTexture, uv).rgb;
+
+  vec3 color = lighting(texColor, normal);
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+周波数の`wavelength`と振幅の`amplitude`は、uniform変数にして変更できるようにしています。
+結果は次のようになります。
+
+![波状面の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766117250/glsl-shading-image-processing-01_syvydn.jpg "波状面の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/shading-wavy-surface/" />
+
+### 屈折を考慮する
+
+屈折を考慮し、RGBの値をずらすとガラスのような表現が可能になります。ここでは、簡易的に屈折を再現してみます。まずは下図のように法線から角度$\alpha$の視点からみて、角度$(\alpha - \beta)$屈折した`gap`を求めます。
+
+![](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766145120/glsl-shading-image-processing-0_z2kvc9.jpg)
+
+図より、$\tan(\alpha-\beta) = gap/h$となるので、
+
+$$
+gap = h \times \tan(\alpha-\beta)
+$$
+
+となります。ここで加法定理を用いて整理すると
+
+$$
+gap = h \times \frac{\tan(\alpha) - \tan(\beta)}{1 + \tan(\alpha) \tan(\beta)}
+$$
+
+となります。GLSLで屈折量を計算する`getRef`関数を実装していきます。`dx`はx方向かy方向の法線ベクトルで、dzは1.0を渡し、`h`は屈折面からサンプリング面までの距離で、`ref`は屈折率になります。
+
+```glsl title="屈折の計算"
+// 屈折量計算
+float getRef(float dx, float dz, float h, float ref) {
+  // 入射角計算
+  float rA = sqrt(dx * dx + dz * dz);
+  float sinA = -dx / rA;
+  float tanA = -dx / dz;
+
+  // 屈折角計算
+  float sinB = ref * sinA;
+  float tanB = sqrt(1.0 / (1.0 - sinB * sinB) - 1.0);
+
+  // 符号調整
+  if (dx > 0.0) tanB = -tanB;
+
+  // 屈折によるオフセット量
+  float res = (tanA - tanB) / (1.0 + tanA * tanB);
+
+  return h * res;
+}
+```
+
+急にsinが出てきましたが解説します。ひとまずオフセット量`res`を求めるために`tanA`と`tanB`を導出します。
+`rA`は三平方の定理より`dx`と`dz`を用いて計算した入射ベクトルの長さになり、この`rA`から`sinA`を計算します。マイナスは向きの調整になります。`tanA`は`dx`と`dz`の比になります。
+
+`sinB`はスネルの法則より、`sinA`と屈折率`ref`を掛け算すれば求まります。`tanB`の箇所は複雑です。
+
+```glsl
+float tanB = sqrt(1.0 / (1.0 - sinB * sinB) - 1.0);
+```
+
+ここは`tan`の2乗が次式なのと、$\sin^2(\beta) + \cos^2(\beta) = 1$という恒等式を使っています。
+
+$$
+\tan^2(\beta) = \frac{1}{\cos^2(\beta)} - 1 \\
+\cos^2(\beta) = 1 - \sin^2(\beta)
+$$
+
+整理した結果、次式のようになったのをコードで書いています。
+
+$$
+\tan(\beta) = \sqrt{\frac{1}{1 - \sin^2(\beta)} - 1}
+$$
+
+ここで求まった`tanA`と`tanB`を用いてオフセット量`res`を求め、屈折面からサンプリング面までの距離`h`を掛けることで、屈折量が求まります。
+
+---
+
+RGBずらしも考慮した屈折量を求める`getRef`の使い方としては次のようになります。
+
+```glsl
+void main() {
+  // ...
+
+  // 屈折率
+  float ref = 0.75;
+
+  // RGBずらし
+  float refR = ref - 0.05;
+  float refG = ref;
+  float refB = ref + 0.05;
+
+  // 屈折面からサンプリング面までの距離
+  float h = 0.02;
+
+  // RGBそれぞれのUVオフセット計算
+  float offXR = getRef(dx, 1.0, h, refR);
+  float offXG = getRef(dx, 1.0, h, refG);
+  float offXB = getRef(dx, 1.0, h, refB);
+
+  float r = texture(uTexture, uv + vec2(offXR, 0.0)).r;
+  float g = texture(uTexture, uv + vec2(offXG, 0.0)).g;
+  float b = texture(uTexture, uv + vec2(offXB, 0.0)).b;
+
+  // 屈折後の色
+  vec3 refrColor = vec3(r, g, b);
+
+  vec3 color = lighting(refrColor, normal)
+  fragColor = vec4(color, 1.0);
+}
+```
+
+ここでは、簡易的に屈折率をRとBで固定値$\pm 0.05$でずらしてRGBずらしを実現させています。
+結果は次のようになります。
+
+![屈折を考慮した波状面の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766117446/glsl-shading-image-processing-02_ery7qq.jpg "屈折を考慮した波状面の結果")
+
+デモでは、屈折の有り無しを切り替えられたりしているので試してみてください！
+
+<PostAdUnit />
+
+## 波紋
+
+先ほどは1次元波(波状面)でしたが、ここでは2次元波(波紋)を実現しましょう。ここでも高さ関数を定義します。波紋の高さ関数は次のようになります。
+
+$$
+z(x,y) = A\sin(\omega r)
+$$
+
+ここで$r$は、中心$c$からの距離になります。
+
+$$
+r = \left|\bm{p} - c\right|
+$$
+
+波紋の法線ベクトルは勾配をとることで、求まるので
+
+$$
+\frac{\partial z}{\partial x} = A\omega\cos(\omega r)\frac{x-c_x}{r}
+$$
+
+$$
+\frac{\partial z}{\partial y} = A\omega\cos(\omega r)\frac{y-c_y}{r}
+$$
+
+となります。これをGLSLで実装すると次のようになります。
+
+```glsl title="波紋"
+void main() {
+  vec2 uv = vUv;
+
+  // 画面中心
+  vec2 center = vec2(0.5);
+
+  // 中心からの相対位置
+  vec2 p = uv - center;
+
+  // アスペクト補正（円形の波を保つ）
+  p.x *= uResolution.x / uResolution.y;
+
+  // 中心からの距離
+  float r = length(p);
+
+  // 角周波数
+  float omega = 2.0 * PI / wavelength;
+
+  // 高さ変化の勾配量
+  float dz = amplitude * omega * cos(omega * r);
+
+  // 勾配ベクトル（∂z/∂x, ∂z/∂y）
+  vec2 grad = dz * (p / r);
+
+  // 波による擬似法線
+  vec3 normal = vec3(-grad.x, -grad.y, 1.0);
+
+  vec3 texColor = texture(uTexture, uv).rgb;
+
+  vec3 color = lighting(texColor, normal);
+  fragColor = vec4(color, 1.0);
+}
+```
+
+波紋は円形の波になるので、`uResolution.x`と`uResolution.y`の比を`p.x`に掛けることでアスペクト補正を行うようにしてます。
+
+### 屈折を考慮する
+
+波紋でも屈折を考慮した実装をしてみましょう。波状面では1次元のみだったのですが、波紋はx方向とy方向の2次元になるので別途関数を用意せずに屈折のずれの量を実装します。
+
+`grad`はx方向とy方向の法線ベクトルの2つの成分になるので、`normalize`で正規化して(Ngrad)、RGBのオフセットを計算します。
+
+実装は次のようになります。
+
+```glsl title="屈折を考慮した波紋"
+void main() {
+  // ...
+
+  // 屈折率
+  float ref = 0.75;
+
+  // RGBずらし
+  float refR = ref - 0.25;
+  float refG = ref;
+  float refB = ref + 0.25;
+
+  // 屈折の強さ係数
+  float h = 0.02;
+
+  // 勾配方向を正規化（UVずらし用）
+  vec2 Ngrad = normalize(grad);
+
+  // RGBそれぞれのUVオフセット計算
+  vec2 offsetR = Ngrad * h * refR;
+  vec2 offsetG = Ngrad * h * refG;
+  vec2 offsetB = Ngrad * h * refB;
+
+  float rCol = texture(uTexture, uv + offsetR).r;
+  float gCol = texture(uTexture, uv + offsetG).g;
+  float bCol = texture(uTexture, uv + offsetB).b;
+
+  // 屈折後の色
+  vec3 refrColor = vec3(rCol, gCol, bCol);
+
+  vec3 color = lighting(refrColor, normal);
+  fragColor = vec4(color, 1.0);
+}
+```
+
+結果は次のようになります。
+
+![波紋の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766117635/glsl-shading-image-processing-03_ugjvn7.jpg "波紋の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/shading-wave-ripple/" />
+
+## 光源を考慮したエンボス処理
+
+最後に光源を考慮したエンボス処理のデモを紹介します。簡易的なエンボス処理は[以前](/articles/glsl-spatial-filtering/)の記事で解説しました。エンボス処理で使用する高さ関数($z=(x,y)$)は、前回の法線マップを使用します。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで法線マップを作成する",
+      link: "glsl-normal-map",
+      image: "glsl-normal-map.jpg",
+    },
+  ]}
+/>
+
+光源を考慮したエンボス処理のGLSLでの実装は次のようになります。
+
+```glsl title="光源を考慮したエンボス処理"
+// グレイスケール
+float gray(vec3 color) {
+  return dot(color, vec3(0.299, 0.587, 0.114));
+}
+
+// 高さマップ(輝度取得)
+float height(vec2 uv) {
+  vec3 c = texture(uTexture, uv).rgb;
+  return gray(c);
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  // 偏微分の近似を行うため差分を求める
+  float hL = height(uv - vec2(pos.x, 0.0));
+  float hR = height(uv + vec2(pos.x, 0.0));
+  float hD = height(uv - vec2(0.0, pos.y));
+  float hU = height(uv + vec2(0.0, pos.y));
+
+  // 偏微分
+  float dx = (hR - hL) * strength;
+  float dy = (hU - hD) * strength;
+
+  // 法線計算
+  vec3 normal = vec3(-dx, -dy, 1.0 / strength);
+
+  vec3 texColor = texture(uTexture, uv).rgb;
+
+  // 色味調整
+  vec3 grayColor = vec3(gray(texColor) * 0.8 + 0.2);
+
+  vec3 color = lighting(grayColor, normal);
+  fragColor = vec4(color, 1.0);
+}
+```
+
+そのままだと、画像の色がそのまま出力されるので、次のコードで色味を調整してから`lighting`関数に渡すようにしてます。
+
+```glsl
+// 色味調整
+vec3 grayColor = vec3(gray(texColor) * 0.8 + 0.2);
+```
+
+結果は次のようになります。
+
+![光源を考慮したエンボス処理の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766117852/glsl-shading-image-processing-04_yum8fn.jpg "光源を考慮したエンボス処理の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/shading-emboss/" />
+
+デモでは、エンボスの凸凹の強さを`strength`で調整できるようにしているのと、光源の位置を調整できるようにしているのでぜひ試してみてください。
+
+## まとめ
+
+この記事では、視覚的に面白い陰影付け処理を応用した特殊効果の画像処理について解説していきました。陰影付けの方法については、他の方法などがあるのでぜひ他の記事なども参照してみてください。
+
+次回は、モザイク処理やイラスト調などのユニークな特殊効果の画像処理をやっていきたいと思います！
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
