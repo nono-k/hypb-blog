@@ -14,6 +14,7 @@ relatedPosts:
   - glsl-spatial-filtering
   - glsl-edge-extraction
   - glsl-normal-map
+  - glsl-unique-image-processing
 ---
 
 import DemoBtn from '../../../components/markdown/DemoBtn.astro';
@@ -438,6 +439,17 @@ vec3 grayColor = vec3(gray(texColor) * 0.8 + 0.2);
 この記事では、視覚的に面白い陰影付け処理を応用した特殊効果の画像処理について解説していきました。陰影付けの方法については、他の方法などがあるのでぜひ他の記事なども参照してみてください。
 
 次回は、モザイク処理やイラスト調などのユニークな特殊効果の画像処理をやっていきたいと思います！
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLでユニークな特殊効果の画像処理を実装する【モザイク・イラスト調・拡散・VHS調変換】",
+      link: "glsl-unique-image-processing",
+      image: "glsl-unique-image-processing.jpg",
+    },
+  ]}
+/>
 
 ## 画像処理のおすすめ本
 
