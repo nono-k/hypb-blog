@@ -1,0 +1,383 @@
+---
+title: GLSLでユニークな特殊効果の画像処理を実装する【モザイク・イラスト調・拡散・VHS調変換】
+slug: glsl-unique-image-processing
+pubDate: '2025-12-28'
+image: ../../../assets/images/glsl-unique-image-processing.jpg
+ogp: 'images/ogp/glsl-unique-image-processing.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回はユニークな特殊効果としてモザイク・イラスト調・拡散・VHS調変換を実装し解説します。
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+  - glsl-normal-map
+  - glsl-shading-image-processing
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+
+## はじめに
+
+[前回](/articles/glsl-shading-image-processing/)は、GLSLで陰影付け処理を応用して波状面・波紋・エンボス処理について解説しました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで陰影付け処理を応用した特殊効果の画像処理を実装する【波状面・波紋・エンボス】",
+      link: "glsl-shading-image-processing",
+      image: "glsl-shading-image-processing.jpg",
+    },
+  ]}
+/>
+
+今回は、次の特殊効果について実装し解説していきます。
+
+- モザイク処理
+- イラスト調
+- 拡散
+- VHS調変換
+
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## モザイク
+
+モザイク処理の表現はGLSLでよく使用される表現ですが、やっていることは指定されたエリア内の画素値をすべて均一にすることによって実現できます。
+
+GLSLではテクセルデータを取得するときに、`floor`でx,y値を丸めることで実現できます。
+まずは、実際のコードをみていきましょう。`blockSize`はuniform変数として、モザイクの大きさを変更できるようにしてます。
+
+```glsl title="モザイク処理"
+#version 300 es
+precision mediump float;
+
+uniform sampler2D uTexture;
+uniform vec2 uResolution;
+uniform float blockSize; // モザイクの大きさ
+
+in vec2 vUv;
+
+out vec4 fragColor;
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  vec2 block = pos * blockSize;
+  vec2 mosaic = (floor(uv / block) + 0.5) * block;
+
+  vec3 color = texture(uTexture, mosaic).rgb;
+  fragColor = vec4(color, 1.0);
+}
+```
+
+テクセルデータを取得する際の座標位置を`mosaic`変数とし、x,y値を`floor`で丸めています。実際の値を当てはめて考えてみます。
+
+たとえば、`blockSize`が10の場合、正規化した座標`pos`に10を掛けることになるので、10x10のエリアを対象に処理が行われます。
+`floor(uv / block)`では、何ブロックの位置にあるかを求めています。また`0.5`を足すことでブロックの中央に設定しています。このブロック番号を`block`で掛けることでuv座標に戻しています。最後にこの`mosaic`座標でテクセルデータを取得することでモザイクの表現が完成します。
+
+結果は次のようになります。blockSizeの値を大きくするとモザイクの範囲が広くなるのが分かるでしょう。
+
+![モザイク処理の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766381587/glsl-unique-image-processing-01_wtp9yu.jpg "モザイク処理の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/mosaic/" />
+
+## イラスト調
+
+![イラスト調の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766454435/glsl-unique-image-processing-02_jqwyge.jpg "イラスト調の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/illustration/" />
+
+イラスト調の画像処理の方法は、上記画像のように以前紹介した**ポスタリゼーション**と**エッジ摘出**をしたものを`mix`関数で線形補間することでイラスト調の画像を生成できます。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで画像処理プログラミング【色調変換を用いたエフェクト処理】",
+      link: "glsl-color-tone-conversion",
+      image: "glsl-color-tone-conversion.jpg",
+    },
+    {
+      title:
+        "画像処理のエッジ摘出の手法を詳しく解説し、GLSLで実装してみる",
+      link: "glsl-edge-extraction",
+      image: "glsl-edge-extraction.jpg",
+    },
+  ]}
+/>
+
+ポスタリゼーションとエッジ摘出のコードは次のようになります。エッジ摘出にはSobelフィルタを使用し、勾配の大きさをとるようにします。
+
+```glsl title="ポスタリゼーション"
+// ポスタリゼーション
+vec3 posterization(vec3 texture, float level) {
+  return vec3(floor(texture * level) / (level - 1.0));
+}
+```
+
+```glsl title="Sobelフィルタによるエッジ摘出"
+// グレイスケール
+float gray(vec3 c) {
+  return dot(c, vec3(0.299, 0.587, 0.114));
+}
+
+// Sobelフィルタ
+float kernelSobelX[9] = float[] (
+  -1.0, 0.0, 1.0,
+  -2.0, 0.0, 2.0,
+  -1.0, 0.0, 1.0
+);
+
+float kernelSobelY[9] = float[] (
+  -1.0, -2.0, -1.0,
+  0.0, 0.0, 0.0,
+  1.0, 2.0, 1.0
+);
+
+// 勾配の大きさ
+float grad(vec2 pos, vec2 uv) {
+  float gx = 0.0;
+  float gy = 0.0;
+  int k = 0;
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      // グレースケールにしてエッジ強度を取りやすくする
+      float g = gray(texture(uTexture, uv + vec2(x, y) * pos).rgb);
+      gx += g * kernelSobelX[k];
+      gy += g * kernelSobelY[k];
+      k++;
+    }
+  }
+  return sqrt(gx * gx + gy * gy);
+}
+```
+
+デモでは、エッジの太さを調整できるようにするとの、エッジの色を変更できるようにしてます(stroke, strokeColor)。コードは次のようになります。
+
+```glsl title="イラスト調"
+uniform float level; // ポスタリゼーションのレベル
+uniform float stroke; // エッジの太さ
+uniform vec3 strokeColor; // エッジの色
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+  // 現画像
+  vec3 base = texture(uTexture, uv).rgb;
+
+  // ポスタリゼーション
+  vec3 posterization = posterization(base, level);
+
+  // エッジ摘出
+  float edge = grad(pos, uv);
+  // エッジの太さ調整
+  float line = step(1.0 - edge, stroke);
+
+  // ポスタリゼーションとエッジを線の色で線形補間
+  vec3 color = mix(posterization, strokeColor, line);
+  fragColor = vec4(color, 1.0);
+}
+```
+
+<PostAdUnit />
+
+## 拡散
+
+拡散処理は、画素値を周囲の画素にランダムに散らせることで、すりガラスのような効果を実現できます。コードは次のようになります。ここではランダムは`sin`を使用して簡易的な実装にしています。
+
+```glsl title="拡散"
+// 簡易ノイズ
+float rand(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453);
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = 1.0 / uResolution;
+
+  // ピクセル単位でランダムにずらす
+  vec2 offset = vec2(rand(uv), rand(uv + 10.0)) - 0.5;
+
+  vec3 color = texture(uTexture, uv + offset * pos * strength).rgb;
+  fragColor = vec4(color, 1.0);
+}
+```
+
+`strength`を大きくすると画素がより広範囲に散らばることができます。拡散処理の結果は次のようになります。
+
+![拡散の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766677935/glsl-unique-image-processing-03_pcgdao.jpg "拡散の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/diffusion/" />
+
+結果の画像だと分かりづらいので、デモで確認してみてください！
+
+## VHS調変換
+
+VHS調の画像処理のやり方はいろいろありますが、このデモでは次の通りに処理を書いていきVHS調にしていきます。
+
+- RGBずらし
+- レトロ調の色調整
+- 静的スキャンライン
+- 走査線
+- ノイズ付与
+- ビネット効果
+
+それでは、ひとつずつみていきます。
+このデモでは、時間として`uTime`をuniform変数で用意しています。
+
+### RGBずらし
+
+RGBずらしは横方向だけずらすようにします。`texture`で取得するときに`r`、`g`、`b`をそれぞれ取得するようにします。このデモでは`r`をプラス方向に、`b`をマイナス方向に`0.002`ほどずらすようにし、`g`はそのまま使用します。
+
+```glsl title="RGBずらし"
+// RGBずらし
+vec2 chroma = vec2(0.002, 0.0);
+float r = texture(uTexture, uv + chroma).r;
+float g = texture(uTexture, uv).g;
+float b = texture(uTexture, uv - chroma).b;
+vec3 color = vec3(r, g, b);
+```
+
+`chroma`の値を調整することで、RGBをずらす量を変化させることができます。
+
+### レトロ調の色調整
+
+VHSに見えるようにレトロ調にするため、色を調整します。ここでは黄色がかかったレトロ調にするため次のような値を乗算しています。
+
+```glsl title="レトロ調の色調整"
+// 黄色がかったレトロ風の色調整
+color *= vec3(1.15, 1.05, 0.85);
+```
+
+### 静的スキャンライン
+
+昔のビデオみたいになるように、縦方向にスキャンラインといわれる線を描きます。明暗が交互に出るようにするために`sin`関数を使用します。
+
+```glsl title="静的スキャンライン"
+// 静的スキャンライン
+float scan = sin(uv.y * uResolution.y * 0.05) * 0.08;
+color -= scan;
+```
+
+`sin`関数の中にある`0.05`の値を変えると、線の間隔を変更できます。`0.08`の値は明るさの調整に使っています。
+
+### 走査線
+
+走査線は、画像の上部から下部へと移動するようにさせます。`fract`関数を使用することで、時間と共に線を動かせるようにします。
+
+```glsl title="走査線"
+// 走査線
+float speed = 0.25;
+float y = fract(uv.y + uTime * speed);
+float rolling =
+    smoothstep(0.47, 0.5, y) -
+    smoothstep(0.5, 0.53, y);
+color += rolling * 0.1;
+```
+
+`fract`関数は、0から1の範囲の値を返すので、`uTime`を足すことで時間と共に線を上から下へループで動かすことができます。`rolling`では、`smoothstep`を使用し走査線の「幅」を調整しています。最後に`color`に加算して走査線を描画しています。
+
+### ノイズ付与
+
+ざらつきを付与したいので、簡易的な`sin`関数を使用したノイズを使用します。ノイズは時間と共に変化するようにするため、`uTime`を足しています。
+
+```glsl title="ノイズ付与"
+// ノイズ
+float noise = fract(
+  sin(dot(uv * uResolution + uTime, vec2(12.9898, 78.233)))
+  * 43758.5453
+);
+color += (noise - 0.5) * 0.05;
+```
+
+### ビネット効果
+
+ビネット効果は、画面端を暗くする処理です。画面端を暗くするので`length(p)`で中心からの距離を使用します。`smoothstep`を使用することで、どの範囲まで暗くするかや境目を緩やかに変化させることができます。取得した値を`color`にかけることでビネット効果が適用されます。
+
+```glsl title="ビネット効果"
+// ビネット効果
+vec2 p = uv - 0.5;
+p.x *= uResolution.x / uResolution.y;
+float v = smoothstep(0.9, 0.3, length(p));
+color *= v;
+```
+
+ここで紹介したVHS調変換の全コードは次のようになります。
+
+```glsl title="VHS調変換"
+void main() {
+  vec2 uv = vUv;
+
+  // RGBずらし
+  vec2 chroma = vec2(0.002, 0.0);
+  float r = texture(uTexture, uv + chroma).r;
+  float g = texture(uTexture, uv).g;
+  float b = texture(uTexture, uv - chroma).b;
+  vec3 color = vec3(r, g, b);
+
+  // 黄色がかったレトロ風の色調整
+  color *= vec3(1.15, 1.05, 0.85);
+
+  // 静的スキャンライン
+  float scan = sin(uv.y * uResolution.y * 0.05) * 0.08;
+  color -= scan;
+
+  // 走査線
+  float speed = 0.25;
+  float y = fract(uv.y + uTime * speed);
+  float rolling =
+      smoothstep(0.47, 0.5, y) -
+      smoothstep(0.5, 0.53, y);
+  color += rolling * 0.1;
+
+  // ノイズ
+  float noise = fract(
+    sin(dot(uv * uResolution + uTime, vec2(12.9898, 78.233)))
+    * 43758.5453
+  );
+  color += (noise - 0.5) * 0.05;
+
+  // ビネット効果
+  vec2 p = uv - 0.5;
+  p.x *= uResolution.x / uResolution.y;
+  float v = smoothstep(0.9, 0.3, length(p));
+  color *= v;
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+結果は次のようになります。
+
+![VHS調変換の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1766828221/glsl-unique-image-processing-04_pumaca.jpg "VHS調変換の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/vhs/" />
+
+このデモでは、簡易的なVHS調の画像処理を紹介しましたが、他にも様々な方法が考えられるので、ぜひ値を調整したりするなどで試してみてください。
+
+## まとめ
+
+この記事では視覚的に面白い画像処理として、モザイク・イラスト調・拡散・VHS調変換について解説していきました。今回の記事では、軽く紹介程度だったので簡易的な実装で終わりましたが、時間ができたら非写実的描画(NPR)関連の論文を読んだりして実装してみたいと思いました。
+
+次回は、趣向を変えてアフィン変換について解説したいと思います。
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
