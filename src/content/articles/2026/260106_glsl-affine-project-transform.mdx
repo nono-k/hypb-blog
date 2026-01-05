@@ -1,0 +1,601 @@
+---
+title: GLSLのフラグメントシェーダーでアフィン変換を実装してみる
+slug: glsl-affine-project-transform
+pubDate: '2026-01-06'
+image: ../../../assets/images/glsl-affine-project-transform.jpg
+ogp: 'images/ogp/glsl-affine-project-transform.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回は趣向を変えて変形処理としてアフィン変換をGLSLのフラグメントシェーダーで実装してみます。また、おまけとして射影変換を使用した自由変形についても紹介します。
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+  - glsl-normal-map
+  - glsl-shading-image-processing
+  - glsl-unique-image-processing
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+
+## はじめに
+
+[前回](/articles/glsl-unique-image-processing/)は、GLSLでユニークな特殊効果としてモザイク・イラスト調・拡散・VHS調変換を解説しました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLでユニークな特殊効果の画像処理を実装する【モザイク・イラスト調・拡散・VHS調変換】",
+      link: "glsl-unique-image-processing",
+      image: "glsl-unique-image-processing.jpg",
+    },
+  ]}
+/>
+
+今回は変形処理の例として、アフィン変換について実装し解説していきます。また、おまけとして射影変換を使用して画像の1点を動かした自由変形についてもコードとデモを提示します。
+
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## アフィン変換
+
+変形処理における座標変換の式として広く用いられるものに**アフィン変換**があります。アフィン変換の式は、変形前の座標を$(x, y)$、変形後の座標を$(x', y')$とすると、座標変換の式は次のようになります。
+
+$$
+x' = ax + by + c
+$$
+$$
+y' = dx + ey + f
+$$
+
+ここで$a, b, c, d, e, f$は定数ですが、これらの定数を設定することで、平行移動・拡大・縮小・回転移動など、さまざまな変形を行うことができます。
+
+また、上記式を行列を用いて表すこともできます。行列で表現したものが次式になります。
+これは、平行移動のパラメータとそれ以外の部分を分けた記法になります。
+
+$$
+\begin{bmatrix}
+x' \\
+y'
+\end{bmatrix}
+=
+\begin{bmatrix}
+a & b \\
+d & e \\
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y \\
+\end{bmatrix}
++
+\begin{bmatrix}
+c \\
+f \\
+\end{bmatrix}
+$$
+
+また、行列を3x3で表記した記法もあります。
+
+$$
+\begin{bmatrix}
+x' \\
+y' \\
+1
+\end{bmatrix}
+=
+\begin{bmatrix}
+a & b & c \\
+d & e & f \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y \\
+1
+\end{bmatrix}
+$$
+
+この記事では、3x3の行列のアフィン変換でGLSLのフラグメントシェーダーで実装していきます。
+それでは、まずは平行移動を実装していきます。
+
+### 平行移動
+
+![平行移動のデモ](https://res.cloudinary.com/dy8ftemi0/video/upload/v1767277024/transform_x7aiqj.mp4 "平行移動のデモ")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/affine-translate/" />
+
+平行移動のアフィン変換の行列式は次のようになります。
+
+$$
+\begin{bmatrix}
+x' \\
+y' \\
+1
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 & 0 & t_x \\
+0 & 1 & t_y \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y \\
+1
+\end{bmatrix}
+$$
+
+ここで$t_x$,$t_y$はxy方向の平行移動量を表します。
+GLSLで平行移動の関数(`translate`)は次のようになります。
+
+```glsl title="平行移動の関数"
+mat3 translate(vec2 t) {
+  return mat3(
+    1.0, 0.0, 0.0,
+    0.0, 1.0, 0.0,
+    t.x, t.y, 1.0
+  );
+}
+```
+
+GLSLでは列ベクトルとなるので
+
+```
+vec3(x, y, 1.0)
+```
+
+に`mat3`を掛ける形になります。
+
+デモのコードは次のようになります。
+
+```glsl title="平行移動"
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = uv * 4.0 - 2.0;
+
+  vec3 color = drawAxis(pos);
+
+  mat3 M = translate(vec2(translateX, translateY));
+  vec2 q = (inverse(M) * vec3(pos, 1.0)).xy;
+
+  if (q.x >= 0.0 && q.x <= 1.0 &&
+      q.y >= 0.0 && q.y <= 1.0) {
+    color = texture(uTexture, q).rgb;
+  }
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+デモでは分かりやすいように、x軸・y軸を表示する`drawAxis`関数を用意してます。
+また、真ん中にくるように4分割したうえで、半分を引いています。
+
+<details>
+<summary>drawAxisのコードをみる</summary>
+<div>
+```glsl title="drawAxis"
+vec3 drawAxis(vec2 p) {
+  float axisW = fwidth(p.x) * 2.0;
+  float xAxis = smoothstep(axisW, 0.0, abs(p.y));
+  float yAxis = smoothstep(axisW, 0.0, abs(p.x));
+
+  vec3 col = vec3(0.05);
+  col = mix(col, vec3(1.0,0.0,0.0), yAxis);
+  col = mix(col, vec3(0.0,0.0,1.0), xAxis);
+  return col;
+}
+```
+</div>
+</details>
+
+アフィン変換で平行移動するコードは次になっています。
+
+```glsl
+mat3 M = translate(vec2(translateX, translateY));
+vec2 q = (inverse(M) * vec3(pos, 1.0)).xy;
+```
+
+`inverse`は逆行列を計算します。
+逆行列にしない`M`のままで掛けると、逆方向に移動してしまいます。
+これは現在の画素が、元画像のどこに対応するかを計算する必要があるので、逆行列を用いて計算します。
+
+次のコードは画像の移動だけを表示するため、テクスチャの有効範囲(0~1)にある場合のみ`texture`で画像を取得しています。
+
+```glsl title="テクスチャ取得"
+if (q.x >= 0.0 && q.x <= 1.0 &&
+    q.y >= 0.0 && q.y <= 1.0) {
+  vec3 tex = texture(uTexture, q).rgb;
+  color = mix(color, tex, 1.0);
+}
+```
+
+このコードは他のデモでも同じになります。続いては回転の実装について説明します。
+
+### 回転
+
+![回転のデモ](https://res.cloudinary.com/dy8ftemi0/video/upload/v1767277168/rotate_ez7lku.mp4 "回転のデモ")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/affine-rotate/" />
+
+回転のアフィン変換の行列式は次のようになります。
+
+$$
+\begin{bmatrix}
+x' \\
+y' \\
+1
+\end{bmatrix}
+=
+\begin{bmatrix}
+\cos \theta & -\sin \theta & 0 \\
+\sin \theta & \cos \theta & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y \\
+1
+\end{bmatrix}
+$$
+
+GLSLでの回転の関数(rotate)は次のようになります。
+
+```glsl title="rotate"
+mat3 rotate(float rad) {
+  float c = cos(rad);
+  float s = sin(rad);
+  return mat3(
+    c,  -s, 0.0,
+    s,  c, 0.0,
+    0.0, 0.0, 1.0
+  );
+}
+```
+
+このデモでの`rotate`関数の使い方は次のようになります。
+
+```glsl title="画像中央を中心に回転"
+float rad = angle * PI / 180.0;
+float aspect = 1.777777; // 16:9
+
+mat3 M =
+  translate(vec2(0.5)) *
+  scale(vec2(1.0, aspect)) *
+  rotate(rad) *
+  scale(vec2(1.0, 1.0 / aspect)) *
+  translate(vec2(-0.5));
+vec2 q = (inverse(M) * vec3(pos, 1.0)).xy;
+```
+
+このコードでは、回転中心を画像の中央に設定してます。画像の中心は$(0.5, 0.5)$になるので、回転(rotate)する前に`translate(-0.5)`で中心(0.5)に移動させてから回転させ、その後に`translate(0.5)`で元の位置に戻します。また、ここでは画像は16:9の比率を想定しているので、画像が歪まないように`scale`でアスペクト補正しています。
+
+原点(0,0)を中心に回転させたい場合は、`translate`が必要ないので次のようにします。
+
+```glsl title="原点(0,0)を中心に回転"
+M =
+  scale(vec2(1.0, aspect)) *
+  rotate(rad) *
+  scale(vec2(1.0, 1.0 / aspect));
+```
+
+デモでは、画像中心と原点中心の回転の切り替えができるようにしてるので試してみてください。
+続いてはせん断の実装について説明します。
+
+### せん断
+
+![せん断のデモ](https://res.cloudinary.com/dy8ftemi0/video/upload/v1767277218/skew_lalsd3.mp4 "せん断のデモ")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/affine-skew/" />
+
+せん断には、x軸方向とy軸方向のせん断があります。
+x軸方向のせん断の行列式は次のようになります。
+
+$$
+\begin{bmatrix}
+x' \\
+y' \\
+1
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 & \tan\alpha & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y \\
+1
+\end{bmatrix}
+$$
+
+y軸方向のせん断の行列式は次のようになります。
+
+$$
+\begin{bmatrix}
+x' \\
+y' \\
+1
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 & 0 & 0 \\
+\tan\beta & 1 & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y \\
+1
+\end{bmatrix}
+$$
+
+x軸方向とy軸方向を組み合わせることも可能です。
+GLSLでのせん断の関数(skew)は次のようになります。
+
+```glsl title="skew"
+mat3 skew(float skewX, float skewY) {
+  float radX = skewX * PI / 180.0;
+  float radY = skewY * PI / 180.0;
+  return mat3(
+    1.0, tan(radY), 0.0,
+    tan(radX), 1.0, 0.0,
+    0.0, 0.0, 1.0
+  );
+}
+```
+
+このデモでの`skew`関数の使い方は次のようになります。
+`rotate`と同様に画像中心と原点中心でのせん断ができるようにしています。
+
+```glsl title="せん断"
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = uv * 4.0 - 1.0;
+
+  vec3 color = drawAxis(pos);
+  float aspect = 1.777777; // 16:9
+
+  mat3 M;
+
+  if (isCenter) {
+    M =
+      translate(vec2(0.5)) *
+      scale(vec2(1.0, aspect)) *
+      skew(skewX, skewY) *
+      scale(vec2(1.0, 1.0 / aspect)) *
+      translate(vec2(-0.5));
+  } else {
+    M =
+      scale(vec2(1.0, aspect)) *
+      skew(skewX, skewY) *
+      scale(vec2(1.0, 1.0 / aspect));
+  }
+
+  vec2 q = (inverse(M) * vec3(pos, 1.0)).xy;
+
+  if (q.x >= 0.0 && q.x <= 1.0 &&
+      q.y >= 0.0 && q.y <= 1.0) {
+    color = texture(uTexture, q).rgb;
+  }
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+<PostAdUnit />
+
+## おまけ：射影変換
+
+![射影変換のデモ](https://res.cloudinary.com/dy8ftemi0/video/upload/v1767512739/project-transform_kqvvao.mp4 "射影変換のデモ")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/project-transform/" />
+
+上記のデモでは射影変換を利用し、画像内でクリックした位置と四隅の座標に近い点がその位置に移動することで、自由変形を実現しています。デモで分かるように、線分の直線性は保たれるものの、平行性は失われます。射影変換では、**任意の四角形を別の任意の四角形に移す**ような変換になります。
+
+解説が長くなるので、ここではデモのフラグメントシェーダーのコードを載せて軽く解説するのみにとどめます。フラグメントシェーダーのコードは次のようになります。
+
+```glsl title="射影変換"
+#version 300 es
+precision highp float;
+
+uniform sampler2D uTexture;
+uniform vec2 uMove;
+
+in vec2 vUv;
+out vec4 fragColor;
+
+// 4点 → 射影行列
+mat3 homographyFromQuad(vec2 p0, vec2 p1, vec2 p2, vec2 p3) {
+  // p2 → p1の方向
+  float dx1 = p1.x - p2.x;
+  float dy1 = p1.y - p2.y;
+  // p2 → p3の方向
+  float dx2 = p3.x - p2.x;
+  float dy2 = p3.y - p2.y;
+  // 歪み量
+  float dx3 = p0.x - p1.x + p2.x - p3.x;
+  float dy3 = p0.y - p1.y + p2.y - p3.y;
+
+  // 2つのベクトルの外積(p2を基準にした面積)
+  float det = dx1 * dy2 - dx2 * dy1;
+  // 射影成分
+  float a13 = (dx3 * dy2 - dx2 * dy3) / det;
+  float a23 = (dx1 * dy3 - dx3 * dy1) / det;
+
+  return mat3(
+    p1.x - p0.x + a13 * p1.x,
+    p1.y - p0.y + a13 * p1.y,
+    a13,
+
+    p3.x - p0.x + a23 * p3.x,
+    p3.y - p0.y + a23 * p3.y,
+    a23,
+
+    p0.x,
+    p0.y,
+    1.0
+  );
+}
+
+// 同次座標で逆射影変換を行い、w成分で正規化する
+vec2 project(mat3 H, vec2 p) {
+  vec3 q = inverse(H) * vec3(p, 1.0);
+  return q.xy / q.z;
+}
+
+void main() {
+  vec2 uv = vUv;
+
+  // 余白を取る
+  float margin = 0.15;
+  vec2 pos = (uv - margin) / (1.0 - 2.0 * margin);
+
+  vec3 color = vec3(0.05);
+
+  // 画像外の背景設定
+  if (pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0) {
+    fragColor = vec4(color, 1.0);
+    return;
+  }
+
+  // 4点の初期設定
+  vec2 P0 = vec2(0.0, 0.0); // 左下
+  vec2 P1 = vec2(1.0, 0.0); // 右下
+  vec2 P2 = vec2(1.0, 1.0); // 右上
+  vec2 P3 = vec2(0.0, 1.0); // 左上
+
+  // クリックの位置判定(距離が近い点を動かす)
+  float sx = step(0.5, uMove.x);
+  float sy = step(0.5, uMove.y);
+
+  P0 = mix(P0, uMove, (1.0 - sx) * (1.0 - sy));
+  P2 = mix(P2, uMove, sx * sy);
+  P1 = mix(P1, uMove, sx  * (1.0 - sy));
+  P3 = mix(P3, uMove, (1.0 - sx) * sy );
+
+  // 射影変換
+  mat3 H = homographyFromQuad(P0, P1, P2, P3);
+  vec2 src = project(H, pos);
+
+  // 座標外の背景色セット
+  if (src.x < 0.0 || src.x > 1.0 || src.y < 0.0 || src.y > 1.0) {
+    fragColor = vec4(color, 1.0);
+    return;
+  }
+
+  color = texture(uTexture, src).rgb;
+  fragColor = vec4(color, 1.0);
+}
+```
+
+クリックした位置`uMove`はuniform変数としてJavaScript側で設定しています。
+デモにあるクリックした位置の赤丸は、もうひとつ別の`canvas`要素を用意して、そちらで表示するようにしています。フラグメントシェーダーのコードを軽く解説します。
+
+### 余白を付けて画像を表示
+
+画像を全体に表示ではなく、余白を付けて表示させたいので次のように`margin`で余白量を設定しています。
+
+```glsl
+// 余白を取る
+float margin = 0.15;
+vec2 pos = (uv - margin) / (1.0 - 2.0 * margin);
+```
+
+以下、`pos`には余白を付けた座標が入ります。
+
+### クリックの位置判定(距離が近い点を動かす)
+
+このデモでは、クリックした位置に近い点を1点動かすようにするため、近い距離を判定する必要があります。ここでは、x軸・y軸で`step`関数を利用します。`step`関数で`0`か`1`を返すので、この値を使用して`mix`関数を利用して近い距離の場合は、最初に設定した4点の初期設定を上書きすることができます。
+
+```glsl
+// 4点の初期設定
+vec2 P0 = vec2(0.0, 0.0); // 左下
+vec2 P1 = vec2(1.0, 0.0); // 右下
+vec2 P2 = vec2(1.0, 1.0); // 右上
+vec2 P3 = vec2(0.0, 1.0); // 左上
+
+// クリックの位置判定(距離が近い点を動かす)
+float sx = step(0.5, uMove.x);
+float sy = step(0.5, uMove.y);
+
+P0 = mix(P0, uMove, (1.0 - sx) * (1.0 - sy));
+P2 = mix(P2, uMove, sx * sy);
+P1 = mix(P1, uMove, sx  * (1.0 - sy));
+P3 = mix(P3, uMove, (1.0 - sx) * sy );
+```
+
+### 射影変換の関数
+
+射影変換の関数`homographyFromQuad`は、4点から射影行列を計算します。この関数は、4点の座標を引数として受け取り、射影行列を返します。
+
+```glsl
+// 4点 → 射影行列
+mat3 homographyFromQuad(vec2 p0, vec2 p1, vec2 p2, vec2 p3) {
+  // p2 → p1の方向
+  float dx1 = p1.x - p2.x;
+  float dy1 = p1.y - p2.y;
+  // p2 → p3の方向
+  float dx2 = p3.x - p2.x;
+  float dy2 = p3.y - p2.y;
+  // 歪み量
+  float dx3 = p0.x - p1.x + p2.x - p3.x;
+  float dy3 = p0.y - p1.y + p2.y - p3.y;
+
+  // 2つのベクトルの外積(p2を基準にした面積)
+  float det = dx1 * dy2 - dx2 * dy1;
+  // 射影成分
+  float a13 = (dx3 * dy2 - dx2 * dy3) / det;
+  float a23 = (dx1 * dy3 - dx3 * dy1) / det;
+
+  return mat3(
+    p1.x - p0.x + a13 * p1.x,
+    p1.y - p0.y + a13 * p1.y,
+    a13,
+
+    p3.x - p0.x + a23 * p3.x,
+    p3.y - p0.y + a23 * p3.y,
+    a23,
+
+    p0.x,
+    p0.y,
+    1.0
+  );
+}
+```
+
+射影変換行列は次の3x3行列で表します。
+
+$$
+\begin{bmatrix}
+a & b & c \\
+d & e & f \\
+g & h & 1 \\
+\end{bmatrix}
+$$
+
+最後の行の`g`と`h`が遠近の歪みを生み出します。もしこの値が0であれば、歪みが生じないことになるので、通常のアフィン変換と同様になるということです。`g`と`h`はこの関数では、`a13`と`a23`に相当します。この2つの値は、引数で与えられた4点から諸々計算して求めて、射影変換行列として返す関数ということになります。
+
+## まとめ
+
+GLSLのフラグメントシェーダーでアフィン変換を実装してみました。また、おまけとして射影変換のデモも紹介しました。アフィン変換や射影変換の変形処理は、3DCGや画像処理ではよく出てくるので、ぜひ実装してみて確かめてみてください。
+
+次回は、さまざまな変換処理としてマッピングなどについて解説したいと思います。
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
