@@ -131,6 +131,13 @@
           }
         }
       }
+      &:hover {
+        summary {
+          background: var(--gray-10);
+          color: var(--black);
+          transition: 0.3s;
+        }
+      }
       summary {
         display: flex;
         align-self: center;
@@ -162,7 +169,10 @@
     a {
       color: #3366cc;
       text-decoration: underline;
-      text-underline-offset: 0.25em
+      text-underline-offset: 0.25em;
+      &:hover {
+        text-decoration: none;
+      }
     }
     span code {
       padding: 0.2em 0.5em;
