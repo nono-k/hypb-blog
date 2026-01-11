@@ -1,0 +1,304 @@
+---
+title: 画像処理の擬似階調表現として組織的ディザ法をGLSLで実装する
+slug: glsl-ordered-dithering
+pubDate: '2026-01-12'
+image: ../../../assets/images/glsl-ordered-dithering.jpg
+ogp: 'images/ogp/glsl-ordered-dithering.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回は擬似階調表現として組織的ディザ法をGLSLで実装してみます。まずは、3種類のディザ法としてベイヤー(Bayer)型と渦巻き型、網点型のパターンを紹介します。続いてベイヤー型の階調を変える方法と画像への適応、色の調整についても紹介します。
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+  - glsl-normal-map
+  - glsl-shading-image-processing
+  - glsl-unique-image-processing
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+
+## はじめに
+
+[前回](/articles/glsl-affine-project-transform/)は、GLSLのフラグメントシェーダーでアフィン変換を実装しました。。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLのフラグメントシェーダーでアフィン変換を実装してみる",
+      link: "glsl-affine-project-transform",
+      image: "glsl-affine-project-transform.jpg",
+    },
+  ]}
+/>
+
+今回は画像処理の擬似階調表現として、組織的ディザ法をGLSLで実装してみます。
+
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## 組織的ディザ法
+
+擬似階調表現では使用する色をある密度で配置することにより中間的な色を作り出します。この配置をどのように作り出すかによっていくつかのバリエーションが存在します。組織的ディザ法は、この中でも特に有名な擬似階調表現の一つです。
+
+組織的ディザ法は、ある中間調を白に割り振るか黒に割り振るかを決定するために座標を用いる方法です。同じ色であっても、座標の違いによってどの色に割り振るかが変わります。座標ごとにしきい値を設定し、ある点の画素値がこのしきい値を超えているかどうかによってどちらの色にするのかを決定します。
+
+しきい値のパターンの違いによって処理の結果が変わってきます。しきい値のパターンはいくつかありますが、この記事では以下の3つのパターンで実装していきます。
+
+- ベイヤー(Bayer)型
+- 渦巻き型
+- 網点型
+
+## 3つのしきい値パターンの比較
+
+ここでのデモでは、16階調にするために4x4のパターンを使用します。
+3つのしきい値パターンは次のようになります。
+
+![3つのしきい値パターン](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768032894/glsl-ordered-dithering-01_ngrs5c.jpg "3つのしきい値パターン")
+
+それぞれのパターンの配置方法としては以下の通りです。
+
+| パターン | 配置方法 |
+| --- | --- |
+| ベイヤー(Bayer)型 | たすき型の順序にしたがってしきい値を設定する。 再帰的にパターンを作成できる。 |
+| 渦巻き型 | 中心部分から周辺に向かってしきい値を設定する。 |
+| 網点型 | ベイヤー型と似ているが、隣接する画素からしきい値を埋める。 |
+
+ベイヤー型のパターンについては作成方法を後ほど詳しく説明します。
+それでは、3つのパターンを比較できるようにGLSLで実装していきましょう。
+
+### 3つのしきい値パターンの実装
+
+先ほどの3つのしきい値パターンを変数として定義しておきましょう。
+
+```glsl title="3つのしきい値パターン"
+// ベイヤー(Bayer)型
+const int bayer[16] = int[] (
+  1, 9, 3, 11,
+  13, 5, 15, 7,
+  4, 12,  2, 10,
+  16, 8, 14, 6
+);
+
+// 網点型
+const int halftone[16] = int[] (
+  1, 3, 15, 13,
+  9, 11, 6, 8,
+  16, 14, 2, 4,
+  5, 7, 10, 12
+);
+
+// 渦巻き型
+const int swirl[16] = int[] (
+  10, 9, 8, 7,
+  11, 2, 1, 6,
+  12, 3, 4, 5,
+  13, 14, 15, 16
+);
+```
+
+続いては、パターンのしきい値を取得する関数を実装します。
+
+```glsl title="パターンのしきい値を取得する関数"
+float dithe(vec2 p, int[16] pat) {
+  int x = int(mod(p.x, 4.0));
+  int y = int(mod(p.y, 4.0));
+
+  return float(pat[y * 4 + x]) / 16.0;
+}
+```
+
+この関数は、ピクセル座標と適応するパターンを引数で受け取り、その座標に応じたしきい値を返します。ピクセル座標`p`は`gl_FragCoord`を使用します。
+また、4x4のパターンになるので`mod`関数で4で割った余りを使用することで座標を決めることができます。最後に`16`で割ることで0から1の範囲に正規化してしきい値を返します。
+
+この関数と3つのパターンのしきい値を使用して、パターンの比較を実装します。
+
+```glsl title="3つのしきい値パターンの比較"
+void main() {
+  vec2 uv = vUv;
+  uv.y *= 4.0;
+
+  int channel = int(mod(uv.y, 4.0));
+
+  vec2 pixel = gl_FragCoord.xy;
+
+  float threshold;
+
+  if (channel == 0) {
+    // 渦巻き型
+    threshold = dithe(pixel, swirl);
+  } else if (channel == 1) {
+    // 網点型
+    threshold = dithe(pixel, halftone);
+  } else if (channel == 2) {
+    // ベイヤー(Bayer)型
+    threshold = dithe(pixel, bayer);
+  } else {
+    // 白黒16階調
+    fragColor = vec4(vec3(floor(uv.x * 16.0) / (16.0 - 1.0)), 1.0);
+    return;
+  }
+
+  float color = uv.x > threshold ? 1.0 : 0.0;
+
+  fragColor = vec4(vec3(color), 1.0);
+}
+```
+
+16階調の白黒グラデーションも含めて比較するため、`uv.y`を4倍にしてます。なので、結果は上から白黒16階調、ベイヤー(Bayer)型、網点型、渦巻き型の順になります。
+
+それぞれのしきい値(`threshold`)が取得できたので、横方向の白黒グラデーションの値(`uv.x`)と比較して、しきい値より大きい場合は白(1.0)を、小さい場合は黒(0.0)を返すようにしています。
+
+結果は次のようになります。
+
+![上から白黒16階調、ベイヤー(Bayer)型、網点型、渦巻き型](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768034470/glsl-ordered-dithering-02_fw22z1.jpg "上から白黒16階調、ベイヤー(Bayer)型、網点型、渦巻き型")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/ordered-dithering/" />
+
+画像だと分かりづらいので、ぜひデモで確認してみてください。
+
+## ベイヤー(Bayer)型の階調変化
+
+先ほどでは4x4のパターンを使用して、16階調の組織的ディザを生成しました。ここでは、ベイヤー型のパターンを拡張して、2x2、8x8、16x16のパターンも実装していきます。まずは、ベイヤー型パターンの作成方法についてみていきます。
+
+### ベイヤー型パターンの作成方法
+
+![4x4のベイヤー型パターンの作成順序](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768036308/glsl-ordered-dithering-03_tj2mr1.jpg "ベイヤー型パターンの作成順序")
+
+N x Nのベイヤー型パターンを作るには、最初は基本順序として`[1, 3, 4, 2]`の2x2パターンを考えます。4x4のパターンの場合は、上図のような順序で小さい数字から割り振っていきます。`[1, 3, 4, 2]`を割り振ったら次に`[5, 7, 8, 6]`を割り振っていくことを続けるとN x N のベイヤー型パターンを作成することができます。
+
+ここでは4x4の場合で行いましたが、より大きなパターンでも同様な考え方で全体を$2^{n-1} \times 2^{n-1}$の領域で分割し、さらにその領域を$2^{n-1} \times 2^{n-1}$に分割していく、ということを繰り返すことでパターンを作成します。このことからベイヤー型はパターンの大きさが2の階乗に制限されていることがわかります。
+
+再帰的に作成できるので、式でだとこのように書くことができるみたいです。
+
+$$
+M_{2n}
+=
+\frac{1}{(2n)^2}
+\begin{bmatrix}
+4M_n & 4M_n + 2 \\
+4M_n + 3 & 4M_n + 1
+\end{bmatrix}
+$$
+
+GLSLでだと再帰的に書いていくことが難しかったので、次のようにパターンをあらかじめ変数で定義しておきて切り替えるようにしています。
+
+```glsl title="8x8のベイヤー型パターン"
+const int bayer8x8[64] = int[] (
+  1, 33, 9, 41, 3, 35, 11, 43,
+  49, 17, 57, 25, 51, 19, 59, 27,
+  13, 45, 5, 37, 15, 47, 7, 39,
+  61, 29, 53, 21, 63, 31, 55, 23,
+  4, 36, 12, 44, 2, 34, 10, 42,
+  52, 20, 60, 28, 50, 18, 58, 26,
+  16, 48, 8, 40, 14, 46, 6, 38,
+  64, 32, 56, 24, 62, 30, 54, 22
+);
+
+float dithe8x8(vec2 p, int[64] pat) {
+  int x = int(mod(p.x, 8.0));
+  int y = int(mod(p.y, 8.0));
+
+  return float(pat[y * 8 + x]) / 64.0;
+}
+
+void main() {
+  // ...
+
+  float threshold = dithe8x8(pixel, bayer8x8);
+}
+```
+
+コードは長くなるので[こちら](https://github.com/nono-k/webgl-study-note/blob/main/src/canvas/bayer-dithe/index.frag)で確認ください。
+8x8のベイヤー型パターンの結果としては次のようになります。
+
+![8x8のベイヤー型パターンの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768056469/glsl-ordered-dithering-04_ltasso.jpg "8x8のベイヤー型パターンの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/bayer-dithe/" />
+
+デモでは、2x2, 4x4, 8x8, 16x16のパターンを切り替えられるようになってるので、ぜひ確認してみてください。
+
+
+<PostAdUnit />
+
+## 画像にディザを適応する方法
+
+組織的ディザの実装ができたので、画像にディザを適応していきましょう。
+画像に適応させる方法は簡単です。まずは`texture`で画像を読み込み、この画像をグレースケールした値に対してしきい値の判定を行います。
+
+コードで書くと次のようになります。
+
+```glsl title="画像にディザを適応させる"
+// グレイスケール
+float gray(vec3 color) {
+  return dot(color, vec3(0.299, 0.587, 0.114));
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pixel = gl_FragCoord.xy;
+
+  float threshold = dithe4x4(pixel, bayer4x4);
+
+  float value = gray(texture(uTexture, uv).rgb);
+
+  float bw = value > threshold ? 1.0 : 0.0;
+  fragColor = vec4(vec3(bw), 1.0);
+}
+```
+
+4x4のベイヤー型パターンで画像にディザを適応させた結果は次のようになります。
+
+![4x4のベイヤー型パターンで画像にディザを適応させた結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768057035/glsl-ordered-dithering-05_xeu7k3.jpg "4x4のベイヤー型パターンで画像にディザを適応させた結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/bayer-dithe-image/" />
+
+このデモもパターンを切り替えることができるので、ぜひ確認してみてください。
+
+## 色の調整
+
+最後に、低域と高域の色を選択して、ディザの色を調整できるようにしましょう。
+こちらも`mix`関数を使用することで簡単にできます。
+
+```glsl title="デュオトーンの適応"
+void main() {
+  // ...
+
+  float bw = value > threshold ? 1.0 : 0.0;
+
+  vec3 color = mix(lowcolor, highcolor, bw);
+  fragColor = vec4(color, 1.0);
+}
+```
+
+![デュオトーンの適応](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768057036/glsl-ordered-dithering-06_ycbbs1.jpg "デュオトーンの適応")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/bayer-dithe-duotone-image/" />
+
+デモでは、色を変更できるようにしているので、ぜひ確認してみてください。
+
+## まとめ
+
+GLSLで擬似階調表現として組織的ディザ法を実装してみました。しきい値のパターンを変更することで、ディザの処理の結果が変わることを確認できました。
+
+また、ベイヤー(Bayer)型のパターンの作成方法を紹介し、GLSLでパターンを切り替えるデモを作成しました。最後にディザを画像に適応する方法と色を調整する方法を紹介しました。
+
+次回は、GLSLでPhotoShopのようなレイヤーの画像合成のエフェクトについて数式を交えながら紹介したいと思います。
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
