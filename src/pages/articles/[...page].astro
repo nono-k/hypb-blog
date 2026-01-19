@@ -48,7 +48,7 @@ const description = 'ブログの記事一覧';
         page.data.map((post) => {
           const { slug, data: { image, title, pubDate, category, tags }} = post;
           return (
-            <Card url={`/articles/${slug}`} src={image} title={title} time={pubDate} category={category} tags={tags} />
+            <Card url={`/articles/${slug}/`} src={image} title={title} time={pubDate} category={category} tags={tags} />
           )
         })
       }

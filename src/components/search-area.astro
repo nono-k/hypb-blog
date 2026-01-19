@@ -21,7 +21,7 @@ import SearchButton from "./ui/search-button.astro";
           const { name, slug } = tag;
           return (
           <li>
-            <Batch text={name} link={`tag/${slug}`} bg="var(--blue)" color="#fff" fontSize="0.75rem" />
+            <Batch text={name} link={`tag/${slug}/`} bg="var(--blue)" color="#fff" fontSize="0.75rem" />
           </li>
         )})
         }
@@ -37,14 +37,14 @@ import SearchButton from "./ui/search-button.astro";
           const { name, slug } = item;
           return (
           <li>
-            <Batch text={name} link={`category/${slug}`} radius="1.5rem" />
+            <Batch text={name} link={`category/${slug}/`} radius="1.5rem" />
           </li>
         )})
         }
       </ul>
     </div>
     <div class="link">
-      <a href="/articles">記事一覧は<br>こちら</a>
+      <a href="/articles/">記事一覧は<br>こちら</a>
     </div>
   </div>
 </Container>

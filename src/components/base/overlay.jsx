@@ -87,19 +87,19 @@ export default function Overlay({ menuIsActive }) {
                 </a>
               </li>
               <li>
-                <a className={styles.menuLink} href="/articles">
+                <a className={styles.menuLink} href="/articles/">
                   <svg viewport="0 0 210 60" style={{transitionDelay: '0.2s'}} className="for-large"><text x="0" y="100">articles</text></svg>
                   <p className='for-mobile'>articles</p>
                 </a>
               </li>
               <li>
-                <a className={styles.menuLink} href="/about">
+                <a className={styles.menuLink} href="/about/">
                   <svg viewport="0 0 210 60" style={{transitionDelay: '0.3s'}} className="for-large"><text x="0" y="100">about</text></svg>
                   <p className='for-mobile'>about</p>
                 </a>
               </li>
               <li>
-                <a className={styles.menuLink} href="/contact">
+                <a className={styles.menuLink} href="/contact/">
                   <svg viewport="0 0 210 60" style={{transitionDelay: '0.4s'}} className="for-large"><text x="0" y="100">contact</text></svg>
                   <p className='for-mobile'>contact</p>
                 </a>
@@ -111,8 +111,8 @@ export default function Overlay({ menuIsActive }) {
               </div>
             </div> */}
             <ul className={styles.rightList}>
-              <li><a href='/site-policy'>Site Policy</a></li>
-              <li><a href='/privacy-policy'>Privacy Policy</a></li>
+              <li><a href='/site-policy/'>Site Policy</a></li>
+              <li><a href='/privacy-policy/'>Privacy Policy</a></li>
             </ul>
           </div>
         </div>

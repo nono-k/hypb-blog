@@ -9,11 +9,9 @@ const {
 } = Astro.props;
 
 ---
-<div class="batch">
-  <a href={`/articles/${link}`}>
-    {text}
-  </a>
-</div>
+<a href={`/articles/${link}`} class="batch">
+  {text}
+</a>
 
 <style define:vars={{fontSize, radius, bg, color}} lang="scss">
   .batch {
@@ -23,17 +21,13 @@ const {
     justify-content: center;
     align-items: center;
     background-color: var(--bg);
-    a {
-      color: var(--color);
-      font-size: var(--fontSize);
-    }
+    color: var(--color);
+    font-size: var(--fontSize);
   }
   @include mixin.mobile {
     .batch {
       padding-inline: 1rem;
-      a {
-        font-size: max(calc(var(--fontSize) * 0.9), 0.75rem);
-      }
+      font-size: max(calc(var(--fontSize) * 0.9), 0.75rem);
     }
   }
 </style>
