@@ -20,7 +20,7 @@ const newArticlePosts = sortedArticlePosts.slice(0, 4);
         const { slug, data: { title, image }} = post;
         return (
           <li class="related__item">
-            <a href={`/articles/${slug}`}>
+            <a href={`/articles/${slug}/`}>
               <div class="related__image">
                 <Image src={image} alt={title} />
               </div>
@@ -38,7 +38,7 @@ const newArticlePosts = sortedArticlePosts.slice(0, 4);
         const { slug, data: { title, image }} = post;
         return (
           <li class="related__item">
-            <a href={`/articles/${slug}`}>
+            <a href={`/articles/${slug}/`}>
               <div class="related__image">
                 <Image src={image} alt={title} />
               </div>

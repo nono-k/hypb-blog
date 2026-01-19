@@ -20,12 +20,12 @@ const { page } = Astro.props;
         page.data.map((post) => {
           const { slug, data: { image, title, pubDate, category, tags }} = post;
           return (
-            <Card home url={`/articles/${slug}`} src={image} title={title} time={pubDate} category={category} tags={tags} />
+            <Card home url={`/articles/${slug}/`} src={image} title={title} time={pubDate} category={category} tags={tags} />
           )
         })
       }
     </div>
-    <LinkButton link="/articles" text="記事一覧" />
+    <LinkButton link="/articles/" text="記事一覧" />
   </div>
 </div>
 

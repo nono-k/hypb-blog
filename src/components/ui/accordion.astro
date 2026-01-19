@@ -46,8 +46,8 @@ const categoryTagNum = async(
       return (
         <a href={
           title === 'Category'
-            ? `/articles/category/${slug}`
-            : `/articles/tag/${slug}`
+            ? `/articles/category/${slug}/`
+            : `/articles/tag/${slug}/`
           }
           class="item"
         >{name}

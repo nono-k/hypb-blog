@@ -35,10 +35,10 @@ export async function getStaticPaths() {
     const currentPage = sortedBlogPosts.findIndex((post) => post.slug === slug);
     const prev = currentPage + 1 >= numberOfPosts
       ? {}
-      : { prevTitle: sortedBlogPosts[currentPage+1].data.title, prevImage: sortedBlogPosts[currentPage+1].data.image, prev: `/articles/${sortedBlogPosts[currentPage+1].slug}` };
+      : { prevTitle: sortedBlogPosts[currentPage+1].data.title, prevImage: sortedBlogPosts[currentPage+1].data.image, prev: `/articles/${sortedBlogPosts[currentPage+1].slug}/` };
     const next = currentPage - 1 < 0
       ? {}
-      : { nextTitle: sortedBlogPosts[currentPage-1].data.title, nextImage: sortedBlogPosts[currentPage-1].data.image, next: `/articles/${sortedBlogPosts[currentPage-1].slug}` };
+      : { nextTitle: sortedBlogPosts[currentPage-1].data.title, nextImage: sortedBlogPosts[currentPage-1].data.image, next: `/articles/${sortedBlogPosts[currentPage-1].slug}/` };
     return { params: {slug}, props: {post, url: {...prev, ...next}} };
   })
 }
@@ -64,7 +64,7 @@ const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
       <Sidebar blog />
       <div class="article">
         <header class="header">
-          <a href={`/articles/category/${categorySlug}`}><BatchCategory text={categoryName} home/></a>
+          <a href={`/articles/category/${categorySlug}/`}><BatchCategory text={categoryName} home/></a>
           <h1 class="title">{title}</h1>
           <div class="time">
             投稿日：
@@ -75,8 +75,7 @@ const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
               const tagSlug = tags.find((item) => item.name === tag)?.slug;
               return (
                 <li class="item">
-                  <a href={`/articles/tag/${tagSlug}`}>   #{tag}
-                  </a>
+                  <a href={`/articles/tag/${tagSlug}/`}>#{tag}</a>
                 </li>
               )
             })}
