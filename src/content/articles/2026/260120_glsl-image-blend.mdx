@@ -1,0 +1,471 @@
+---
+title: PhotoShopなどのデザインツールの描画モードやCSSのmix-blend-modeのような画像合成の処理を数式を紹介しながらGLSLで実装してみる
+slug: glsl-image-blend
+pubDate: '2026-01-20'
+image: ../../../assets/images/glsl-image-blend.jpg
+ogp: 'images/ogp/glsl-image-blend.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回はPhotoShopの機能やCSSのmix-blend-modeのような画像合成の処理をGLSLで実装してみます。具体的な効果として、加算・スクリーン・覆い焼きカラー・比較(明)・比較(暗)・焼き込みカラー・オーバーレイ・ソフトライト・ハードライトを紹介します。
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+  - glsl-normal-map
+  - glsl-shading-image-processing
+  - glsl-unique-image-processing
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+import Import from "../../../components/markdown/import.astro";
+import Youtube from "../../../components/markdown/Youtube.astro";
+
+## はじめに
+
+[前回](/articles/glsl-ordered-dithering/)は、画像処理の擬似階調表現として組織的ディザ法をGLSLで実装しました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "画像処理の擬似階調表現として組織的ディザ法をGLSLで実装する",
+      link: "glsl-ordered-dithering",
+      image: "glsl-ordered-dithering.jpg",
+    },
+  ]}
+/>
+
+今回はPhotoShopの機能やCSSのmix-blend-modeのような画像合成の処理をGLSLで実装してみます。
+
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## 画像合成とは
+
+画像合成の基本は、ある画像のうえに別の画像を載せた状態を想定して処理を行うことです。PhotoShopなどのデザインツールのレイヤ機能やCSSのmix-blend-modeのような処理のことをいいます。この記事では次のような効果と処理の数式を紹介しながらGLSLで実装していきます。
+
+| 効果 | 処理の例 |
+| --- | --- |
+| 明るくする効果 | 加算・スクリーン・覆い焼きカラー・比較(明) |
+| 暗くする効果 | 乗算・ 焼き込みカラー・比較(暗)|
+| コントラスト調整 | オーバーレイ・ソフトライト・ハードライト|
+
+デモで使用する元画像と上にのせるレイヤー画像には次の2つの画像を使用します。
+
+![デモで使用する画像類](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768532025/glsl-image-blend-01_eal9sr.jpg "デモで使用する画像類")
+
+上記の比較用のレイヤー画像をGLSLで実装する方法は↓にありますので気になる方はご覧ください。
+
+<details>
+<summary>GLSLでのレイヤー画像の実装</summary>
+<div>
+上記の上半分が白黒のグラデーションと下半分がRGBのレイヤーをGLSLで書くと次のようになります。
+
+```glsl title="layer"
+vec3 red = vec3(1.0, 0.0, 0.0);
+vec3 green = vec3(0.0, 1.0, 0.0);
+vec3 blue = vec3(0.0, 0.0, 1.0);
+
+vec3 layer(vec2 uv) {
+  vec3 topColor = vec3(uv.x);
+  vec3 bottomColor =
+    red * step(uv.x, 1.0 / 3.0) +
+    green * step(1.0 / 3.0, uv.x) * step(uv.x, 2.0 / 3.0) +
+    blue * step(2.0 / 3.0, uv.x);
+
+  return mix(topColor, bottomColor, step(uv.y, 0.5));
+}
+```
+</div>
+</details>
+
+まずは明るくする合成処理についてみていきましょう。
+
+<Import text="GLSLの値は0.0から1.0までの範囲になるので、数式を紹介する際も画素値は0.0から1.0までの範囲として紹介します。" />
+
+## 明るくする処理
+
+合成した結果が元画像よりも明るくなる処理をみていきます。代表的なものに加算、スクリーン、覆い焼きカラー、比較(明)があります。
+
+### 加算
+
+2つの画素値を単純に足し合わせた値を出力します。加算しか行わないので合成された結果は必ず明るくなります。
+上にある画像の画素値を$c_1$、下にある画像の画素値を$c_2$とし、合成結果を$c_0$とすると、
+
+$$
+c_t = c_1 + c_2
+$$
+
+$$
+\begin{equation*}
+c_0 =
+\begin{cases}
+c_t & (c_t < 1.0) \\
+1.0 & (c_t \geq 1.0)
+\end{cases}
+\end{equation*}
+$$
+
+単純な加算なので、処理結果が1.0を超える可能性があるので、超えた場合は最大値の1.0に補正する必要があります。
+
+GLSLで加算の関数を書くと次のようになります。
+
+```glsl title="加算"
+vec3 blendAdd(vec3 base, vec3 blend) {
+  return min(base + blend, 1.0);
+}
+```
+
+この関数の使い方は次のようになります。
+
+```glsl
+void main() {
+  vec2 uv = vUv;
+
+  vec3 baseTex = texture(uTexture, uv).rgb;
+  vec3 blendTex = layer(uv);
+
+  vec3 color = blendAdd(baseTex, blendTex);
+  fragColor = vec4(color, 1.0);
+}
+```
+
+結果は次のようになります。
+単純な加算なので明るくなることが分かるでしょう。特に比較用のレイヤー画像との合成では、右上の白のグラデーション箇所がより強く光っているように見えます。また、黒は0になるため合成結果は元画像のままになることが分かります。
+
+![加算の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768577607/glsl-image-blend-02_qgqqub.jpg "加算の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-add/" />
+
+### スクリーン
+
+スクリーンでは、2つの画素値の反転(ネガ化)を取ってから乗算を行います。
+計算式は次の通りです。
+
+$$
+c_0 = 1.0 - (1.0 - c_1) \times (1.0 - c_2)
+$$
+
+GLSLでスクリーンの関数を書くと次のようになります。
+
+```glsl title="スクリーン"
+vec3 blendScreen(vec3 base, vec3 blend) {
+  return 1.0 - (1.0 - base) * (1.0 - blend);
+}
+```
+
+結果は次のようになります。
+加算と同様に明るくなることが分かるかと思います。比較用のレイヤーとの合成を見てみると、中間部分の明るさが加算よりも弱く柔らかくなっていることが分かります。
+
+![スクリーンの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768660117/glsl-image-blend-03_fqwys4.jpg "スクリーンの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-screen/" />
+
+### 覆い焼きカラー
+
+覆い焼きカラーも全体を明るく変化させる処理ですが、合成する画像のが画素値を明るくする割合として利用します。計算式は次の通りです。
+
+$$
+\begin{equation*}
+c_0 =
+\begin{cases}
+1.0 & (c_2 = 1.0) \\
+\frac{c_1}{1.0 - c_2} & (c_2 \neq 1.0)
+\end{cases}
+\end{equation*}
+$$
+
+最初の式は、0での除算を防ぐためのもので、メインとなるのは下の式です。下の式では元画像を合成画像の反転で割った値を返します。
+
+GLSLで覆い焼きカラーの関数を書くと次のようになります。
+
+```glsl title="覆い焼きカラー"
+float blendColorDodge(float base, float blend) {
+  return (blend == 1.0) ? blend : (base / (1.0 - blend));
+}
+
+vec3 blendColorDodge(vec3 base, vec3 blend) {
+  return vec3(
+    blendColorDodge(base.r, blend.r),
+    blendColorDodge(base.g, blend.g),
+    blendColorDodge(base.b, blend.b)
+  );
+}
+```
+
+結果は次のようになります。
+加算とよく似ていますが、基本色が暗い部分は合成後暗くなっています。加算の合成よりもコントラストが強くなっていることも分かります。
+
+![覆い焼きカラーの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768661297/glsl-image-blend-04_atb57d.jpg "覆い焼きカラーの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-color-dodge/" />
+
+### 比較(明るい)
+
+比較(明るい)では、元画像と合成画像の値を比較して、より大きい方の値を返します。
+コードで見たほうがわかりやすいでしょう。この処理のGLSLの関数は次のようになります。
+
+```glsl title="比較(明るい)"
+vec3 blendLighten(vec3 base, vec3 blend) {
+  return max(base, blend);
+}
+```
+
+`max`関数を利用して大きい値のほうを返しています。
+
+結果は次のようになります。
+比較(明るい)では、暗い箇所は使われないので、暗い部分を抜くような処理に利用されます。
+
+![比較(明るい)の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768661947/glsl-image-blend-05_vynv57.jpg "比較(明るい)の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-lighten/" />
+
+<PostAdUnit />
+
+## 暗くする処理
+
+合成した結果が元画像よりも暗くなる処理をみていきます。代表的なものに乗算、焼き込みカラー、比較(暗)があります。
+
+### 乗算
+
+2つの画素値同士で乗算を行います。ただし暗くなる処理になりますので、乗算した結果を画素値の最大値で割る(正規化)する必要があります。乗算については説明がしやすいので、画素値の最大値を255と仮定してます。
+
+$$
+c_0 = \frac{c_1 \times c_2}{255}
+$$
+
+例えば、元画像の値が150で、合成画像の値が100の場合、合成結果は$150 * 100 / 255 = 58.82$となり値は小さくなることが分かるでしょう。
+
+GLSLで乗算を実装する際には、すでに値が0.0から1.0の範囲にあるため単純に掛け算するだけで大丈夫です。
+
+```glsl title="乗算"
+vec3 blendMultiply(vec3 base, vec3 blend) {
+  return base * blend;
+}
+```
+
+結果は次のようになります。
+加算とは逆に、乗算は白が無効化され、黒はそのまま保持されます。
+
+![乗算の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768579397/glsl-image-blend-06_cz3ep4.jpg "乗算の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-multiply/" />
+
+### 焼き込みカラー
+
+焼き込みカラーの処理は上記の覆い焼きカラーとは逆の処理になります。
+計算式は次の通りです。
+
+$$
+\begin{equation*}
+c_0 =
+\begin{cases}
+0.0 & (c_2 = 0.0) \\
+1.0 - \frac{1.0 - c_1}{c_2} & (c_2 \neq 0.0)
+\end{cases}
+\end{equation*}
+$$
+
+ここでも上の式では、0での除算を防ぐためのものになります。
+GLSLで焼き込みカラーの関数を書くと次のようになります。
+
+```glsl title="焼き込みカラー"
+float blendColorBurn(float base, float blend) {
+  return blend == 0.0 ? blend : (1.0 - (1.0 - base) / blend);
+}
+
+vec3 blendColorBurn(vec3 base, vec3 blend) {
+  return vec3(
+    blendColorBurn(base.r, blend.r),
+    blendColorBurn(base.g, blend.g),
+    blendColorBurn(base.b, blend.b)
+  );
+}
+```
+
+結果は次のようになります。
+覆い焼きカラーと逆の処理となるので、全体的に暗くなりコントラストが強くなることが確認できます。
+
+![焼き込みカラーの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768663526/glsl-image-blend-07_xc2qls.jpg "焼き込みカラーの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-color-burn/" />
+
+### 比較(暗い)
+
+比較(明るい)とは逆に、2つの画素値のうち、小さい方の値を返す処理になります。
+
+```glsl title="比較(暗い)"
+vec3 blendDarken(vec3 base, vec3 blend) {
+  return min(base, blend);
+}
+```
+
+`min`関数を使用することで2つの値のうち小さい方の値を返すことができます。
+
+結果は次のようになります。
+比較(暗い)では白い部分が使われないことが分かるでしょう。このことから、明るい部分を抜くような処理に利用されます。
+
+![比較(暗い)の結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768663526/glsl-image-blend-08_at6vp9.jpg "比較(暗い)の結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-darken/" />
+
+<PostAdUnit />
+
+## コントラスト調整
+
+コントラストを調整する処理をみていきます。代表的なものにはオーバーレイ、ソフトライト、ハードライトがあります。
+
+### オーバーレイ
+
+先述の乗算とスクリーンを組み合わせたような処理を行います。スクリーンの計算式は次の通りです。
+
+$$
+\begin{equation*}
+c_0 =
+\begin{cases}
+2.0 \times c_1 \times c_2 & (c_1 < 0.5) \\
+1.0 - 2.0 \times (1.0 - c_1) \times (1.0 - c_2) & (c_1 \geq 0.5)
+\end{cases}
+\end{equation*}
+$$
+
+この式のとおり、元画像($c_1$)の割合が0.5より小さい場合は2を掛けて乗算し、0.5以上のときは元画像と合成画像を反転した値に2を掛けてから再度反転した値を返します。
+
+GLSLでオーバーレイの関数を書くと次のようになります。
+
+```glsl title="オーバーレイ"
+float blendOverlay(float base, float blend) {
+  return base < 0.5 ?
+    2.0 * base * blend :
+    1.0 - 2.0 * (1.0 - base) * (1.0 - blend);
+}
+
+vec3 blendOverlay(vec3 base, vec3 blend) {
+  return vec3(
+    blendOverlay(base.r, blend.r),
+    blendOverlay(base.g, blend.g),
+    blendOverlay(base.b, blend.b)
+  );
+}
+```
+
+結果は次のようになります。
+元画像の暗い部分と明るい部分が生かされる処理になるので、コントラストが強くなるのが確認できるでしょう。
+
+![オーバーレイの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768722280/glsl-image-blend-10_jhsutk.jpg "オーバーレイの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-overlay/" />
+
+### ハードライト
+
+オーバーレイでは元画像($c_1$)の値の割合によって、処理を分けていましたが、ハードライトでは合成画像($c_2$)の値の割合によって、処理を分けます。その後の計算式はオーバーレイと同様になります。
+
+$$
+\begin{equation*}
+c_0 =
+\begin{cases}
+2.0 \times c_1 \times c_2 & (c_2 < 0.5) \\
+1.0 - 2.0 \times (1.0 - c_1) \times (1.0 - c_2) & (c_2 \geq 0.5)
+\end{cases}
+\end{equation*}
+$$
+
+GLSLでハードライトの関数を書くと次のようになります。
+
+```glsl title="ハードライト"
+float blendHardLight(float base, float blend) {
+  return blend < 0.5 ?
+    2.0 * base * blend :
+    1.0 - 2.0 * (1.0 - base) * (1.0 - blend);
+}
+
+vec3 blendHardLight(vec3 base, vec3 blend) {
+  return vec3(
+    blendHardLight(base.r, blend.r),
+    blendHardLight(base.g, blend.g),
+    blendHardLight(base.b, blend.b)
+  );
+}
+```
+
+条件式を変えているだけなのが分かるでしょう。
+
+結果は次のようになります。
+同じ画像の合成ではオーバーレイと変化がないですが、比較用のレイヤー画像との合成では変化が見られるでしょう。
+
+![ハードライトの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768722596/glsl-image-blend-09_ewnaqe.jpg "ハードライトの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-hard-light/" />
+
+### ソフトライト
+
+ソフトライトでも合成画像($c_2$)の値の割合によって、処理を分けます。複雑な式になりますが次の通りです。
+
+$$
+\begin{equation*}
+c_0 =
+\begin{cases}
+2.0 \times c_1 \times c_2 + c_1^2 (1.0 - 2.0 \times c_2) & (c_2 < 0.5) \\
+2.0 \times c_1(1.0 - c_2) + \sqrt{c_1} \times (2.0 \times c_2 - 1.0) & (c_2 \geq 0.5)
+\end{cases}
+\end{equation*}
+$$
+
+GLSLでソフトライトの関数を書くと次のようになります。
+
+```glsl title="ソフトライト"
+float blendSoftLight(float base, float blend) {
+  return blend < 0.5 ?
+    2.0 * base * blend + base * base * (1.0 - 2.0 * blend):
+    2.0 * base * (1.0 - blend) + sqrt(base) * (2.0 * blend - 1.0);
+}
+
+vec3 blendSoftLight(vec3 base, vec3 blend) {
+  return vec3(
+    blendSoftLight(base.r, blend.r),
+    blendSoftLight(base.g, blend.g),
+    blendSoftLight(base.b, blend.b)
+  );
+}
+```
+
+結果は次のようになります。
+計算式のとおり合成画像の割合によって処理を分けているのでハードライトと似ていますが、効果としてはハードライトとオーバーレイよりも弱く効いているのが分かるかと思います。
+
+![ソフトライトの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1768723816/glsl-image-blend-11_jzvlau.jpg "ソフトライトの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/image-blend-soft-light/" />
+
+
+## まとめ
+
+PhotoShopなどのデザインツールのレイヤ機能やCSSのmix-blend-modeのような画像合成の処理を計算式を紹介しながら、GLSLで実装してみました。
+
+デザインツールのレイヤ機能やCSSのmix-blend-modeにあるように、他にも画像合成の種類があるので気になる方は、調べてみて実装してみてください。ちなみに実装の参考にした[こちら](https://github.com/jamieowen/glsl-blend/tree/master)には、GLSL実装例がたくさんあるのでおすすめです。
+
+次回は、GLSLでKuwahara filterを実装してみたいと思います。
+
+## 参考
+
+以下の動画は、After Effectsでの描画モードで説明していますが、数式の説明や使用例まで丁寧に説明されているので分かりやすいと思います。この記事でも参考にさせてもらいました。
+
+<Youtube videoId="g2sZNsJc67M" />
+
+<Youtube videoId="zYLa0pDCLio" />
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
