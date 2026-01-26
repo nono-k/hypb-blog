@@ -1,0 +1,492 @@
+---
+title: GLSLでKuwaharaフィルタを実装してみる
+slug: glsl-kuwahara-filter
+pubDate: '2026-01-27'
+image: ../../../assets/images/glsl-kuwahara-filter.jpg
+ogp: 'images/ogp/glsl-kuwahara-filter.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLで画像処理をやっていくシリーズです。今回はKuwaharaフィルタをGLSLで実装してみます。まずは基本形の正方形カーネルでのKuwaharaフィルタを実装してみて、その次に改良型の円形カーネルでのKuwaharaフィルタを実装してみます。最後にGLSLでのKuwaharaフィルタを実装するうえで参考になったサイトを紹介し、その他のより改良された異方性カーネルについて書かれた論文も紹介します。
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+  - glsl-normal-map
+  - glsl-shading-image-processing
+  - glsl-unique-image-processing
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+import Caution from "../../../components/markdown/caution.astro";
+import Youtube from "../../../components/markdown/Youtube.astro";
+
+## はじめに
+
+[前回](/articles/glsl-image-blend/)は、PhotoShopなどのデザインツールのレイヤ機能やCSSのmix-blend-modeのような画像合成の処理を計算式を紹介しながら、GLSLで実装してみました。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "PhotoShopなどのデザインツールの描画モードやCSSのmix-blend-modeのような画像合成の処理を数式を紹介しながらGLSLで実装してみる",
+      link: "glsl-image-blend",
+      image: "glsl-image-blend.jpg",
+    },
+  ]}
+/>
+
+今回はKuwaharaフィルタをGLSLで実装してみます。
+
+コードは下記のGitHubのリポジトリの`src/canvas`で公開しています。
+
+https://github.com/nono-k/webgl-study-note
+
+## Kuwaharaフィルタとは
+
+Kuwaharaフィルタは、画像処理において適応的なノイズ除去を目的とした非線形平滑化フィルタの一種です。以前紹介した平滑化フィルタなどの画像処理では、線形のローパスフィルタになりノイズを除去する一方でエッジ部分もぼかしてしまいます。一方、Kuwaharaフィルタでは**エッジを保持したまま平滑化を実現することが可能になります。**
+
+このフィルタは日本の桑原道義博士が考案し、博士の名にちなんで名付けられました。もともとは医療用画像でノイズを除去することを目的として開発されたとのことです。
+
+自分がKuwaharaフィルタを知ったのは、下記の動画からです。Kuwaharaフィルタについて分かりやすく説明されていると思うので、ぜひ見てみてください。
+
+<Youtube videoId="LDhN-JK3U9g" />
+
+Kuwaharaフィルタを適用することで、画像を絵画的に表現することができます。
+
+## Kuwaharaフィルタの実装
+
+それではKuwaharaフィルタをGLSLで実装していきましょう。
+Kuwaharaフィルタは、ある画素を中心とした正方形ウィンドウを4つの象限に分割し、次のような処理を行います。
+
+- 各象限内の平均値と分散を計算する
+- 分散が最も小さい象限を選択する
+- その象限の平均色を設定する
+
+イメージとしては下図のようになります。
+
+![4つの象限に分割して計算し中心の画素値を設定する](https://res.cloudinary.com/dy8ftemi0/image/upload/v1769186636/glsl-kuwahara-filter-01_o2xnyf.jpg "4つの象限に分割して計算し中心の画素値を設定する")
+
+ここでは、第一象限の分散が最も小さいので、中心の画素値は第一象限の平均値の`0.757`とします。
+平均($\mu$)と分散($\sigma^2$)の計算式は、以下のようになります。
+
+$$
+\mu = \frac{1}{n} \sum x_i
+$$
+
+$$
+\sigma^2 = \frac{1}{n} \sum (x_i - \mu)^2
+$$
+
+それではGLSLで実装していきます。
+処理の流れとしては、画像をグレースケールし輝度情報を取得して、象限サンプリング(平均値と分散の計算)を行い、分散が最も小さい象限を選択し、その象限の平均色を設定します。グレースケールは今までと同様なので、象限サンプリングの関数をみていきます。
+
+```glsl title="象限サンプリング"
+vec4 sampleQuadrant(
+  vec2 uv,
+  int x1, int x2,
+  int y1, int y2,
+  int sampleCount
+) {
+  vec2 texel = 1.0 / uResolution;
+
+  float lSum = 0.0;
+  float lSum2 = 0.0;
+  vec3 cSum = vec3(0.0);
+
+  for (int x = x1; x <= x2; x++) {
+    for (int y = y1; y <= y2; y++) {
+      vec3 c = texture(uTexture, uv + vec2(float(x), float(y)) * texel).rgb;
+
+      float l = gray(c);
+      lSum += l;
+      lSum2 += l * l;
+      cSum += clamp(c, 0.0, 1.0);
+    }
+  }
+
+  float n = float(sampleCount);
+  float mean = lSum / n; // 平均値
+  float var = abs(lSum2 / n - mean * mean); // 分散
+
+  return vec4(cSum / n, var);
+}
+```
+
+この関数の引数の意味は次のようになります。
+
+| 引数 | 説明 |
+| --- | --- |
+| uv | 中心画素 |
+| x1,x2,y1,y2 | 象限の範囲 |
+| sampleCount | サンプル数 |
+
+戻り値はカラー画像に対しての平均値(`vec3`)と分散(`float`)を返します。
+
+平均値と分散を計算するために、輝度の和(`lSum`)と輝度の２乗の和(`lSum2`)をサンプリングループで取得します。
+
+```glsl
+for (int x = x1; x <= x2; x++) {
+  for (int y = y1; y <= y2; y++) {
+    vec3 c = texture(uTexture, uv + vec2(float(x), float(y)) * texel).rgb;
+
+    float l = gray(c);
+    lSum += l;
+    lSum2 += l * l;
+    cSum += clamp(c, 0.0, 1.0);
+  }
+}
+```
+
+ここで`cSum`は、戻り値でカラー画像に対しての平均値を返すので、1.0を超えないように`clamp`関数を使用して蓄積しています。
+
+平均値と分散の算出は計算式通りになります。
+
+```glsl
+float n = float(sampleCount);
+float mean = lSum / n; // 平均値
+float var = abs(lSum2 / n - mean * mean); // 分散
+
+return vec4(cSum / n, var);
+```
+
+分散での計算は輝度の平均値で行い、戻り値はカラー画像に対しての平均値を返していることが分かるでしょう。
+この象限サンプリングの関数をKuwaharaフィルタの関数で使用します。Kuwaharaフィルタの関数は次のようになります。
+
+```glsl title="Kuwaharaフィルタ"
+vec4 kuwahara(vec2 uv, int kernel) {
+  float windowSize = float(kernel * 2 + 1);
+  int quadrantSize = int(ceil(windowSize * 0.5));
+  int samples = quadrantSize * quadrantSize;
+
+  vec4 q1 = sampleQuadrant(uv, -kernel, 0, -kernel, 0, samples);
+  vec4 q2 = sampleQuadrant(uv, 0, kernel, -kernel, 0, samples);
+  vec4 q3 = sampleQuadrant(uv, 0, kernel, 0, kernel, samples);
+  vec4 q4 = sampleQuadrant(uv, -kernel, 0, 0, kernel, samples);
+
+  float minVar = min(q1.a, min(q2.a, min(q3.a, q4.a)));
+
+  bvec4 mask = bvec4(
+    q1.a == minVar,
+    q2.a == minVar,
+    q3.a == minVar,
+    q4.a == minVar
+  );
+
+  int count = int(mask.x) + int(mask.y) + int(mask.z) + int(mask.w);
+
+  vec3 result;
+
+  if (count > 1) {
+    result = (q1.rgb + q2.rgb + q3.rgb + q4.rgb) * 0.25;
+  } else {
+    result =
+      q1.rgb * float(mask.x) +
+      q2.rgb * float(mask.y) +
+      q3.rgb * float(mask.z) +
+      q4.rgb * float(mask.w);
+  }
+
+  return vec4(clamp(result, 0.0, 1.0), 1.0);
+}
+```
+
+`kernel`の大きさはuniform変数で設定するので、下記ではサンプル数を計算しています。
+
+```glsl
+float windowSize = float(kernel * 2 + 1);
+int quadrantSize = int(ceil(windowSize * 0.5));
+int samples = quadrantSize * quadrantSize;
+```
+
+カーネルは、`(2k+1)x(2k+1)`の正方形カーネルである必要があり、各象限はその半分になります。各象限のサンプル数は`quadrantSize * quadrantSize`です。
+
+4象限それぞれの評価は次の処理になります。
+
+```glsl
+vec4 q1 = sampleQuadrant(uv, -kernel, 0, -kernel, 0, samples);
+vec4 q2 = sampleQuadrant(uv, 0, kernel, -kernel, 0, samples);
+vec4 q3 = sampleQuadrant(uv, 0, kernel, 0, kernel, samples);
+vec4 q4 = sampleQuadrant(uv, -kernel, 0, 0, kernel, samples);
+
+float minVar = min(q1.a, min(q2.a, min(q3.a, q4.a)));
+
+bvec4 mask = bvec4(
+  q1.a == minVar,
+  q2.a == minVar,
+  q3.a == minVar,
+  q4.a == minVar
+);
+
+int count = int(mask.x) + int(mask.y) + int(mask.z) + int(mask.w);
+
+vec3 result;
+
+if (count > 1) {
+  result = (q1.rgb + q2.rgb + q3.rgb + q4.rgb) * 0.25;
+} else {
+  result =
+    q1.rgb * float(mask.x) +
+    q2.rgb * float(mask.y) +
+    q3.rgb * float(mask.z) +
+    q4.rgb * float(mask.w);
+}
+
+return vec4(clamp(result, 0.0, 1.0), 1.0);
+```
+
+分散の値は`sampleQuadrant`の4番目になるので、`q1.a`とし`min`関数で最小値を取得します。`mask`では`boolean`で各象限の分散が`minVar`と一致するかを入れておきます。
+
+`count`に関しては、各象限の分散が同じ最小値になる場合は1よりも大きくなるので、全ての象限の値の平均を`result`にすることにしてます。(`1/4 = 0.25`なので`0.25`をかける)
+
+分散の最小値が1つの場合は、その象限の値をそのまま`result`に設定します。
+
+この実装での結果は次のようになります。
+
+![Kuwaharaフィルタの結果](https://res.cloudinary.com/dy8ftemi0/image/upload/v1769245016/glsl-kuwahara-filter-02_nurq86.jpg "Kuwaharaフィルタの結果")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/kuwahara-filter/" />
+
+カーネルサイズを大きくすることで、効果が大きくなることが分かるかと思います。
+
+<PostAdUnit />
+
+## Kuwaharaフィルタの改良 円形カーネル
+
+先ほどのKuwaharaフィルタでは、画像の高テクスチャ領域ではブロックアーティファクトが生じる可能性があります。これはカーネルが正方形領域に分割されていることに起因しています。そこで下記のように正方形カーネルから円形カーネルを使用する改良が提案されています。
+
+![正方形カーネルと円形カーネル](https://res.cloudinary.com/dy8ftemi0/image/upload/v1769267258/glsl-kuwahara-filter-03_zy3rs0.jpg "正方形カーネルと円形カーネル")
+
+それでは円形カーネルでの実装を行っていきましょう。
+処理が重くなるので、4分割で評価していきます。
+
+Kuwaharaフィルタの関数は次のようになります。
+
+```glsl title="円形カーネル Kuwaharaフィルタ"
+vec4 kuwahara(vec2 uv, int radius) {
+  QuadAcc q[4];
+  sampleCircularQuadrants(uv, radius, q);
+
+  vec3 color = selectMinVarianceColor(q);
+  return vec4(clamp(color, 0.0, 1.0), 1.0);
+}
+```
+
+ここで使用している関数などの役割は次の通りです。
+
+- `QuadAcc` : RGBの総和、輝度の総和、輝度の２乗の総和、サンプル数の構造体
+- `sampleCircularQuadrants` : 円形カーネルで4分割して評価する関数
+- `selectMinVarianceColor` : 分散が最小の象限の色を選択する関数
+
+まずは`sampleCircularQuadrants`と`selectMinVarianceColor`で使用する構造体の定義(`QuadAcc`)から始めましょう。
+
+```glsl title="構造体の定義"
+struct QuadAcc {
+  vec3 cSum; // RGBの総和
+  float lSum; // 輝度の総和
+  float lSum2; // 輝度の2乗の総和
+  int count; // サンプル数
+};
+```
+
+これは先ほどのKuwaharaフィルタで使用している、統計量と同様ですが、`sampleCircularQuadrants`と`selectMinVarianceColor`関数の引数に渡すために構造体を定義しています。
+
+それでは円形カーネルで4分割して、平均値や分散を計算する関数`sampleCircularQuadrants`を実装していきましょう。
+
+```glsl title="sampleCircularQuadrants"
+void sampleCircularQuadrants(
+  vec2 uv,
+  int r,
+  out QuadAcc q[4]
+) {
+  vec2 texel = 1.0 / uResolution;
+  int r2 = r * r;
+
+  // 初期化
+  for (int i = 0; i < 4; i++) {
+    q[i].cSum  = vec3(0.0);
+    q[i].lSum  = 0.0;
+    q[i].lSum2 = 0.0;
+    q[i].count = 0;
+  }
+
+  for (int x = -r; x <= r; x++) {
+    for (int y = -r; y <= r; y++) {
+
+      // 円判定
+      if (x * x + y * y > r2) continue;
+
+      // 象限の分類
+      int id;
+      if (x >= 0 && y >= 0)      id = 0;
+      else if (x < 0 && y >= 0)  id = 1;
+      else if (x < 0 && y < 0)   id = 2;
+      else                       id = 3;
+
+      vec3 c = texture(
+        uTexture,
+        uv + vec2(float(x), float(y)) * texel
+      ).rgb;
+
+      float l = gray(c);
+
+      q[id].cSum  += c;
+      q[id].lSum  += l;
+      q[id].lSum2 += l * l;
+      q[id].count++;
+    }
+  }
+}
+```
+
+カーネル内のループでは正方形カーネルで走査していますが、以下の円判定を入れることで、円形カーネルで評価するようにしてます。
+
+```glsl title="円判定"
+if (x * x + y * y > r2) continue;
+```
+
+次のコードは象限の分類をしています。
+
+```glsl title="象限の分類"
+int id;
+if (x >= 0 && y >= 0)      id = 0;
+else if (x < 0 && y >= 0)  id = 1;
+else if (x < 0 && y < 0)   id = 2;
+else                       id = 3;
+```
+
+これは中心を原点とした符号判定で、次のようになります。
+
+| id | 象限 |
+|----|------|
+| 0  | 右上 |
+| 1  | 左上 |
+| 2  | 左下 |
+| 3  | 右下 |
+
+RGBの総和、輝度の総和、輝度の２乗の総和、サンプル数の計算については先ほどと同様になり、`out`で構造体`q[id]`に格納し取り出せるようにしています。
+
+最後に分散が最小の象限の平均値を取得する関数`selectMinVarianceColor`を実装します。
+
+```glsl title="selectMinVarianceColor"
+vec3 selectMinVarianceColor(QuadAcc q[4]) {
+  float minVar = 1e10;
+  vec3 result = vec3(0.0);
+  int hits = 0;
+
+  for (int i = 0; i < 4; i++) {
+    if (q[i].count == 0) continue;
+
+    float n = float(q[i].count);
+    float mean = q[i].lSum / n;
+    float var = q[i].lSum2 / n - mean * mean;
+
+    vec3 avg = q[i].cSum / n;
+
+    if (var < minVar) {
+      minVar = var;
+      result = avg;
+      hits = 1;
+    } else if (var == minVar) {
+      result += avg;
+      hits++;
+    }
+  }
+
+  return result / float(max(hits, 1));
+}
+```
+
+最初に初期化をします。
+
+```glsl
+float minVar = 1e10;
+vec3 result = vec3(0.0);
+int hits = 0;
+```
+
+役割としては次の通りです。
+
+- `minVar` : 現在の最小分散
+- `result` : カラー画像の合算結果
+- `hits` : 最小分散をもつ象限の数
+
+続いて各象限を評価します。4分割と決め打ちしています。
+また、半径が小さい場合に空象限の場合があるので、ゼロ割防止処理を入れています。
+
+```glsl
+for (int i = 0; i < 4; i++) {
+  if (q[i].count == 0) continue;
+
+  // 分散の計算
+  float n = float(q[i].count);
+  float mean = q[i].lSum / n;
+  float var = q[i].lSum2 / n - mean * mean;
+
+  // カラー画像の平均値
+  vec3 avg = q[i].cSum / n;
+}
+```
+
+次は最小分散の選択のコードになります。
+
+```glsl
+if (var < minVar) {
+  minVar = var;
+  result = avg;
+  hits = 1;
+} else if (var == minVar) {
+  result += avg;
+  hits++;
+}
+```
+
+より小さい場合は更新し、同率なら加算し、次のようにあとで平均値を計算します。
+
+```glsl
+return result / float(max(hits, 1));
+```
+
+正方形カーネルと円形カーネルの比較結果は次のようになります。
+円形カーネルのほうがより絵画風に見えることが分かるでしょう。
+
+![正方形カーネルと円形カーネルの比較](https://res.cloudinary.com/dy8ftemi0/image/upload/v1769267742/glsl-kuwahara-filter-04_h9sgaj.jpg "正方形カーネルと円形カーネルの比較")
+
+<DemoBtn url="https://nono-k.github.io/webgl-study-note/glsl/kuwahara-filter-circular-kernel/" />
+
+<Caution text="今の実装ではループやif文での分岐が多く、このデモでは処理が重くなっています。デモを確認する際は気をつけてください。改善案が思いついたら、コードなどを差し替えようかと思います。" />
+
+## まとめ
+
+絵画風の表現ができるKuwaharaフィルタについて紹介し、GLSLで実装してみました。円形カーネルでの評価では、正方形カーネルと比べてより絵画風に見えましたが、コードの書き方が悪いのか処理が重くなってしまいました。もっと効率的な実装方法があるよって人は、教えていただきたいです。
+
+Kuwaharaフィルタには他にも改良型として異方性カーネルを使用した提案もあります。こちらは参考論文などを載せておきます。今回は記事が長くなってしまったのですが、いつか実装できたらなと思いました。
+
+次回は、GLSLでピクセルソートを実装してみたいと思います。
+
+## 参考
+
+以下のサイトはGLSLでのKuwaharaフィルタの実装方法や、出典論文などが提示されており非常に参考になりました。
+
+- [On Crafting Painterly Shaders - Maxime Heckel](https://blog.maximeheckel.com/posts/on-crafting-painterly-shaders/)
+
+以下はKuwaharaフィルタについて書かれた論文になります。
+
+- [Artistic Edge and Corner Enhancing Smoothing](https://files01.core.ac.uk/download/pdf/148194268.pdf)
+
+- [Image and Video Abstraction by Anisotropic Kuwahara Filtering](https://www.kyprianidis.com/p/pg2009/jkyprian-pg2009.pdf)
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>

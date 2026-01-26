@@ -17,7 +17,7 @@ const ogpImg = articleOgp ?
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const socialImageURL = new URL(ogpImg, Astro.site);
-
+const isProd = import.meta.env.PROD;
 ---
 
 <meta charset="UTF-8" />
@@ -44,15 +44,17 @@ const socialImageURL = new URL(ogpImg, Astro.site);
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1925354235806523"crossorigin="anonymous"></script>
 )}
 
-<!-- Google tag (gtag.js) -->
-<script
-  type="text/partytown"
-  src="https://www.googletagmanager.com/gtag/js?id=G-6DMH853B6C">
-</script>
-<script type="text/partytown">
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+{isProd && (
+  <script
+    type="text/partytown"
+    src="https://www.googletagmanager.com/gtag/js?id=G-6DMH853B6C">
+  </script>
+  <script type="text/partytown">
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-  gtag('config', 'G-6DMH853B6C');
-</script>
+    gtag('config', 'G-6DMH853B6C');
+  </script>
+)}
+
