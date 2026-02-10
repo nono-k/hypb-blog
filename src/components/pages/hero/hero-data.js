@@ -23,16 +23,14 @@ export const lists = [
     ]
   },
   {
-    title: 'Next.js + Hono + Cloudflare D1でToDoアプリを作る',
-    slug: 'nextjs-cloudflare-todo',
+    title: '画像処理の勉強に役立つ書籍などを紹介',
+    slug: 'image-processing-study',
     img: '../../assets/images/hero03.jpg',
     color: 'yellow',
-    data: '2025-02-17',
-    category: 'Coding',
+    data: '2026-02-11',
+    category: '書籍紹介',
     tags: [
-      'Next.js',
-      'Cloudflare',
-      'Markdown',
+      '画像処理',
     ]
   },
   // {
