@@ -1,0 +1,309 @@
+---
+title: 画像処理の勉強に役立つ書籍などを紹介
+slug: image-processing-study
+pubDate: '2026-02-11'
+image: ../../../assets/images/image-processing-study.jpg
+ogp: 'images/ogp/image-processing-study.jpg'
+category: 書籍紹介
+tags:
+  - 画像処理
+description: 画像処理について学ぶために役立つ書籍などを紹介します。また、画像処理について理解するためには、実際に手を動かして試すことが大切です。このブログで今まで紹介してきたGLSLでの画像処理についてのトピックもまとめてみました。
+isAdLink: true
+relatedPosts:
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-edge-extraction
+  - glsl-normal-map
+  - glsl-shading-image-processing
+  - glsl-unique-image-processing
+---
+
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+
+## はじめに
+
+ここ2~3ヶ月ほど、GLSLでの画像処理についての記事をいくつか書いてきました。そこでこの記事では、画像処理について学ぶにあたり役に立った書籍などを紹介します。
+
+## 画像処理の勉強に役立つ書籍
+
+### 図解でわかるはじめてのデジタル画像処理
+
+<AmazonLink
+  imageId="81xJCeCJUJL._SY522_"
+  linkId="3ZgR7Gx"
+  title="改訂第3版　図解でわかるはじめてのデジタル画像処理"
+  author="山田 宏尚"
+/>
+
+本書では、画像のデジタル化、色のしくみ、フィルタ処理、濃度変換、周波数領域処理、画像圧縮などの基本を、図解を交えてわかりやすく説明されています。画像処理について基礎から触れており、まずは画像処理がどのように行われているのかをざっくりと理解したい方におすすめです。
+
+数式についてはあまり詳しく紹介されていないので、数学的な理解を深めたい方は次のデジタル画像処理をおすすめします。
+
+### ディジタル画像処理[改訂第二版]
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
+
+画像処理エンジニア検定試験の参考書籍としても使われている本書は、全ページフルカラーで、画像処理の基礎理論から手法、アルゴリズム、機械学習の領域まで幅広く紹介されています。数式も沢山掲載されており、ある程度の数学的な知識が必要ですが、画像処理についてより深く理解したい方におすすめです。
+
+400ページを超えるボリュームで、画像処理にまつわる基本的な内容はほぼ網羅されているので、手元に置いておいて辞書的に使用するのが良いでしょう。
+
+画像処理エンジニア検定試験を受けるかたは、公式問題集も販売されているので、問題を解きながら理解を深めるのも良いでしょう。
+
+<AmazonLink
+  imageId="61mO3zV4RJL._SY522_"
+  linkId="4rC5eCq"
+  title="画像処理エンジニア検定エキスパート公式問題集 [第五版]"
+  author="画像処理エンジニア検定問題集編集委員会"
+/>
+
+### 詳解 画像処理プログラミング
+
+<AmazonLink
+  imageId="71V5TzeHM4L._SY522_"
+  linkId="4tohqrQ"
+  title="詳解 画像処理プログラミング"
+  author="昌達 慶仁"
+/>
+
+こちらは2008年と古い本ですが、このブログでのGLSLでの画像処理シリーズの種本として参考にしました。Photoshopなどで使用されているフィルタ処理のアルゴリズムだったり、面白い処理の実装例が多数掲載されています。また各アルゴリズムについての数式的な説明も書かれているので、使用する言語が違くても参考にできる部分が多いでしょう。
+
+<PostAdUnit />
+
+## 実際にコードを書いて画像処理を理解する
+
+画像処理の理解を深めるために、実際に手を動かしてコードを書いて確認することは大切です。ここでは、このブログで紹介してきたGLSLでの画像処理に関する記事をまとめてみました。興味があるトピックがあれば、ぜひ記事を見て試してみてください。
+
+### 色調変換を用いたエフェクト処理
+
+色調変換を用いたエフェクト処理の実装方法について紹介しています。
+具体的には次のトピックについて解説しています。
+
+- 線形関数
+- ガンマ補正
+- シグモイド関数
+- ネガ化
+- ソラリゼーション
+- ポスタリゼーション
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで画像処理プログラミング【色調変換を用いたエフェクト処理】",
+      link: "glsl-color-tone-conversion",
+      image: "glsl-color-tone-conversion.jpg",
+    },
+  ]}
+/>
+
+### 空間フィルタリング
+
+空間フィルタリングについて紹介しています。
+具体的には次のトピックについて解説しています。
+
+- 平滑化
+- 加重平均化
+- エッジ摘出
+- 先鋭化
+- エンボス処理
+
+エッジ摘出、エンボス処理については、この記事では簡易的に紹介していて後述の記事で詳しく紹介しています。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで空間フィルタリング【平滑化・加重平均化・エッジ摘出・先鋭化・エンボス処理】",
+      link: "glsl-spatial-filtering",
+      image: "glsl-spatial-filtering.jpg",
+    },
+  ]}
+/>
+
+### エッジ摘出
+
+エッジ摘出について詳しく紹介しています。
+具体的には次のトピックについて解説しています。
+
+- 微分フィルタ
+- Prewittフィルタ
+- Sobelフィルタ
+- ラプラシアンフィルタ
+- LoGフィルタ
+- ゼロ交差
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "画像処理のエッジ摘出の手法を詳しく解説し、GLSLで実装してみる",
+      link: "glsl-edge-extraction",
+      image: "glsl-edge-extraction.jpg",
+    },
+  ]}
+/>
+
+### ブラー処理
+
+平均化処理の特殊な例として、ブラー処理を紹介しています。
+デモとしては次の例を紹介しています。
+
+- 斜め方向のブラー処理
+- 任意方向のブラー処理
+- 極座標変換を利用したブラー処理
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLでブラー処理を実装する",
+      link: "glsl-blur",
+      image: "glsl-blur.jpg",
+    },
+  ]}
+/>
+
+### 法線マップ
+
+簡易的な法線マップの作成方法について紹介しています。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで法線マップを作成する",
+      link: "glsl-normal-map",
+      image: "glsl-normal-map.jpg",
+    },
+  ]}
+/>
+
+### 陰影付け処理を応用した特殊効果の画像処理
+
+法線マップの作成方法を応用して、陰影付け処理を利用した特殊効果の画像処理について紹介しています。
+具体的には次のトピックについて解説しています。
+
+- 波状面変換
+- 波紋変換
+- エンボス変換
+
+波状面・波紋については、屈折も考慮したデモになっているので見た目的にも面白いかと思います。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLで陰影付け処理を応用した特殊効果の画像処理を実装する【波状面・波紋・エンボス】",
+      link: "glsl-shading-image-processing",
+      image: "glsl-shading-image-processing.jpg",
+    },
+  ]}
+/>
+
+### ユニークな特殊効果の画像処理
+
+今まで紹介してきた画像処理のトピックを応用して、実践的に使える画像処理の特殊効果について紹介しています。
+具体的には次のトピックについて解説しています。
+
+- モザイク処理
+- イラスト調
+- 拡散
+- VHS調変換
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLでユニークな特殊効果の画像処理を実装する【モザイク・イラスト調・拡散・VHS調変換】",
+      link: "glsl-unique-image-processing",
+      image: "glsl-unique-image-processing.jpg",
+    },
+  ]}
+/>
+
+### アフィン変換
+
+この記事では趣向を変えて、変形処理としてアフィン変換をGLSLのフラグメントシェーダーで実装する方法を紹介しています。また、おまけとして射影変換を使用した自由変形についても紹介しています。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLのフラグメントシェーダーでアフィン変換を実装してみる",
+      link: "glsl-affine-project-transform",
+      image: "glsl-affine-project-transform.jpg",
+    },
+  ]}
+/>
+
+### 組織的ディザ法
+
+画像処理の擬似階調表現として組織的ディザ法について紹介しています。
+3種類のディザ法としてベイヤー(Bayer)型と渦巻き型、網点型のパターンを紹介しています。
+また、ベイヤー型の階調を変える方法と画像への適応、色の調整についても触れています。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "画像処理の擬似階調表現として組織的ディザ法をGLSLで実装する",
+      link: "glsl-ordered-dithering",
+      image: "glsl-ordered-dithering.jpg",
+    },
+  ]}
+/>
+
+### 画像合成
+
+PhotoShopなどのデザインツールの描画モードやCSSのmix-blend-modeのような画像合成の処理を数式を提示しながら紹介しています。
+具体的には次のトピックについて解説しています。
+
+- 明るくする効果：加算・スクリーン・覆い焼きカラー・比較(明)
+- 暗くする効果：乗算・ 焼き込みカラー・比較(暗)
+- コントラスト調整：オーバーレイ・ソフトライト・ハードライト
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "PhotoShopなどのデザインツールの描画モードやCSSのmix-blend-modeのような画像合成の処理を数式を紹介しながらGLSLで実装してみる",
+      link: "glsl-image-blend",
+      image: "glsl-image-blend.jpg",
+    },
+  ]}
+/>
+
+### Kuwaharaフィルタ
+
+今まで紹介してきた画像処理のトピックを応用してKuwaharaフィルタを実装する方法を紹介しています。
+通常のKuwaharaフィルタと改良型の円形カーネルでのKuwaharaフィルタについて実装してみました。
+また、参考になった論文やサイトについても紹介しています。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "GLSLでKuwaharaフィルタを実装してみる",
+      link: "glsl-kuwahara-filter",
+      image: "glsl-kuwahara-filter.jpg",
+    },
+  ]}
+/>
+
+<PostAdUnit />
+
+{/* ## 画像処理関連の論文を読む
+
+画像処理関連の論文を読むことも理解を深めるのに役立ちます。
+今まで自分が読んだ論文について、ためになったものをいくつか紹介します。 */}
+
+## まとめ
+
+画像処理について学ぶために役立つ書籍などを紹介しました。また、このブログで今まで紹介してきたGLSLでの画像処理についてのトピックもまとめてみました。実際に手を動かしてみると、より理解が深まるので、ぜひ試してみてください。
