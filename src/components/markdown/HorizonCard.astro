@@ -1,0 +1,75 @@
+---
+import Figure from './Figure.astro';
+
+interface Props {
+  text: string;
+  imageMeta: {
+    src: string;
+    alt: string;
+    title?: string;
+  };
+  direction: 'left' | 'right';
+  isHalf: boolean;
+}
+
+const { text, imageMeta, direction = 'left', isHalf = false } = Astro.props;
+---
+
+<div class={`horizon-card horizon-card--${direction} ${isHalf ? '-half' : ''}`}>
+  <div class="horizon-card__image">
+    <Figure src={imageMeta.src} alt={imageMeta.alt} title={imageMeta.title} />
+  </div>
+  <div class="horizon-card__text" set:html={text} />
+</div>
+
+<style lang="scss" is:global>
+  .horizon-card {
+    .figure {
+      margin-block: 0;
+    }
+  }
+</style>
+
+<style lang="scss">
+  .horizon-card {
+    margin-block: 2.5rem;
+    display: grid;
+    column-gap: 1.75rem;
+    grid-template-columns: 1fr 2fr;
+
+    &.-half {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    &--right {
+      grid-template-columns: 2fr 1fr;
+      .horizon-card__image {
+        order: 2;
+      }
+    }
+
+    @include mixin.phone {
+      grid-template-columns: 1fr;
+      row-gap: 1.25rem;
+      &.-half {
+        grid-template-columns: 1fr;
+      }
+      &--right {
+        grid-template-columns: 1fr;
+        .horizon-card__image {
+          order: 0;
+        }
+      }
+    }
+
+    &__image {
+      @include mixin.phone {
+        margin-inline: 1.5rem;
+      }
+    }
+
+    &__text {
+      line-height: 1.75;
+    }
+  }
+</style>
