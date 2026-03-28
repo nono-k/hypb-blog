@@ -1,0 +1,411 @@
+---
+title: GLSLでハーフトーンシェーダを実装する
+slug: glsl-halftone-shader
+pubDate: '2026-03-29'
+image: ../../../assets/images/glsl-halftone-shader.jpg
+ogp: 'images/ogp/glsl-halftone-shader.jpg'
+category: Coding
+tags:
+  - GLSL
+  - 画像処理
+description: GLSLでのハーフトーンシェーダーについて良さそうな英語のチュートリアルを見つけたので、参考にしながらより詳しく解説してみました。
+relatedPosts:
+  - image-processing-study
+  - glsl-color-tone-conversion
+  - glsl-spatial-filtering
+  - glsl-normal-map
+  - glsl-shading-image-processing
+  - glsl-unique-image-processing
+---
+
+import AmazonLink from '../../../components/markdown/AmazonLink.astro';
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import RecommendLink from "../../../components/markdown/RecommendLink.astro";
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import Iframe from '../../../components/markdown/Iframe.astro';
+import HorizonCard from '../../../components/markdown/HorizonCard.astro';
+import Note from '../../../components/markdown/note.astro';
+
+<DemoBtn url="https://nono-k.github.io/glsl-halftone-shader/" />
+
+## はじめに
+
+GLSLでのハーフトーンシェーダーの実装について、良さそうな英語のチュートリアルを見つけたので、参考にしながらより詳しく解説をしていきます。
+
+👇参考にしたチュートリアル
+[WebGL halftone shader: a step-by-step tutorial](https://itn-web.it.liu.se/~stegu76/webglshadertutorial/shadertutorial.html)
+
+デモのコードは以下のGitHubリポジトリにあります。
+
+https://github.com/nono-k/glsl-halftone-shader
+
+## ハーフトーン(網点)とは
+
+ハーフトーン(網点)とは、グレイスケールやカラーの画像を限られた色数（例えば、白い紙上の黒い点など）の小さな点のパターンで表すことで印刷可能にしたものです。
+
+<HorizonCard
+  text="印刷された写真などをよく見ると、シアン・マゼンタ・イエロー・ブラックの4色の小さな点のパターンで表現されていることがわかります。網点の散らばり具合によってグラデーションが表現できるほか、この4色だけでカラー印刷ができるのが不思議ですね。<br><br>この記事では、GLSLで4色に分割して処理をすることでハーフトーンを再現してみます。"
+  imageMeta = {{
+    src: 'https://upload.wikimedia.org/wikipedia/commons/0/02/Halftone_example_CMYK.png',
+    alt: '出典：Wikipedia - Halftone example CMYK',
+    title: '出典：Wikipedia - Halftone example CMYK',
+  }}
+  direction='right'
+/>
+
+## GLSLでハーフトーンシェーダーの実装する
+
+それでは、GLSLでハーフトーンシェーダーを実装してみましょう。
+最初は黒丸の点を並べるところから始めます！
+
+<Note text="ステップバイステップの解説になるので、記事ではGLSLのコードは差分のみ載せます。" />
+
+### 1. ドットを並べる
+
+<Iframe
+  src="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-01"
+  title="ドットを並べる"
+  sub="マウス操作できます"
+/>
+
+<DemoBtn url="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-01" />
+
+最初にGLSLで黒丸の点を並べてみましょう。
+GLSLでグリッド上に並べる方法はいくつかありますが、今回は`fract`関数を使って並べていきます。
+
+```glsl title="ドットを並べる"
+#version 300 es
+precision mediump float;
+
+in vec2 vUv;
+out vec4 fragColor;
+
+uniform vec2 uResolution;
+uniform float freq;
+
+float aastep(float threshold, float dist) {
+  float afwidth = 0.7 * length(vec2(dFdx(dist), dFdy(dist)));
+  return smoothstep(threshold - afwidth, threshold + afwidth, dist);
+}
+
+void main() {
+  vec2 uv = vUv;
+  vec2 pos = uv * uResolution / min(uResolution.x, uResolution.y);
+
+  vec2 near = 2.0 * fract(freq * pos) - 1.0;
+
+  float dist = length(near);
+  float radius = 0.5;
+
+  vec3 white = vec3(1.0);
+  vec3 black = vec3(0.0);
+  vec3 color = mix(black, white, aastep(radius, dist));
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+#### 座標の正規化
+
+```glsl
+vec2 uv = vUv;
+vec2 pos = uv * uResolution / min(uResolution.x, uResolution.y);
+```
+
+描画する円が縦横比の影響を受けないように、座標を正規化する必要があります。
+正規化するために、`uResolution`を使って座標を変換しています。
+
+#### グリッド分割
+
+```glsl
+vec2 near = 2.0 * fract(freq * pos) - 1.0;
+```
+
+`freq`はuniformで渡されるグリッドの分割数になります。
+たとえば、`freq`が10の場合、10x10のグリッドに分割されます。
+
+`fract`関数は小数部分を返す関数で、各セル内の座標を[0, 1]の範囲に変換します。その後、範囲を[-1, 1]に変換するために、`2.0 * fract(freq * pos) - 1.0`という計算を行っています。
+
+#### 距離を計算して円を描く
+
+```glsl
+float dist = length(near);
+float radius = 0.5;
+
+vec3 white = vec3(1.0);
+vec3 black = vec3(0.0);
+vec3 color = mix(black, white, aastep(radius, dist));
+```
+
+`length(near)`で、現在のフラグメントがセルの中心からどれだけ離れているかを計算しています。
+`aastep`関数は、`smoothstep`を使用したアンチエイリアス対応のラッパー関数になります。これを使って、距離が半径より小さい場合は白、そうでない場合は黒になるように色を決定しています。
+
+### 2. ドットを回転させる
+
+<Iframe
+  src="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-03"
+  title="ドットを回転させる"
+  sub="マウス操作できます"
+/>
+
+<DemoBtn url="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-03" />
+
+ドットが並ぶようになりましたが、揃っているのでずらすように並べてみます。
+ここでは、グリッドを45度回転させることで、ドットがずれて並ぶようにしてみます。
+
+```glsl title="ドットを回転させる"
+float PI = 3.1415926;
+
+void main() {
+  // ...
+
+  float angle = PI / 4.0;
+  mat2 rot = mat2(
+    cos(angle), -sin(angle),
+    sin(angle), cos(angle)
+  );
+
+  vec2 st = rot * pos;
+  vec2 near = 2.0 * fract(freq * st) - 1.0;
+}
+```
+
+まず、回転させる角度をラジアンで指定します。ここでは45度なので、`PI / 4.0`になります。次に、回転行列を作成します。2Dの回転行列は次のようになります。
+
+$$
+\begin{bmatrix}
+\cos(\theta) & -\sin(\theta) \\
+\sin(\theta) & \cos(\theta)
+\end{bmatrix}
+$$
+
+この回転行列を使って、座標を回転させます。`st`は回転後の座標になります。あとは、`st`を使ってグリッド分割の計算を行うことで、ドットが45度回転して並ぶようになります。
+
+### 3. 画像にドットを適用させる
+
+<Iframe
+  src="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-04"
+  title="画像にドットを適用させる"
+  sub="マウス操作できます"
+/>
+
+<DemoBtn url="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-04" />
+
+画像にドットを適用させてみましょう。
+カラー画像に対応するまえに、まずは白黒で対応します。
+
+```glsl title="画像にドットを適用させる"
+uniform sampler2D uTexture;
+
+void main() {
+  // ...
+
+  vec2 st = rot * pos;
+  vec2 near = 2.0 * fract(freq * st) - 1.0;
+
+  float dist = length(near);
+  vec3 textureColor = texture(uTexture, uv).rgb;
+  float gray = dot(textureColor, vec3(0.299, 0.587, 0.114));
+
+  float radius = sqrt(1.0 - gray);
+
+  vec3 white = vec3(1.0);
+  vec3 black = vec3(0.0);
+  vec3 color = mix(black, white, aastep(radius, dist));
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+このコードでは、まず画像からカラーを取得してグレースケールに変換します。
+グレースケールに変換したことで、輝度情報が得られるので、この情報でドットの半径を決定してます。
+
+```glsl
+float gray = dot(textureColor, vec3(0.299, 0.587, 0.114));
+float radius = sqrt(1.0 - gray);
+```
+
+<PostAdUnit />
+
+### 4. ドットにノイズを加える
+
+<Iframe
+  src="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-06"
+  title="ドットにノイズを加える"
+  sub="マウス操作できます"
+/>
+
+<DemoBtn url="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-06" />
+
+リアルなハーフトーンを表現するために、ドットにノイズを加えてみましょう。
+ノイズは`2D simplex noise`を使用しています。ノイズのコードは長いのでここでは載せませんが、[こちら](https://github.com/nono-k/glsl-halftone-shader/blob/main/src/demos/noise/noise.glsl)から確認してみてください。
+
+```glsl title="ドットにノイズを加える"
+#include ../noise/noise.glsl
+
+void main() {
+  // ...
+  float n = 0.1 * snoise(pos * 200.0);
+  n += 0.05 * snoise(pos * 400.0);
+  n += 0.025 * snoise(pos * 800.0);
+
+  vec3 white = vec3(1.0);
+  vec3 black = vec3(0.0);
+  vec3 color = mix(black, white, aastep(radius, dist + n));
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+規則性が出ないように、異なるスケールのノイズ値を3つ加算して、距離の値に加えています。
+マウスホイールでズームができるので、ノイズの影響を確認してみてください。
+
+### 5. ドットに質感を加える
+
+<Iframe
+  src="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-07"
+  title="ドットに質感を加える"
+  sub="マウス操作できます"
+/>
+
+<DemoBtn url="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-07" />
+
+実際の印刷用紙は完全な白と黒ではなく、紙の質感やインクのにじみなどによって、ドットに微妙な明るさの違いが生まれます。この質感を再現するために、`white`と`black`の値にノイズを加えてみましょう。
+
+```glsl title="ドットに質感を加える"
+void main() {
+  // ...
+  float n = 0.1 * snoise(pos * 200.0);
+  n += 0.05 * snoise(pos * 400.0);
+  n += 0.025 * snoise(pos * 800.0);
+
+  vec3 white = vec3(n * 0.5 + 0.98);
+  vec3 black = vec3(n + 0.1);
+  vec3 color = mix(black, white, aastep(radius, dist + n));
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+ズームして確認してみると、ドットにノイズの質感が加わっているのが確認できるでしょう。
+
+### 6. カラーに対応させる
+
+<Iframe
+  src="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-09"
+  title="カラーに対応させる"
+  sub="マウス操作できます"
+/>
+
+<DemoBtn url="https://nono-k.github.io/glsl-halftone-shader/demo.html?id=ch-09" />
+
+最後に、カラー画像のハーフトーン処理を実装してみましょう。
+やっていることを簡単に説明すると、画像のRGBをCMYKに簡易的に変換し、各色ごとにドットを回転させて並べることで、カラーのハーフトーンを再現しています。
+
+```glsl title="カラーに対応させる"
+void main() {
+  // ...
+  vec4 cmyk;
+  cmyk.xyz = 1.0 - textureColor;
+  cmyk.w = min(cmyk.x, min(cmyk.y, cmyk.z));
+  cmyk.xyz -= cmyk.w;
+
+  float Kangle = PI / 4.0;
+  vec2 Kst = freq * mat2(cos(Kangle), -sin(Kangle), sin(Kangle), cos(Kangle)) * pos; // 45度回転
+  vec2 Knear = 2.0 * fract(Kst) - 1.0;
+  float Kdist = aastep(0.0, sqrt(cmyk.w) - length(Knear) + n);
+
+  float Cangle = PI / 12.0;
+  vec2 Cst = freq * mat2(cos(Cangle), -sin(Cangle), sin(Cangle), cos(Cangle)) * pos; // 15度回転
+  vec2 Cnear = 2.0 * fract(Cst) - 1.0;
+  float Cdist = aastep(0.0, sqrt(cmyk.x) - length(Cnear) + n);
+
+  float Magle = PI / 12.0;
+  vec2 Mst = freq * mat2(cos(Magle), sin(Magle), -sin(Magle), cos(Magle)) * pos; // 75度回転
+  vec2 Mnear = 2.0 * fract(Mst) - 1.0;
+  float Mdist = aastep(0.0, sqrt(cmyk.y) - length(Mnear) + n);
+
+  vec2 Yst = freq * pos;
+  vec2 Ynear = 2.0 * fract(Yst) - 1.0;
+  float Ydist = aastep(0.0, sqrt(cmyk.z) - length(Ynear) + n);
+
+  vec3 rgbscreen = 1.0 - 0.9 * vec3(Cdist, Mdist, Ydist) + n;
+  rgbscreen = mix(rgbscreen, black, 0.85 * Kdist + 0.3 * n);
+
+  float afwidth = 2.0 * freq * max(length(dFdx(pos)), length(dFdy(pos)));
+  float blend = smoothstep(0.7, 1.4, afwidth);
+
+  vec3 color = mix(rgbscreen, textureColor, blend);
+
+  fragColor = vec4(color, 1.0);
+}
+```
+
+#### RGBをCMYKに変換
+
+```glsl
+vec4 cmyk;
+cmyk.xyz = 1.0 - textureColor;
+cmyk.w = min(cmyk.x, min(cmyk.y, cmyk.z));
+cmyk.xyz -= cmyk.w;
+```
+
+まずは、画像のRGBをCMYKに変換します。ここでは、簡易的な変換を行っています。
+K(黒)の値は、RGBの最小値を取ることで共通部分を黒として摘出してます。C(シアン)、M(マゼンタ)、Y(イエロー)の値は、RGBを反転してからこのKの値を引くことで求めています。
+
+#### K(黒)のスクリーン
+
+CMYKの色をそれぞれ、15度・75度・0度・45度回転させてドットを並べています。
+ここではKの場合を載せておきます。
+
+```glsl
+float Kangle = PI / 4.0;
+vec2 Kst = freq * mat2(cos(Kangle), -sin(Kangle), sin(Kangle), cos(Kangle)) * pos; // 45度回転
+vec2 Knear = 2.0 * fract(Kst) - 1.0;
+float Kdist = aastep(0.0, sqrt(cmyk.w) - length(Knear) + n);
+```
+
+回転させてドットを並べるのは、これまでのデモと変わらないでしょう。
+違いはドットのサイズで、これは`sqrt(cmyk.w)`で決定しています。色が濃いほど、ドットの半径が大きくなります。
+
+CMYの回転の角度が違うだけで同様の考え方になります。
+
+#### RGBに戻す(スクリーン合成)
+
+```glsl
+vec3 rgbscreen = 1.0 - 0.9 * vec3(Cdist, Mdist, Ydist) + n;
+rgbscreen = mix(rgbscreen, black, 0.85 * Kdist + 0.3 * n);
+```
+
+CMYのドットの距離を使って、RGBに戻す処理を行います。
+ここでは、スクリーン合成の考え方を使っています。スクリーン合成は、2つの色を反転して乗算し、再び反転することで合成する方法です。これを使うことで、CMYのドットの影響をRGBに反映させることができます。
+
+#### 解像度ベースのブレンド
+
+```glsl
+float afwidth = 2.0 * freq * max(length(dFdx(pos)), length(dFdy(pos)));
+float blend = smoothstep(0.7, 1.4, afwidth);
+
+vec3 color = mix(rgbscreen, textureColor, blend);
+```
+
+最後に、解像度ベースのブレンドを行っています。これにより、ドットが見えないときは元画像に戻し、見えるときはハーフトーンの効果が適用されます。
+
+## まとめ
+
+今回は、GLSLでハーフトーンシェーダーを実装する方法について解説しました。
+ドットを並べるところから始めて、回転させたり、画像に適用させたり、ノイズを加えたり、カラーに対応させたりと、他のエフェクト処理にも応用が効くかと思うので、ぜひ自分で書いて覚えるようにしていきましょう。
+
+参考サイト
+[WebGL halftone shader: a step-by-step tutorial](https://itn-web.it.liu.se/~stegu76/webglshadertutorial/shadertutorial.html)
+
+## 画像処理のおすすめ本
+
+下記は画像処理全般の基礎の勉強におすすめの書籍になります。
+
+<AmazonLink
+  imageId="51nkfyU1a-L._SY522_"
+  linkId="47Ljamx"
+  title="ディジタル画像処理[改訂第二版]"
+  author="ディジタル画像処理編集委員会"
+/>
