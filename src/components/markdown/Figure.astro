@@ -3,6 +3,12 @@ import { Image } from "astro:assets";
 import { CldImage } from 'astro-cloudinary';
 import { CldVideoPlayer } from 'astro-cloudinary';
 
+interface Props {
+  title?: string;
+  src: string;
+  alt: string;
+}
+
 const { title, src, alt } = Astro.props;
 const cloudName = import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME;
 
@@ -37,5 +43,9 @@ const isCloudinaryVideo = isStingSrc && src.startsWith(`https://res.cloudinary.c
     text-align: center;
     font-size: 0.9375rem;
     color: var(--black);
+
+    @include mixin.phone {
+      font-size: 0.75rem;
+    }
   }
 </style>
