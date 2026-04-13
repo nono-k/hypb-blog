@@ -1,0 +1,532 @@
+---
+title: Three.jsの開発環境をViteとTypeScriptで作成する
+slug: threejs-vite-typescript-template
+pubDate: '2026-04-14'
+image: ../../../assets/images/threejs-vite-typescript-template.jpg
+ogp: 'images/ogp/threejs-vite-typescript-template.jpg'
+category: Coding
+tags:
+  - Three.js
+description: Three.jsの開発環境をViteとTypeScriptで作成する方法について解説します。開発環境のテンプレートはGitHubで公開していますので、ぜひ参考にしてください。
+relatedPosts:
+  - threejs-swiper-liquid-slider
+  - astro-view-transitons
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+
+## はじめに
+
+これからこのブログで、Three.jsでの実践の解説記事を書いていきたいと思います。その上で、1からThree.jsの開発環境などを説明するのが面倒なので、この記事で自分のThree.jsでの開発環境のテンプレートを紹介したいと思います。
+
+構成としては、ViteとTypeScriptを使用しています。
+リポジトリはこちらになります。
+
+https://github.com/nono-k/threejs-template
+
+解説記事を書いていく上で、このテンプレに変更がある場合は、この記事とリポジトリの方も更新していきたいと思います。
+
+## 開発環境の構成
+
+ざっと構成を説明すると、以下のようになっています。
+
+```
+src
+├── scripts
+│   │── core
+│   │   ├── Camera.ts
+│   │   └── Three.ts
+│   │── shaders
+│   │   ├── fragment.glsl
+│   │   └── vertex.glsl
+│   │── Gui.ts
+│   └── App.ts
+├── styles
+├── types
+└── index.html
+```
+
+Three.jsの諸々の設定は`src/scripts/core/Three.ts`で行い、`src/scripts/App.ts`で実際の描画処理を行うような構成になっています。
+
+以下のようにシェーダーを利用して色が時間で変化する立方体を描画するようなサンプルコードをこの記事では紹介していきたいと思います。
+
+![色が時間で変化する立方体](https://res.cloudinary.com/dy8ftemi0/image/upload/v1775809151/threejs-vite-typescript-template-01_gtbi77.jpg "色が時間で変化する立方体")
+
+<DemoBtn url="https://nono-k.github.io/threejs-template/" />
+
+依存関係は[こちら](https://github.com/nono-k/threejs-template/blob/main/package.json)になっているので、各自インストールしておいてください。
+
+## Three.ts
+
+それでは、メインとなるThree.tsから解説していきたいと思います。
+このクラスは次のような機能を持っています。
+
+- Renderer管理(WebGL設定など)
+- Scene管理
+- フレーム更新の起点
+- resize / visibility制御
+- ユーティリティ(size / cover scale)
+
+全コードは次のようになります。
+
+```ts title="Three.ts"
+import * as THREE from 'three';
+import Stats from 'three/examples/jsm/libs/stats.module.js';
+
+type Size = {
+  width: number;
+  height: number;
+  aspect: number;
+};
+
+export class Three  {
+  readonly renderer: THREE.WebGLRenderer;
+  readonly scene: THREE.Scene;
+  readonly clock: THREE.Clock;
+  private _stats?: Stats;
+  private abortController?: AbortController;
+
+  private resizeHandler?: (size: Size) => void;
+  private isActive = true;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.renderer = this.createRenderer(canvas);
+    this.scene = this.createScene();
+    this.clock = new THREE.Clock();
+
+    this.addEvents();
+  }
+
+  private createRenderer(canvas: HTMLCanvasElement) {
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true
+    });
+
+    const { innerWidth: width, innerHeight: height } = window;
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    return renderer;
+  }
+
+  private createScene() {
+    const scene = new THREE.Scene();
+    return scene;
+  }
+
+  private addEvents() {
+    this.abortController = new AbortController();
+
+    window.addEventListener('resize', () => {
+      const { innerWidth: width, innerHeight: height } = window;
+      this.renderer.setSize(width, height);
+      this.resizeHandler?.({ width, height, aspect: width / height });
+    }, { signal: this.abortController.signal });
+
+    document.addEventListener('visibilitychange', () => {
+      this.isActive = document.visibilityState === 'visible';
+    }, { signal: this.abortController.signal });
+  }
+
+  setResizeHandler(fn: (size: Size) => void) {
+    this.resizeHandler = fn;
+  }
+
+  render(camera: THREE.Camera, update?: (delta: number) => void) {
+    if (!this.isActive) return;
+
+    const delta = this.clock.getDelta();
+    update?.(delta);
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.scene, camera);
+
+    this._stats?.update();
+  }
+
+  get stats() {
+    if (!this._stats) {
+      this._stats = new Stats();
+      document.body.appendChild(this._stats.dom);
+    }
+    return this._stats;
+  }
+
+  get size(): Size {
+    const { width, height } = this.renderer.domElement;
+    return { width, height, aspect: width / height };
+  }
+
+  getCoverScale(imageAspect: number): [number, number] {
+    const screenAspect = this.size.aspect;
+
+    return screenAspect < imageAspect
+      ? [screenAspect / imageAspect, 1]
+      : [1, imageAspect / screenAspect];
+  }
+
+  dispose() {
+    this.renderer.setAnimationLoop(null);
+    this.renderer.dispose();
+    this.abortController?.abort();
+  }
+}
+```
+
+順序としては、次のようになっているのがわかるでしょう。
+
+1. rendererの作成
+2. sceneの作成
+3. clockの作成
+4. イベントの追加(resize / visibilitychange)
+
+副作用(イベント)は最後にまとめています。破棄する際は、`AbortController`の`abort`メソッドを利用してイベントリスナーをまとめて削除できるようにしています。
+
+## Camera.ts
+
+次はカメラクラスになりますが、Three.jsのカメラと操作系(Controls)をラップしたクラスになっています。コードは次のようになっています。
+
+```ts title="Camera.ts"
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/Addons.js';
+
+type OrthographicCameraParams = {
+  left?: number;
+  right?: number;
+  top?: number;
+  bottom?: number;
+  near?: number;
+  far?: number;
+  scale?: number;
+}
+
+type PerspectiveCameraParams = {
+  fov?: number;
+  aspect?: number;
+  near?: number;
+  far?: number;
+}
+
+export class OrthographicCamera extends THREE.OrthographicCamera {
+  private readonly frustomScale;
+
+  constructor(params?: OrthographicCameraParams) {
+    const aspect = window.innerWidth / window.innerHeight;
+    const left = params?.left ?? -aspect;
+    const right = params?.right ?? aspect;
+    const top = params?.top ?? 1;
+    const bottom = params?.bottom ?? -1;
+    const near = params?.near ?? 0.1;
+    const far = params?.far ?? 100;
+    const scale = params?.scale ?? 1;
+
+    super(left * scale, right * scale, top * scale, bottom * scale, near, far);
+
+    this.position.z = 10;
+    this.frustomScale = scale;
+  }
+
+  update() {
+    const aspect = window.innerWidth / window.innerHeight;
+    this.left = -aspect * this.frustomScale;
+    this.right = aspect * this.frustomScale;
+    this.updateProjectionMatrix();
+  }
+}
+
+export class PerspectiveCamera extends THREE.PerspectiveCamera {
+  constructor(params?: PerspectiveCameraParams) {
+    const fov = params?.fov ?? 45;
+    const aspect = params?.aspect ?? window.innerWidth / window.innerHeight;
+    const near = params?.near ?? 0.1;
+    const far = params?.far ?? 2000;
+
+    super(fov, aspect, near, far);
+
+    this.position.z = 3;
+  }
+
+  update() {
+    this.aspect = window.innerWidth / window.innerHeight;
+    this.updateProjectionMatrix();
+  }
+}
+
+export class Controls extends OrbitControls {
+  constructor(renderer: THREE.WebGLRenderer, camera: THREE.Camera) {
+    super(camera, renderer.domElement);
+  }
+}
+```
+
+`orthographic`か`perspective`のカメラは選択できるようになっていて、`App.ts`の方でどちらかを選択して利用するような形になっています。どちらのカメラも更新は`update`メソッドで行うようになっています。
+
+`Controls`クラスは、Three.jsの`OrbitControls`をラップしたクラスになっています。こちらも`App.ts`の方で利用するようになっています。
+
+## Gui.ts
+
+デモなどで使用するGUIのクラスになります。ライブラリーとしては、`tweakpane`を利用しています。コードは今のところ次のようになっています。
+
+```ts title="Gui.ts"
+import { Pane } from 'tweakpane';
+
+export class Gui extends Pane {
+  constructor() {
+    super();
+  }
+}
+```
+
+今のところ意味がないクラスになっていますが、画像の保存などの機能を追加する際は、このクラスに追加していく形になると思います。
+
+## App.ts
+
+最後に、`App.ts`になります。ここでは、実際の描画処理などを行うクラスになっています。コードは次のようになっています。
+
+```ts title="App.ts"
+import * as THREE from 'three';
+import { PerspectiveCamera, Controls } from './core/Camera';
+import { Three } from './core/Three';
+import { Gui } from './Gui';
+
+import vertex from './shaders/vertex.glsl?raw';
+import fragment from './shaders/fragment.glsl?raw';
+
+export class App extends Three {
+  private readonly camera: PerspectiveCamera;
+  private cube!: THREE.Mesh;
+
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
+
+    this.camera = new PerspectiveCamera();
+    new Controls(this.renderer, this.camera);
+
+    this.init();
+    this.createGeometry();
+
+    this.setGui();
+
+    window.addEventListener('resize', this.resize.bind(this));
+    this.renderer.setAnimationLoop(this.animate.bind(this));
+  }
+
+  private init() {
+    this.scene.background = new THREE.Color('#222222');
+  }
+
+  private createGeometry() {
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.ShaderMaterial({
+      vertexShader: vertex,
+      fragmentShader: fragment,
+      uniforms: {
+        uTime: { value: 0 },
+      }
+    });
+
+    this.cube = new THREE.Mesh(geometry, material);
+    this.scene.add(this.cube);
+  }
+
+  private setGui() {
+    const PARAMS = {
+      zPos: this.camera.position.z,
+    };
+
+    const pane = new Gui();
+    pane.addBinding(PARAMS, 'zPos', { min: 0, max: 10 });
+
+    pane.on('change', () => {
+      this.camera.position.z = PARAMS.zPos;
+    });
+  }
+
+  private animate() {
+    const delta = this.clock.getDelta();
+    this.cube.rotation.x += delta * 0.5;
+    this.cube.rotation.y += delta * 0.5;
+
+    const cubeMaterial = this.cube.material as THREE.ShaderMaterial;
+
+    if (cubeMaterial.uniforms.uTime) {
+      cubeMaterial.uniforms.uTime.value += delta;
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  private resize() {
+    this.camera.update();
+  }
+}
+
+const app = new App(document.getElementById('webgl') as HTMLCanvasElement);
+
+window.addEventListener('beforeunload', () => {
+  app.dispose();
+});
+```
+
+それでは、コードの内容を説明していきたいと思います。
+
+### クラス定義
+
+```ts title="App.ts"
+import { Three } from './core/Three';
+
+export class App extends Three
+```
+
+これまで解説してきた、コアな機能を持った`/core/Three.ts`を継承して、`App`クラスを定義しています。`renderer / scene / clock / dispose`を継承して利用できるようになっています。
+
+### カメラ + コントロールの作成
+
+```ts title="App.ts"
+import { PerspectiveCamera, Controls } from './core/Camera';
+
+export class App extends Three {
+  private readonly camera: PerspectiveCamera;
+
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
+
+    this.camera = new PerspectiveCamera();
+    new Controls(this.renderer, this.camera);
+  }
+}
+```
+
+カメラの設定は`constructor`内で行っています。今回のデモでは、`PerspectiveCamera`を利用していますが、`OrthographicCamera`も用意しているので、そちらを利用することも可能になっています。
+
+コントロールは先述したように、Three.jsの`OrbitControls`をラップしたクラスになっているので、引数にとレンダラーとカメを渡すことで利用することができます。
+
+### 背景の設定
+
+```ts title="init()"
+private init() {
+  this.scene.background = new THREE.Color('#222222');
+}
+```
+
+背景の設定は、`init`メソッドで行っています。ここでは、シーンの背景色を暗めのグレーに設定しています。
+
+### ジオメトリの作成
+
+```ts title="createGeometry()"
+private createGeometry() {
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const material = new THREE.ShaderMaterial({
+    vertexShader: vertex,
+    fragmentShader: fragment,
+    uniforms: {
+      uTime: { value: 0 },
+    }
+  });
+
+  this.cube = new THREE.Mesh(geometry, material);
+  this.scene.add(this.cube);
+}
+```
+
+今回のデモの立方体のようなジオメトリの作成は、`createGeometry`メソッドで行っています。立方体は、Three.jsの`BoxGeometry`を利用して作成しています。シェーダーを利用しているので、マテリアルはThree.jsの`ShaderMaterial`を利用して作成しています。シェーダーのコードは、`vertex.glsl`と`fragment.glsl`に分けて管理しています。
+
+### vertex.glsl
+
+`vertex.glsl`のコードは次のようになっています。
+
+```glsl title="vertex.glsl"
+varying vec2 vUv;
+
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+```
+
+### fragment.glsl
+
+`fragment.glsl`のコードは次のようになっています。
+
+```glsl title="fragment.glsl"
+precision mediump float;
+
+varying vec2 vUv;
+uniform float uTime;
+
+void main() {
+  float r = 0.5 + 0.5 * sin(uTime + vUv.x * 10.0);
+  float g = 0.5 + 0.5 * sin(uTime + vUv.y * 10.0);
+  float b = 0.5 + 0.5 * sin(uTime);
+  gl_FragColor = vec4(r, g, b, 1.0);
+}
+```
+
+時間とUV座標を利用して、色が時間で変化するようなシェーダーになっています。
+
+### Guiの設定
+
+デバックで使用するGUIは、ライブラリとして`tweakpane`を利用しているので、tweakpaneの使い方の通りに設定すればいいでしょう。今回のデモでは、カメラのZ位置を変更できるようにしています。
+
+```ts title="setGui()"
+private setGui() {
+  const PARAMS = {
+    zPos: this.camera.position.z,
+  };
+
+  const pane = new Gui();
+  pane.addBinding(PARAMS, 'zPos', { min: 0, max: 10 });
+
+  pane.on('change', () => {
+    this.camera.position.z = PARAMS.zPos;
+  });
+}
+```
+
+### アニメーションの設定
+
+アニメーションの設定は、`animate`メソッドで行っています。ここでは、立方体を回転させる処理と、シェーダーの時間を更新する処理を行っています。
+
+```ts title="animate()"
+constructor(canvas: HTMLCanvasElement) {
+  // ...
+
+  this.renderer.setAnimationLoop(this.animate.bind(this));
+}
+
+private animate() {
+  const delta = this.clock.getDelta();
+  this.cube.rotation.x += delta * 0.5;
+  this.cube.rotation.y += delta * 0.5;
+
+  const cubeMaterial = this.cube.material as THREE.ShaderMaterial;
+
+  if (cubeMaterial.uniforms.uTime) {
+    cubeMaterial.uniforms.uTime.value += delta;
+  }
+
+  this.renderer.render(this.scene, this.camera);
+}
+```
+
+### リサイズの設定
+
+画面サイズなどはコアの`Three.ts`でリサイズの処理を行っているので、`App.ts`でのリサイズの設定は、カメラの更新のみでいいでしょう。
+
+```ts title="resize()"
+constructor(canvas: HTMLCanvasElement) {
+  // ...
+
+  window.addEventListener('resize', this.resize.bind(this));
+}
+
+private resize() {
+  this.camera.update();
+}
+```
+
+## まとめ
+
+これから、Three.jsでの実践の解説記事を書いていくうえでの準備段階として、よりThree.jsを便利に利用できるようにと解説がしやすいように、Three.jsの開発環境のテンプレートを紹介しました。ViteとTypeScriptを利用しているので、モダンな開発環境でThree.jsを利用することができます。
+
+ViteとTypeScriptを使用したThree.jsの開発環境を作成したい人は、ぜひこのテンプレートを参考にしてみてください。
