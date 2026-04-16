@@ -1,0 +1,457 @@
+---
+title: Three.jsで紙が巻かれて展開するようなペーパーアニメーションを作成する
+slug: threejs-paper-unroll-image
+pubDate: '2026-04-17'
+image: ../../../assets/images/threejs-paper-unroll-image.jpg
+ogp: 'images/ogp/threejs-paper-unroll-image.jpg'
+category: Coding
+tags:
+  - Three.js
+description: Three.jsで紙が巻くようなペーパーアニメーションを作成する方法を解説します。vertexシェーダーを利用して紙が巻かれていく表現を作成していきます。
+relatedPosts:
+  - threejs-vite-typescript-template
+  - threejs-swiper-liquid-slider
+  - astro-view-transitons
+---
+
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+
+<DemoBtn url="https://nono-k.github.io/threejs-paper-unroll-image/" />
+
+## はじめに
+
+WebGLやThree.jsでしか表現できない手法として、紙が巻かれて展開するようなペーパーアニメーションの作成方法を紹介します。
+
+基本的には`vertex`シェーダーで頂点を奥行きに紙が巻かれるように設定することで実現できます。コードはCodropsの[こちら](https://tympanus.net/codrops/2020/01/22/how-to-unroll-images-with-three-js/)の記事を参考にしています。
+
+Three.jsの開発環境は[前回の記事](/articles/threejs-vite-typescript-template)を参考にしてください。
+この記事のデモのコードは以下のGitHubリポジトリにあります。
+
+https://github.com/nono-k/glsl-halftone-shader
+
+それではやってみましょう！
+
+## HTML
+
+Three.jsで使用するcanvasはidをwebglとします。
+
+```html
+<body>
+  <canvas id="webgl"></canvas>
+
+  <section class="section">
+    <div class="button-list">
+      <button type="button" class="button js-button" data-angle="90">Vertical</button>
+      <button type="button" class="button js-button" data-angle="17">Angled</button>
+      <button type="button" class="button js-button" data-angle="0">Horizontal</button>
+    </div>
+
+    <div class="image ja-image-target">
+      <img src="./images/threejs-paper-unroll-image-01.jpg" alt="">
+    </div>
+  </section>
+</body>
+```
+
+デモのようにボタンクリックで、巻かれる方向を変えるようにするので`button`に`data-angle`で角度を設定します。Verticalが90度、Angledが17度で斜め、Horizontalが0度になります。
+
+また、画像はcanvasで描画しますがJavaScriptが動作していないときのフォールバックとして、画像を配置しておきます。CSSは適宜調整してください。
+
+## HTML上の画像とcanvas上の画像を一致させる
+
+HTML上の画像の位置とcanvas上の画像を一致させるような実装を行います。ここでは、`App.ts`で次のように実装しています。
+
+```ts title="App.ts"
+import * as THREE from 'three';
+import { PerspectiveCamera } from './core/Camera';
+import { Three } from './core/Three';
+
+import fragment from './shaders/fragment.glsl?raw';
+import vertex from './shaders/vertex.glsl?raw';
+
+export class App extends Three {
+  private readonly camera: PerspectiveCamera;
+  private mesh!: THREE.Mesh;
+  private readonly imageTarget: HTMLElement;
+
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
+
+    this.imageTarget = document.querySelector('.ja-image-target') as HTMLElement;
+
+    this.camera = new PerspectiveCamera({
+      fov: 70,
+      near: 300,
+      far: 1000,
+    });
+
+    this.camera.position.z = 400;
+
+    this.loader().then((texture) => {
+      this.createGeometry(texture);
+      this.setCameraToScreen();
+      window.addEventListener('resize', this.resize.bind(this));
+      this.renderer.setAnimationLoop(this.animate.bind(this));
+    });
+  }
+
+  private async loader() {
+    const loader = new THREE.TextureLoader();
+    const source = this.imageTarget.querySelector('img')?.getAttribute('src');
+    const _texture = await loader.loadAsync(source!);
+    return _texture;
+  }
+
+  private updateMeshPosition() {
+    const rect = this.imageTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+
+    const posX = x - window.innerWidth / 2;
+    const posY = -(y - window.innerHeight / 2);
+
+    this.mesh.position.set(posX, posY, 0);
+    this.mesh.scale.set(rect.width, rect.height, 1);
+  }
+
+  private setCameraToScreen() {
+    const fov = this.camera.fov * (Math.PI / 180);
+    const height = window.innerHeight;
+    const distance = height / (2 * Math.tan(fov / 2));
+    this.camera.position.z = distance;
+  }
+
+  private animate() {
+    this.updateMeshPosition();
+
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  private resize() {
+    this.camera.update();
+    this.setCameraToScreen();
+  }
+}
+```
+
+画像の読み込みはThree.jsの`TextureLoader`を使用すればいいでしょう。
+画像の読み込みが完了してから、諸々の処理を実行します。
+
+まず、`updateMeshPosition`メソッドではHTML上の画像の位置を取得して、canvas上で描画する画像の位置を更新しています。また、`setCameraToScreen`メソッドでカメラのz方向を調整するようにもしています。
+
+## 平面の生成
+
+画像を表示させるので、Three.jsのPlaneGeometryで平面を生成します。
+vertexシェーダーで頂点を操作して紙が巻かれるような表現を作成するので、セグメント数は多めに設定します。ここでは、80と設定しました。
+
+```ts title="App.ts"
+private createGeometry(_texture: THREE.Texture) {
+  _texture.needsUpdate = true;
+  _texture.minFilter = THREE.LinearFilter;
+
+  const geometry = new THREE.PlaneGeometry(1, 1, 80, 80);
+  const material = new THREE.ShaderMaterial({
+    vertexShader: vertex,
+    fragmentShader: fragment,
+    side: THREE.DoubleSide,
+    transparent: true,
+    uniforms: {
+      uTexture: { value: _texture },
+      uAngle: { value: 0.3 },
+      uProgress: { value: 1.0 },
+      uOmega: { value: 0.0 },
+    },
+  });
+
+  this.mesh = new THREE.Mesh(geometry, material);
+  this.scene.add(this.mesh);
+}
+```
+
+uniforms変数に関しては、`uTexture`がテクスチャ、`uAngle`が巻かれる角度の初期状態、`uProgress`が巻かれる進行度合い、`uOmega`が巻かれる紙の揺れ？の強さを設定してます。
+
+## vertexシェーダーで紙が巻かれる表現を作成する
+
+ペーパーアニメーションを作成するために重要なvertexシェーダーは次のようになります。
+行列の回転公式を利用したり、三角関数を利用します。
+
+```glsl title="vertex.glsl"
+precision mediump float;
+
+varying vec2 vUv;
+varying float vFrontShadow;
+
+uniform float uAngle;
+uniform float uProgress;
+uniform float uOmega;
+
+const float PI = 3.1415926;
+
+// ロドリゲスの回転公式
+mat4 rotationMatrix(vec3 axis, float angle) {
+  axis = normalize(axis);
+  float s = sin(angle);
+  float c = cos(angle);
+  float oc = 1.0 - c;
+
+  float m1 = oc * axis.x * axis.x + c;
+  float m2 = oc * axis.x * axis.y - axis.z * s;
+  float m3 = oc * axis.z * axis.x + axis.y * s;
+  float m4 = oc * axis.x * axis.y + axis.z * s;
+  float m5 = oc * axis.y * axis.y + c;
+  float m6 = oc * axis.y * axis.z - axis.x * s;
+  float m7 = oc * axis.z * axis.x - axis.y * s;
+  float m8 = oc * axis.y * axis.z + axis.x * s;
+  float m9 = oc * axis.z * axis.z + c;
+
+  return mat4(
+    m1, m2, m3, 0.0,
+    m4, m5, m6, 0.0,
+    m7, m8, m9, 0.0,
+    0.0, 0.0, 0.0, 1.0);
+}
+
+vec3 rotate(vec3 v, vec3 axis, float angle) {
+  mat4 m = rotationMatrix(axis, angle);
+  return (m * vec4(v, 1.0)).xyz;
+}
+
+void main() {
+  vUv = uv;
+  // 最終的な角度、uOmegaは揺れの大きさ
+  float finalAngle = uAngle + uOmega * sin(uProgress * 6.0);
+
+  vec3 newPosition = position;
+
+  float rad = 0.1; // 半径
+  float rolls = 8.0; // ロールの巻き回数
+
+  newPosition = rotate(newPosition - vec3(-0.5, 0.5, 0.0), vec3(0.0, 0.0, 1.0), - finalAngle) + vec3(-0.5, 0.5, 0.0);
+
+  float offs = (newPosition.x + 0.5) / (sin(finalAngle) + cos(finalAngle));
+  float tProgress = clamp((uProgress - offs * 0.99) / 0.01, 0.0, 1.0);
+
+  // 進行によって影の強さを変える
+  vFrontShadow = clamp((uProgress - offs * 0.95) / 0.05, 0.7, 1.0);
+
+  newPosition.z = rad + rad * (1.0 - offs / 2.0) * sin(-offs * rolls * PI - 0.5 * PI);
+  newPosition.x = -0.5 + rad * (1.0 - offs / 2.0) * cos(-offs * rolls * PI + 0.5 * PI);
+
+  newPosition = rotate(newPosition - vec3(-0.5, 0.5, 0.0), vec3(0.0, 0.0, 1.0),finalAngle) + vec3(-0.5, 0.5, 0.0);
+
+  newPosition = rotate(newPosition - vec3(-0.5, 0.5, rad), vec3(sin(finalAngle), cos(finalAngle), 0.0), -PI * uProgress * rolls);
+
+  newPosition += vec3(
+    -0.5 + uProgress * cos(finalAngle) * (sin(finalAngle) + cos(finalAngle)),
+    0.5 - uProgress * sin(finalAngle) * (sin(finalAngle) + cos(finalAngle)),
+    rad * (1.0 - uProgress / 2.0)
+  );
+
+  vec3 finalposition = mix(newPosition, position, tProgress);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(finalposition, 1.0 );
+}
+```
+
+流れとしては次のようになります。
+
+- 回転して座標系を揃える
+- 各頂点の「巻き位置(offs)」を計算
+- 円運動で紙の巻形状を作る
+- 元の角度に戻す
+- 軸回転で回転を進める
+- 位置補正
+- 元形状との補間
+
+### 回転行列
+
+回転行列はロドリゲスの回転公式を利用して作成しています。
+ロドリゲスの回転公式は、任意の軸を中心に回転するための行列を作成する方法です。ここでは、`rotationMatrix`関数で回転行列を作成し、`rotate`関数でベクトルを回転させています。
+
+ロドリゲスの回転公式については下記が参考になるでしょう。
+
+https://manabitimes.jp/math/2649
+
+### 初期設定
+
+```glsl
+vec3 newPosition = position;
+
+float rad = 0.1;
+float rolls = 8.0;
+```
+
+`rad`は巻かれる紙の半径になり、`rolls`は巻かれる回数を設定しています。
+
+### 座標系を回転させる
+
+```glsl
+newPosition = rotate(
+  newPosition - vec3(-0.5, 0.5, 0.0),
+  vec3(0.0, 0.0, 1.0),
+  - finalAngle
+) + vec3(-0.5, 0.5, 0.0);
+```
+
+紙の左上(-0.5, 0.5)を視点にして回転させています。こうすることで、紙が巻かれる方向を統一し、どの角度でも同じロジックで巻かれる表現を作成できます。
+
+### 巻き位置(offs)を計算する
+
+```glsl
+float offs = (newPosition.x + 0.5) / (sin(finalAngle) + cos(finalAngle));
+```
+
+`newPosition`は-0.5から0.5の範囲で動くので、これを0から1の範囲に変換しています。この値で紙のどの位置が巻かれているかを表現します。
+
+### 切り替え係数(tProgress)を計算する
+
+```glsl
+float tProgress = clamp((uProgress - offs * 0.99) / 0.01, 0.0, 1.0);
+```
+
+`clamp`を使用し、その頂点が巻かれるかどうかを判定してます。
+
+`uProgress < offs`の場合は、まだ巻かないで、
+`uProgress > offs`の場合は、巻くような制御になっています。
+
+### 影の強さ
+
+リアルさを増すために影の強さを巻きの進行度合いで変化させています。
+
+```glsl
+vFrontShadow = clamp((uProgress - offs * 0.95) / 0.05, 0.7, 1.0);
+```
+
+こちらも`clamp`を使用し、巻き始めると暗くなるようにしています。
+
+### 円運動で紙の巻形状を作る
+
+```glsl
+newPosition.z = rad + rad * (1.0 - offs / 2.0) * sin(-offs * rolls * PI - 0.5 * PI);
+newPosition.x = -0.5 + rad * (1.0 - offs / 2.0) * cos(-offs * rolls * PI + 0.5 * PI);
+```
+
+これ以降は複雑ですが、要はx-z平面で円運動させることで、「巻き」の形状を作っています。
+z方向のsinは高さになり、x方向のcosは横位置になります。
+
+`(1.0 - offs / 2.0)`の部分は、外側ほど巻きが弱くなるといった意味になります。
+
+### 元の角度に戻す
+
+```glsl
+newPosition = rotate(
+  newPosition - vec3(-0.5, 0.5, 0.0),
+  vec3(0.0, 0.0, 1.0),
+  finalAngle
+) + vec3(-0.5, 0.5, 0.0);
+```
+
+円運動させたら、再度`rotate`で元の角度に戻します。
+
+### 巻き回転(立体化)
+
+```glsl
+newPosition = rotate(
+  newPosition - vec3(-0.5, 0.5, rad),
+  vec3(sin(finalAngle), cos(finalAngle), 0.0),
+  -PI * uProgress * rolls
+);
+```
+
+巻いた紙をさらに回転させることで、立体的に見えるようになります。
+
+### 位置補正
+
+```glsl
+newPosition += vec3(
+  -0.5 + uProgress * cos(finalAngle) * (sin(finalAngle) + cos(finalAngle)),
+  0.5 - uProgress * sin(finalAngle) * (sin(finalAngle) + cos(finalAngle)),
+  rad * (1.0 - uProgress / 2.0)
+);
+```
+
+ここの処理は、紙が動いてしまうので、位置を補正するための処理になります。巻き始めは左上(-0.5, 0.5)に位置しているので、そこから巻かれる方向に移動させるような処理になっています。
+
+### 元の形との補間
+
+```glsl
+vec3 finalposition = mix(newPosition, position, tProgress);
+gl_Position = projectionMatrix * modelViewMatrix * vec4(finalposition, 1.0 );
+```
+
+`mix`関数を使用し、巻く前と巻いた後を進行状況で補間しています。これによって、巻き始めの形と巻き終わりの形をスムーズに繋げることができます。
+
+最後にこの`finalposition`を`gl_Position`に設定して、頂点の最終的な位置を決定しています。
+
+## fragmentシェーダーでテクスチャを描画する
+
+fragmentシェーダーでは、画像の表示と、vertexシェーダーで計算した影の強さを利用して、影の表現を行っています。
+
+```glsl title="fragment.glsl"
+precision mediump float;
+
+varying vec2 vUv;
+varying float vFrontShadow;
+
+uniform sampler2D uTexture;
+uniform float uProgress;
+
+void main() {
+  vec4 textureColor = texture2D(uTexture, vUv);
+  vec3 color;
+
+  color = textureColor.rgb * vFrontShadow;
+  float alpha = clamp(uProgress * 5.0, 0.0, 1.0);
+
+  gl_FragColor = vec4(color, alpha);
+}
+```
+
+また、巻き始めは非表示にするために、`uProgress`を利用してアルファ値を調整しています。
+
+## ボタンクリックで巻かれる方向にアニメーションさせる
+
+最後に、ボタンクリックで巻かれる方向を変えてアニメーションさせてみましょう！
+ここではGSAPを使用して、`uProgress`の値を0から1にアニメーションさせています。
+
+```ts title="App.ts"
+private clickEvent() {
+  const buttons = document.querySelectorAll('.js-button');
+  buttons.forEach((button) => {
+
+    button.addEventListener('click', (e: Event) => {
+      const target = e.currentTarget as HTMLElement;
+      const angle = Number(target.dataset.angle) / 180 * Math.PI;
+
+      const meshMaterial = this.mesh.material as THREE.ShaderMaterial;
+
+      if (
+        meshMaterial.uniforms.uAngle &&
+        meshMaterial.uniforms.uProgress
+      ) {
+        meshMaterial.uniforms.uAngle.value = angle;
+
+        gsap.fromTo(meshMaterial.uniforms.uProgress, {
+          value: 0
+        }, {
+          value: 1.0,
+          duration: 1.5,
+        });
+      }
+    });
+  });
+}
+```
+
+これで完成です！
+
+![ペーパーアニメーション](https://res.cloudinary.com/dy8ftemi0/image/upload/v1776326652/threejs-paper-unroll-image_mhhnpq.jpg "ペーパーアニメーション")
+
+## まとめ
+
+ずっとやってみたかった、Webでの紙が巻かれるペーパーアニメーションの表現をThree.jsを利用して実装してみました。vertexシェーダーが複雑で分かりづらいかと思いますが、適宜コメントアウトをしてみて確認してみたり、値を変えてみることで理解できてくるかと思います。
+
+今回は、ボタンクリックでアニメーションさせるようにしましたが、巻きの進行を管理しているだけなので、スクロール連動などにもすぐに応用が効くかと思います。ぜひ他の表現なども試してみてください。
+
+## 参考
+
+- [How to Unroll Images with Three.js](https://tympanus.net/codrops/2020/01/22/how-to-unroll-images-with-three-js/)
