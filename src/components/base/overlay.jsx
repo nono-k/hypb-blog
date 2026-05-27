@@ -99,7 +99,7 @@ export default function Overlay({ menuIsActive }) {
                 </a>
               </li>
               <li>
-                <a className={styles.menuLink} href="/contact/">
+                <a className={styles.menuLink} href="https://docs.google.com/forms/d/e/1FAIpQLSf4cuzuC_xSj_td4K8X3AOo9SFQu9Ha3kUph6JykkmcFImgbQ/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer">
                   <svg viewport="0 0 210 60" style={{transitionDelay: '0.4s'}} className="for-large"><text x="0" y="100">contact</text></svg>
                   <p className='for-mobile'>contact</p>
                 </a>
