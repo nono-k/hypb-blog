@@ -17,10 +17,13 @@ relatedPosts:
 
 import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
 import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import Twitter from "@/components/markdown/Twitter.astro";
 
 <DemoBtn url="https://nono-k.github.io/threejs-cube-division-mapping-image/" />
 
 ## はじめに
+
+<Twitter url="https://x.com/kameno_no3/status/2048068910587793797" />
 
 [こちらのサイト](https://corentinbernadou.com/)のトップページのように、立方体の各面を9分割した面に画像を貼る方法を紹介します。またテキストをホバーしたら、シェーダー側の操作で該当する画像のみを表示する方法も解説します。
 
@@ -411,8 +414,6 @@ void main() {
 ## まとめ
 
 Three.jsで立方体を9分割して画像を貼る方法を解説しました。`PlaneGeometry`を9x6個作成し、座標変換して立方体を作成し、画像をマッピングする方法を紹介しました。また、テキストホバーで該当する画像のみを表示する方法も解説しました。
-
-次回は立体にテキストを設定し、モーフィングするようなアニメーションを作成してみたいと思います！
 
 ## 参考アニメーションサイト
 
