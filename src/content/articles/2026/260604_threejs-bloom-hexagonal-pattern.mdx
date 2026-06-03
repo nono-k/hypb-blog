@@ -1,0 +1,500 @@
+---
+title: Three.jsでBloomエフェクトで発光する六角形グリッドを作成する
+slug: threejs-bloom-hexagonal-pattern
+pubDate: '2026-06-04'
+image: ../../../assets/images/threejs-bloom-hexagonal-pattern.jpg
+ogp: 'images/ogp/threejs-bloom-hexagonal-pattern.jpg'
+category: Coding
+tags:
+  - Three.js
+description: Three.jsでCylinderGeometryを使用して六角柱を作成し、敷き詰めを行って六角形グリッドを作成します。さらに、Bloomエフェクトを適用して発光する効果を実装します。
+relatedPosts:
+  - threejs-vite-typescript-template
+  - threejs-swiper-liquid-slider
+  - threejs-paper-unroll-image
+  - threejs-cube-division-mapping-image
+  - astro-view-transitons
+---
+
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import Twitter from "@/components/markdown/Twitter.astro";
+
+<DemoBtn url="https://nono-k.github.io/three-hexagonal-pattern/" />
+
+## はじめに
+
+この記事では、Three.jsを使用してBloomエフェクトで発光する六角形グリッドを作成する方法を紹介します。六角柱は`CylinderGeometry`を使用して作成し、敷き詰めを行って六角形グリッドを作成します。その際にgapを定義して敷き詰めの間隔を空けられるようにします。さらに、Bloomエフェクトを適用して発光する効果を実装するのと、波打つようなアニメーションも加えていきます。
+
+Three.jsの開発環境は[以前の記事](/articles/threejs-vite-typescript-template)を参考にしてください。
+この記事のデモのコードは以下のGitHubリポジトリにあるので、ぜひ参考にしてください。
+
+https://github.com/nono-k/three-hexagonal-pattern
+
+## カメラ・ライティング・マテリアルの設定
+
+最初にシーンに使用するカメラやライティング、マテリアルの設定を行います。カメラは`PerspectiveCamera`を使用し、ライティングは`DirectionalLight`と`AmbientLight`を組み合わせてシーン全体を照らすようにします。マテリアルは`MeshStandardMaterial`を使用して、後でBloomエフェクトが適用されたときに発光するように設定します。
+
+```ts title="App.ts"
+import * as THREE from 'three';
+
+import { PerspectiveCamera, Controls } from './core/Camera';
+import { Three } from './core/Three';
+
+export class App extends Three {
+  private readonly camera: PerspectiveCamera;
+
+  private material!: THREE.MeshStandardMaterial;
+
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
+
+    this.camera = new PerspectiveCamera({
+      fov: 60,
+      far: 100
+    });
+
+    this.camera.position.set(0, 3, 4);
+
+    new Controls(this.renderer, this.camera);
+
+    this.init();
+    this.initLights();
+    this.initMesh();
+  }
+
+  private init() {
+    this.scene.background = new THREE.Color('#000000');
+  }
+
+  private initLights() {
+    // メインライト
+    const directionalLight = new THREE.DirectionalLight('0xffffff', 1.5);
+    directionalLight.position.set(5, 10, 7.5);
+    this.scene.add(directionalLight);
+
+    // 環境光
+    const ambientLight = new THREE.AmbientLight('0xffffff', 0.5);
+    this.scene.add(ambientLight);
+  }
+
+  private initMesh() {
+    this.material = this.createMaterial();
+  }
+
+  private createMaterial() {
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x0D273B,
+      roughness: 0.75,
+      metalness: 0.25,
+    })
+
+    return material;
+  }
+}
+```
+
+カメラを`(0, 3, 4)`の位置に配置しているので、全体を見渡せるようになっています。
+
+## 六角形グリッドの作成
+
+次に六角形グリッドを作成していきます。今回も[前回の記事](/articles/threejs-cube-division-mapping-image)同様に`InstanceMesh`を使用して、パフォーマンスを向上させます。
+
+グリッドのサイズや、六角柱のサイズの定義は最初に定数として定義しておきます。
+
+```ts title="App.ts"
+// グリッドサイズ
+const GRID_SIZE = 10;
+
+// 六角柱のサイズ定義
+const CYLINDER = {
+  radius: 1,
+  height: 1,
+};
+```
+
+### 六角柱の作成
+
+六角柱の作成は、`CylinderGeometry`を使用して行います。六角柱を作成するためには、第4引数に`6`を設定します。
+
+```ts title="App.ts"
+export class App extends Three {
+  // ...
+
+  private initMesh() {
+    const geometry = this.createGeometry();
+    this.material = this.createMaterial();
+  }
+
+  private createGeometry() {
+    const radius = CYLINDER.radius;
+    const height = CYLINDER.height;
+
+    const geometry = new THREE.CylinderGeometry(radius, radius, height, 6);
+    // 六角形をフラットトップ方向へ回転
+    geometry.rotateY(Math.PI / 6);
+
+    return geometry;
+  }
+}
+```
+
+ここで、Y軸方向に30度回転させているのは、六角形の敷き詰めが正しい向きになるようにするためです。下図は回転のありなし比較になります。
+
+![回転のありなし比較](https://res.cloudinary.com/dy8ftemi0/image/upload/v1780389950/threejs-bloom-hexagonal-pattern-01_lkw6wu.jpg "回転のありなし比較")
+
+### InstancedMeshの設定
+
+同じGeometryとMaterialを大量描画するために、`InstancedMesh`を使用します。
+
+```ts title="App.ts"
+export class App extends Three {
+  // ...
+
+  // 同じGeometryとMaterialを大量描画するためのInstancedMesh
+  private instancedMesh!: THREE.InstancedMesh;
+
+
+  private initMesh() {
+    const geometry = this.createGeometry();
+    this.material = this.createMaterial();
+    const count = this.getInstanceCount();
+
+    this.instancedMesh = new THREE.InstancedMesh(geometry, this.material, count);
+
+    this.setupInstances();
+    this.scene.add(this.instancedMesh);
+  }
+
+  private getInstanceCount() {
+    const size = GRID_SIZE;
+    const count = (size * 2 + 1) ** 2;
+
+    return count;
+  }
+}
+```
+
+`getInstanceCount`メソッドでは、グリッドのサイズから必要なインスタンスの数（六角柱の数）を計算しています。`setupInstances`メソッドで見るのですが、二重ループで`-GRID_SIZE ~ GRID_SIZE`の範囲で配置しています。
+
+例えば、`GRID_SIZE`が`2`の場合、`-2, -1, 0, 1, 2`の5つの位置に配置することになるので、2倍してから1足した値になります。2乗しているのは、X軸とZ軸の両方で配置するためです。
+
+### インスタンスの位置設定
+
+次に、`setupInstances`メソッドでインスタンスの位置を設定していきます。このデモでは波打つようなアニメーションなどを行うので、シェーダー側で位置移動させます。このようにすることで、計算は1回で済むようになります。
+
+```ts title="App.ts"
+export class App extends Three {
+  // 敷き詰めの間隔
+  private gap = 1.1;
+
+  private setupInstances() {
+    const size = GRID_SIZE;
+    const radius = CYLINDER.radius;
+
+    const offsets: number[] = [];
+
+    const dummy = new THREE.Object3D();
+
+    let index = 0;
+
+    for (let q = -size; q <= size; q++) {
+      for (let r = -size; r <= size; r++) {
+        const x = radius * 1.5 * q * this.gap;
+        const z = radius * Math.sqrt(3) * (r + q / 2) * this.gap;
+
+        offsets.push(x, 0, z);
+
+        // matrix設定。シェーダー側で位置移動させるのでここでは原点に配置
+        dummy.position.set(0, 0, 0);
+        dummy.updateMatrix();
+        this.instancedMesh.setMatrixAt(index, dummy.matrix);
+
+        index++;
+      }
+    }
+
+    // instance位置
+    this.instancedMesh.geometry.setAttribute(
+      'aOffset',
+      new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3)
+    );
+  }
+}
+```
+
+六角形の敷き詰めを行っているコードは以下の部分になります。
+
+```ts title="App.ts"
+for (let q = -size; q <= size; q++) {
+  for (let r = -size; r <= size; r++) {
+    const x = radius * 1.5 * q * this.gap;
+    const z = radius * Math.sqrt(3) * (r + q / 2) * this.gap;
+  }
+}
+```
+
+これは、横方向へは半径の1.5倍間隔で並べて、縦方向には半径の√3倍間隔で並べつつ、列ごとに半分ずつずらすことで、六角形の敷き詰めを実現しています。敷き詰めの間隔は、`gap`プロパティで定義している値を掛けることで調整できるようにしています。
+
+このあたりのアルゴリズムに関しては、以下のサイトが分かりやすかったので参考にしてみてください。
+
+https://www.redblobgames.com/grids/hexagons/
+
+計算した位置設定(`offsets`)を、`setAttribute`で`aOffset`という名前のインスタンスバッファ属性としてジオメトリに追加しています。シェーダー側でこの属性を使用して、各インスタンスの位置を計算していきます。
+
+### シェーダーでの位置計算
+
+`createMaterial`メソッドでマテリアルを設定していましたが、ここで`onBeforeCompile`を使用して、シェーダーコードをカスタマイズしていきます。
+
+```ts title="App.ts"
+private createMaterial() {
+  const material = new THREE.MeshStandardMaterial({
+    color: 0x0D273B,
+    roughness: 0.75,
+    metalness: 0.25,
+  })
+
+  material.onBeforeCompile = (shader) => {
+
+    shader.vertexShader = this.buildVertexShader(shader.vertexShader);
+
+    this.shader = shader as typeof shader & ShaderUniforms;
+  };
+
+  return material;
+}
+```
+
+`onBeforeCompile`は、マテリアルのシェーダーがコンパイルされる直前に呼び出される関数になります。カスタマイズするvertexシェーダーは`buildVertexShader`メソッドで作成していきます。
+
+```ts title="App.ts"
+private buildVertexShader(shader: string) {
+  return `
+    attribute vec3 aOffset;
+    varying vec3 vPosition;
+
+    ${shader}
+  `.replace(
+    '#include <begin_vertex>',
+    `
+    #include <begin_vertex>
+
+    // instance位置
+    transformed += aOffset;
+
+    vPosition = transformed;
+    `
+  );
+}
+```
+
+`transformed`はThree.jsが内部で定義している頂点座標になります。これに、六角形敷き詰めの位置情報である`aOffset`を加算することで、六角形グリッドを作成できるようになります。
+
+また、`vPosition`というvarying変数を定義して、頂点の位置情報をフラグメントシェーダーに渡せるようにしています。これを使用して、六角柱の側面を発光させるための条件分岐を後でフラグメントシェーダーで行います。
+
+## 六角柱をランダムに波打たせるアニメーション
+
+六角形グリッドが作成できたので、次はランダムに波打つようなアニメーションを加えていきます。シェーダー側で実装するので、`setupInstances`メソッドで位相をランダムに設定していきましょう。
+
+```ts title="App.ts"
+private setupInstances() {
+  // ...
+  const phases: number[] = [];
+
+  for (let q = -size; q <= size; q++) {
+    for (let r = -size; r <= size; r++) {
+
+      // 波アニメーションの位相をランダムに設定
+      phases.push(Math.random() * Math.PI * 2);
+
+    }
+  }
+
+  // 波アニメーションの位相
+  this.instancedMesh.geometry.setAttribute(
+    'aPhase',
+    new THREE.InstancedBufferAttribute(new Float32Array(phases), 1)
+  );
+}
+```
+
+`aPhase`という名前のインスタンスバッファ属性を追加して、波アニメーションの位相をランダムに設定しています。vertexシェーダーでこの属性を使用して、頂点のY座標を時間と位相に応じて変化させることで、波打つようなアニメーションを実装します。
+
+```ts title="App.ts"
+private buildVertexShader(shader: string) {
+  return `
+    uniform float uTime;
+
+    attribute vec3 aOffset;
+    attribute float aPhase;
+
+    varying vec3 vPosition;
+    varying float vPhase;
+
+    ${shader}
+  `.replace(
+    '#include <begin_vertex>',
+    `
+    #include <begin_vertex>
+
+    // 波アニメーション
+    float wave = sin(uTime + aPhase) * 0.15 * intro;
+
+    // y方向へ移動
+    transformed.y += wave;
+
+    // instance位置
+    transformed += aOffset;
+
+    vPosition = transformed;
+    vPhase = aPhase;
+    `
+  );
+}
+```
+
+`sin`関数を使用して、時間と位相に応じた波アニメーションを作成しています。`uTime`は、JavaScript側で更新している時間の値になります。この`wave`の値を頂点のY座標に加算することで、六角柱が波打つようなアニメーションになります。
+
+`uTime`の更新は、`animate`メソッドで行います。
+
+```ts title="App.ts"
+private animate() {
+  const delta = this.clock.getDelta();
+
+  this.updateShader(delta);
+  this.renderer.render(this.scene, this.camera);
+}
+
+private updateShader(delta: number) {
+  if (!this.shader?.uniforms.uTime) return;
+
+  this.shader.uniforms.uTime.value += delta;
+}
+```
+
+次は、フラグメントシェーダーで六角柱の側面を判定して、色を付けてBloomエフェクトで発光させていきます。
+
+<PostAdUnit />
+
+## Bloomエフェクトで発光させる
+
+Bloomエフェクトは、PostProcessingを使用していますが、その前に、フラグメントシェーダーで六角柱の側面を判定して、色を付けていきます。
+
+```ts title="App.ts"
+private createMaterial() {
+  // ...
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = { value: 0 };
+    shader.uniforms.uIntro = { value: 0 };
+
+    shader.vertexShader = this.buildVertexShader(shader.vertexShader);
+    shader.fragmentShader = this.buildFragmentShader(shader.fragmentShader);
+
+    this.shader = shader as typeof shader & ShaderUniforms;
+  };
+
+  return material;
+}
+```
+
+`buildFragmentShader`メソッドでフラグメントシェーダーをカスタマイズしていきます。
+
+```ts title="App.ts"
+private buildFragmentShader(shader: string) {
+  return `
+    uniform float uTime;
+
+    varying vec3 vPosition;
+    varying float vPhase;
+    varying float vDistance;
+
+    ${shader}
+  `.replace(
+      '#include <dithering_fragment>',
+      `
+      #include <dithering_fragment>
+
+      // 側面判定
+      float side = step(abs(normal.y), 0.6);
+
+      // 発光ライン
+      float glowLine = smoothstep(0.35, 0.45, abs(vPosition.y));
+
+      // 点滅アニメーション
+      float pulse = sin(uTime + vPhase * 5.0) * 0.5 + 0.5;
+      pulse = pow(pulse, 10.0);
+
+      // 発光色
+      vec3 glowColor = vec3(0.0, 1.0, 1.0);
+
+      // 発光強度
+      float glowStrength = side * glowLine * pulse;
+
+      gl_FragColor.rgb += glowColor * glowStrength * 2.5;
+      `
+  );
+}
+```
+
+やっていることは、コメント通りになります。`vPhase`には六角柱それぞれにランダムな値があるのと、`uTime`も時間の値が入っているので、これらを組み合わせてランダムに点滅するアニメーションが実現できます。
+
+側面に色を付けられたので、PostProcessingでBloomエフェクトを適用して、発光するようにしていきましょう。
+
+```ts title="App.ts"
+// PostProcessingのインポート
+import { EffectComposer, RenderPass, UnrealBloomPass } from 'three/examples/jsm/Addons.js';
+
+export class App extends Three {
+
+  private composer!: EffectComposer;
+
+  constructor(canvas: HTMLCanvasElement) {
+    // ...
+
+    this.initPostProcess();
+  }
+
+  private initPostProcess() {
+    const renderPass = new RenderPass(this.scene, this.camera);
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.15, // strength
+      0.125, // radius
+      0.0 // threshold
+    );
+
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(renderPass);
+    this.composer.addPass(bloomPass);
+  }
+}
+```
+
+Three.jsのPostProcessing用のアドオンをインポートします。Bloomエフェクトは`UnrealBloomPass`を使用していて、`strength`や`radius`、`threshold`などのパラメーターを調整することで、エフェクトの見た目を変えることができます。
+
+`EffectComposer`を作成して、`RenderPass`と`UnrealBloomPass`を追加します。これで、シーンのレンダリングにBloomエフェクトが適用されるようになります。
+
+最後にアニメーションループで、`renderer.render`の代わりに`composer.render`を呼び出すようにします。
+
+```ts title="App.ts"
+private animate() {
+  const delta = this.clock.getDelta();
+
+  this.updateShader(delta);
+  this.composer.render();
+}
+```
+
+これで、Bloomエフェクトが適用された六角形グリッドが完成しました。側面が発光して、ランダムに波打つようなアニメーションも加わっています。
+
+![Three.jsでBloomエフェクトで発光する六角形グリッド](https://res.cloudinary.com/dy8ftemi0/image/upload/v1780452325/threejs-bloom-hexagonal-pattern-02_vyq1bk.jpg "Three.jsでBloomエフェクトで発光する六角形グリッド")
+
+デモでは、イントロアニメーションも加えているので、気になる方はコードを確認してみてください。
+
+<PostAdUnit />
+
+## まとめ
+
+Three.jsの`CylinderGeometry`を使用して六角柱を作成し、敷き詰めを行って六角形グリッドを作成する方法を紹介しました。さらに、Bloomエフェクトを適用して発光する効果を実装し、波打つようなアニメーションも加えました。
+
+既存の`CylinderGeometry`や`MeshStandardMaterial`を活用しつつ、`onBeforeCompile`でシェーダーをカスタマイズすることで、独自のエフェクトやアニメーションも実装できました！
