@@ -34,5 +34,6 @@ export const tags = [
   { name: '3D', slug: '3d' },
   { name: '画像処理', slug: 'image-processing' },
   { name: 'Chrome拡張機能', slug: 'chrome-extensions' },
+  { name: 'ブログ', slug: 'blog' },
   { name: 'フロントエンド雑記', slug: 'frontend' },
 ];

@@ -38,6 +38,7 @@ export async function getStaticPaths({
     return paginate(filteredPosts, {
       params: { slug },
       props: { name, slug, filteredPosts },
+      pageSize: 20,
     })
   })
 }

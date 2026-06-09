@@ -4,7 +4,7 @@ import { compareDesc } from 'date-fns';
 import { Image } from "astro:assets";
 
 const { relatedPosts } = Astro.props;
-const relatedPostsData = await getEntries(relatedPosts);
+// const relatedPostsData = await getEntries(relatedPosts);
 
 const articlePosts = await getCollection('articles');
 const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
@@ -16,7 +16,7 @@ const newArticlePosts = sortedArticlePosts.slice(0, 4);
   <div class="related__content">
     <p class="related__heading">関連記事</p>
     <ul class="related__list">
-      {relatedPostsData.map((post) => {
+      {relatedPosts.map((post) => {
         const { slug, data: { title, image }} = post;
         return (
           <li class="related__item">

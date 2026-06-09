@@ -28,7 +28,7 @@ export async function getStaticPaths({
   const articlePosts = await getCollection('articles');
   const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
   const sortedArticlePosts = nonDraftPosts.sort((a, b) => compareDesc(a.data.pubDate, b.data.pubDate));
-  const postsPerPage = 10;
+  const postsPerPage = 20;
   return paginate(sortedArticlePosts, { pageSize: postsPerPage });
 }
 

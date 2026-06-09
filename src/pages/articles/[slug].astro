@@ -43,11 +43,22 @@ export async function getStaticPaths() {
   })
 }
 
+async function getRelatedPosts(tags: string[], currentSlug: string) {
+  const articlePosts = await getCollection('articles');
+  const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
+  const relatedPosts = nonDraftPosts.filter((post) => {
+    if (post.slug === currentSlug) return false;
+    return post.data.tags.some((tag) => tags.includes(tag));
+  });
+  const randomRelatedPosts = relatedPosts.sort(() => Math.random() - 0.5).slice(0, 6);
+  return randomRelatedPosts;
+}
+
 const { post, url } = Astro.props as { post: CollectionEntry<"articles">; url: Record<string, unknown> };
 const { Content } = await post.render();
 
 const {
-  data: { title, pubDate, description, ogp, image, isAdLink, amazon, relatedPosts },
+  data: { title, pubDate, description, ogp, image, isAdLink, amazon },
 } = post;
 const pubDateISO = formatISO(pubDate);
 const pubDateJA = format(pubDate, 'yyyy.MM.dd');
@@ -56,6 +67,8 @@ const categoryName = post.data.category;
 const tagsName = post.data.tags;
 
 const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
+
+const relatedPosts = await getRelatedPosts(tagsName, post.slug);
 ---
 
 <Layout pageTitle={title} description={description} articleOgp={ogp} isPost={true}>
