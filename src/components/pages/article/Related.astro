@@ -17,7 +17,7 @@ const newArticlePosts = sortedArticlePosts.slice(0, 4);
     <p class="related__heading">関連記事</p>
     <ul class="related__list">
       {relatedPosts.map((post) => {
-        const { slug, data: { title, image }} = post;
+        const { data: { title, image, slug }} = post;
         return (
           <li class="related__item">
             <a href={`/articles/${slug}/`}>
@@ -35,7 +35,7 @@ const newArticlePosts = sortedArticlePosts.slice(0, 4);
     <p class="related__heading">新着記事</p>
     <ul class="related__list -new">
       {newArticlePosts.map((post) => {
-        const { slug, data: { title, image }} = post;
+        const { data: { title, image, slug }} = post;
         return (
           <li class="related__item">
             <a href={`/articles/${slug}/`}>

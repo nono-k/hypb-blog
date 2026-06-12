@@ -1,7 +1,7 @@
 ---
 import { Image } from "astro:assets";
-import { CldImage } from 'astro-cloudinary';
-import { CldVideoPlayer } from 'astro-cloudinary';
+// import { CldImage } from 'astro-cloudinary';
+// import { CldVideoPlayer } from 'astro-cloudinary';
 
 interface Props {
   title?: string;
@@ -13,15 +13,16 @@ const { title, src, alt } = Astro.props;
 const cloudName = import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME;
 
 const isStingSrc = typeof src === 'string';
-const isCloudinaryImage = isStingSrc && src.startsWith(`https://res.cloudinary.com/${cloudName}/image/`);
+// const isCloudinaryImage = isStingSrc && src.startsWith(`https://res.cloudinary.com/${cloudName}/image/`);
 const isCloudinaryVideo = isStingSrc && src.startsWith(`https://res.cloudinary.com/${cloudName}/video/`);
 ---
 
 <figure class="figure">
   { isCloudinaryVideo ? (
-    <CldVideoPlayer src={src} width="1200" height="675" />
-  ) : isCloudinaryImage ? (
-    <CldImage src={src} alt={alt} />
+    <video controls>
+      <source src={src} type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
   ) : (
     <Image src={src} alt={alt} width="1200" height="675" />
   )
@@ -37,6 +38,11 @@ const isCloudinaryVideo = isStingSrc && src.startsWith(`https://res.cloudinary.c
 <style lang="scss">
   .figure {
     margin-block: 2.5rem;
+
+    video {
+      display: block;
+      width: 100%;
+    }
   }
   .figcaption {
     margin-top: 0.5rem;

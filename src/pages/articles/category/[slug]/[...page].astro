@@ -55,7 +55,7 @@ const categoryNum = filteredPosts.length;
       <ArticleList>
       {
         page.data.map((post) => {
-          const { slug, data: { image, title, pubDate, category, tags }} = post;
+          const { data: { image, title, pubDate, category, tags, slug }} = post;
           return (
             <Card url={`/articles/${slug}/`} src={image} title={title} time={pubDate} category={category} tags={tags} />
           )

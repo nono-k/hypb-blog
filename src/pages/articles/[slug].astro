@@ -1,7 +1,7 @@
 ---
 import "katex/dist/katex.min.css";
 import { Image } from "astro:assets";
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 import type { CollectionEntry } from "astro:content";
 
 import Layout from "@/layouts/layout";
@@ -31,14 +31,14 @@ export async function getStaticPaths() {
   const numberOfPosts = nonDraftPosts.length;
 
   return sortedBlogPosts.map((post) => {
-    const { slug } = post;
-    const currentPage = sortedBlogPosts.findIndex((post) => post.slug === slug);
+    const { slug } = post.data;
+    const currentPage = sortedBlogPosts.findIndex((post) => post.data.slug === slug);
     const prev = currentPage + 1 >= numberOfPosts
       ? {}
-      : { prevTitle: sortedBlogPosts[currentPage+1].data.title, prevImage: sortedBlogPosts[currentPage+1].data.image, prev: `/articles/${sortedBlogPosts[currentPage+1].slug}/` };
+      : { prevTitle: sortedBlogPosts[currentPage+1].data.title, prevImage: sortedBlogPosts[currentPage+1].data.image, prev: `/articles/${sortedBlogPosts[currentPage+1].data.slug}/` };
     const next = currentPage - 1 < 0
       ? {}
-      : { nextTitle: sortedBlogPosts[currentPage-1].data.title, nextImage: sortedBlogPosts[currentPage-1].data.image, next: `/articles/${sortedBlogPosts[currentPage-1].slug}/` };
+      : { nextTitle: sortedBlogPosts[currentPage-1].data.title, nextImage: sortedBlogPosts[currentPage-1].data.image, next: `/articles/${sortedBlogPosts[currentPage-1].data.slug}/` };
     return { params: {slug}, props: {post, url: {...prev, ...next}} };
   })
 }
@@ -47,7 +47,7 @@ async function getRelatedPosts(tags: string[], currentSlug: string) {
   const articlePosts = await getCollection('articles');
   const nonDraftPosts = articlePosts.filter((post) => !post.data.draft);
   const relatedPosts = nonDraftPosts.filter((post) => {
-    if (post.slug === currentSlug) return false;
+    if (post.data.slug === currentSlug) return false;
     return post.data.tags.some((tag) => tags.includes(tag));
   });
   const randomRelatedPosts = relatedPosts.sort(() => Math.random() - 0.5).slice(0, 6);
@@ -55,7 +55,7 @@ async function getRelatedPosts(tags: string[], currentSlug: string) {
 }
 
 const { post, url } = Astro.props as { post: CollectionEntry<"articles">; url: Record<string, unknown> };
-const { Content } = await post.render();
+const { Content } = await render(post);
 
 const {
   data: { title, pubDate, description, ogp, image, isAdLink, amazon },
@@ -68,7 +68,7 @@ const tagsName = post.data.tags;
 
 const categorySlug = category.find((cat) => cat.name === categoryName)?.slug;
 
-const relatedPosts = await getRelatedPosts(tagsName, post.slug);
+const relatedPosts = await getRelatedPosts(tagsName, post.data.slug);
 ---
 
 <Layout pageTitle={title} description={description} articleOgp={ogp} isPost={true}>
