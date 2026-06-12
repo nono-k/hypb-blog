@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import { fileURLToPath } from 'node:url';
 import { rehypeHeadingIds } from '@astrojs/markdown-remark';
 import { siteMeta } from './src/lib/constants';
 import { h } from 'hastscript';
@@ -58,13 +59,18 @@ export default defineConfig({
     prefetchAll: true
   },
   vite: {
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: `@use "src/styles/mixin.scss";`
-        }
-      }
-    }
+          additionalData: '@use "@/styles/mixin.scss";',
+        },
+      },
+    },
   },
   integrations: [
     mdx(),
@@ -113,7 +119,7 @@ export default defineConfig({
       ]
     ]
   },
-  experimental: {
-    svg: true,
-  }
+  // experimental: {
+  //   svg: true,
+  // }
 });

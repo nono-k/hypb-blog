@@ -1,8 +1,12 @@
-import { z, defineCollection, reference } from 'astro:content';
+import { defineCollection, reference } from 'astro:content';
+import { glob } from 'astro/loaders';
+import { z } from 'zod';
 
 const articleCollection = defineCollection({
+  loader: glob({ pattern: 'src/content/articles/**/*.mdx' }),
   schema: ({image}) => z.object({
     title: z.string(),
+    slug: z.string(),
     pubDate: z.string(),
     image: image(),
     ogp: z.string(),
