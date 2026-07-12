@@ -1,0 +1,411 @@
+---
+title: Mediapipeで動画の人物を検出してThree.jsでJoy Division風のパルサー波形エフェクト効果を付ける
+slug: threejs-mediapipe-joy-division-effect
+pubDate: '2026-07-13'
+image: ../../../assets/images/threejs-mediapipe-joy-division-effect.jpg
+ogp: 'images/ogp/threejs-mediapipe-joy-division-effect.jpg'
+category: Coding
+tags:
+  - Three.js
+  - Mediapipe
+description: Mediapipeで動画の人物を検出し、Three.jsでJoy Division風のパルサー波形のようなエフェクト効果を付ける方法を解説します。参考にしているのは、Joy DivisionのDisorderのMVになります。
+---
+
+import Youtube from "../../../components/markdown/Youtube.astro";
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+
+<DemoBtn url="https://nono-k.github.io/threejs-joy-division-disorder-mv/" />
+
+## はじめに
+
+<Youtube videoId="galUy3gMWpM" />
+
+Joy DivisionのDisorderのMVを参考にして、動画の人物を検出して、パルサー波形エフェクトの実装方法を解説していきます。
+
+動画の人物を検出する方法は、Mediapipeを使用し検出したマスクを利用して、Three.jsでパルサー波形のようなエフェクトを付けていきます。
+
+Three.jsの開発環境は[以前の記事](/articles/threejs-vite-typescript-template)を参考にしてください。
+この記事のデモのコードは以下のGitHubリポジトリにあるので、ぜひ参考にしてください。
+
+https://github.com/nono-k/threejs-joy-division-disorder-mv
+
+## Mediapipeで人物を検出する
+
+まずは、Mediapipeをインストールしましょう。
+以下のコマンドでインストールできます。
+
+```bash
+npm install --save @mediapipe/tasks-vision
+```
+
+動画はHTML上のvideoタグで取得するので、HTMLは次のようになります。
+
+```html
+<style>
+  video {
+    display: none;
+  }
+</style>
+
+<video id="video" src="./video/video.mp4" autoplay muted loop></video>
+<canvas id="webgl"></canvas>
+```
+
+video要素は、取得するだけなので、display:noneで非表示にしています。今回はcanvas要素もひとつだけで完結するようにしています。
+
+それでは、Mediapipeで人物を検出するコードを見ていきましょう。
+`Media.ts`というファイルを作成して、以下のコードを記述します。
+
+```ts title="Media.ts"
+import { FilesetResolver, ImageSegmenter, type MPMask } from '@mediapipe/tasks-vision';
+import * as THREE from 'three';
+
+export class Media {
+  video: HTMLVideoElement;
+  lastVideoTime: number;
+  imageSegmenter?: ImageSegmenter;
+  maskTexture: THREE.DataTexture | null = null;
+
+  constructor() {
+    this.video = document.getElementById('video') as HTMLVideoElement;
+    this.video.play();
+
+    this.lastVideoTime = -1;
+  }
+
+  async init() {
+    const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm');
+
+    this.imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite',
+        delegate: 'GPU',
+      },
+      runningMode: 'VIDEO',
+      outputCategoryMask: false,
+      outputConfidenceMasks: true,
+    });
+
+    this.predictLoop();
+  }
+
+  predictLoop = () => {
+    if (this.video.currentTime !== this.lastVideoTime && this.imageSegmenter) {
+      this.lastVideoTime = this.video.currentTime;
+
+      const startTimeMs = performance.now();
+      const result = this.imageSegmenter.segmentForVideo(this.video, startTimeMs);
+
+      this.updateMaskTexture(result.confidenceMasks?.[0]);
+    }
+    requestAnimationFrame(this.predictLoop);
+  };
+
+  updateMaskTexture(mask?: MPMask): void {
+    if (!mask) return;
+    const { width, height } = mask;
+    const data = mask.getAsFloat32Array();
+
+    if (!this.maskTexture) {
+      this.maskTexture = new THREE.DataTexture(data, width, height, THREE.RedFormat, THREE.FloatType);
+
+      this.maskTexture.flipY = true;
+      this.maskTexture.needsUpdate = true;
+      return;
+    }
+
+    this.maskTexture.image.data?.set(data);
+    this.maskTexture.needsUpdate = true;
+  }
+}
+```
+
+Mediapipeの詳しい解説はしないですが、今回はモデルとして、`selfie_segmenter`を使用して、人物のマスクを取得しています。Mediapipeのモデルなどは、[公式ドキュメント](https://developers.google.com/edge/mediapipe/solutions/vision/image_segmenter?utm_source=chatgpt.com)を参考にしてください。
+
+`init`でMediapipeのAIモデルを読み込んだら、`predictLoop`で動画のフレームごとに人物を検出して、マスクを取得しています。
+
+`updateMaskTexture`では、取得したマスクを初回だけ`THREE.DataTexture`に変換して、以降はマスクのデータを更新するだけにしています。`THREE.DataTexture`の第4引数の`THREE.RedFormat`は、赤チャンネルのみを使用することを意味しています。Mediapipeのマスクは、人物確率しかないので、赤チャンネルの1つだけで十分です。
+
+また、このままだと動画が反転してしまうので、`flipY = true`で反転させています。
+
+メインの`App.ts`では、`Media.ts`の`maskTexture`をuniformとして渡して、マスクを使用してパルサー波形のようなエフェクトを付けていきます。
+
+それでは、App.tsのコードを見ていきましょう。
+
+```ts title="App.ts"
+import * as THREE from 'three';
+import { Controls, OrthographicCamera } from './core/Camera';
+import { Three } from './core/Three';
+import { Media } from './Media';
+import fragment from './shaders/fragment.glsl?raw';
+import vertex from './shaders/vertex.glsl?raw';
+
+export class App extends Three {
+  private readonly camera: OrthographicCamera;
+  private mesh!: THREE.Mesh;
+
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
+
+    this.camera = new OrthographicCamera({ left: -1, right: 1, top: 1, bottom: -1, near: 0.1, far: 10 });
+    this.camera.position.z = 1;
+
+    this.init();
+  }
+
+  private async init() {
+    const media = new Media();
+    await media.init();
+
+    this.createGeometry(media);
+
+    window.addEventListener('resize', this.resize.bind(this));
+    this.renderer.setAnimationLoop(this.animate.bind(this));
+  }
+
+  private createGeometry(media: Media) {
+    const geometry = new THREE.PlaneGeometry(2, 2);
+
+    const video = document.getElementById('video') as HTMLVideoElement;
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+
+    const material = new THREE.ShaderMaterial({
+      vertexShader: vertex,
+      fragmentShader: fragment,
+      transparent: true,
+      uniforms: {
+        uMaskTexture: { value: media.maskTexture },
+        uVideoTexture: { value: videoTexture },
+        uTime: { value: 0 },
+      },
+    });
+
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.scene.add(this.mesh);
+  }
+
+  private animate() {
+    const delta = this.clock.getDelta();
+
+    const material = this.mesh.material as THREE.ShaderMaterial;
+
+    if (material.uniforms.uTime) {
+      material.uniforms.uTime.value += delta;
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+```
+
+Three.js側では、板ポリ1枚を使用するだけになります。`Media.ts`の初期化は、`await media.init();`で行い、マスクのテクスチャをuniformとして渡しています。
+
+```ts title="App.ts"
+private createGeometry(media: Media) {
+  const geometry = new THREE.PlaneGeometry(2, 2);
+
+  const video = document.getElementById('video') as HTMLVideoElement;
+  const videoTexture = new THREE.VideoTexture(video);
+  videoTexture.minFilter = THREE.LinearFilter;
+  videoTexture.magFilter = THREE.LinearFilter;
+
+  const material = new THREE.ShaderMaterial({
+    vertexShader: vertex,
+    fragmentShader: fragment,
+    transparent: true,
+    uniforms: {
+      uMaskTexture: { value: media.maskTexture },
+      uVideoTexture: { value: videoTexture },
+      uTime: { value: 0 },
+    },
+  });
+
+  this.mesh = new THREE.Mesh(geometry, material);
+  this.scene.add(this.mesh);
+}
+```
+
+人物検出のマスクは、`uMaskTexture`として渡して、動画のテクスチャは`uVideoTexture`として渡しています。これでシェーダー側で使用できるようになったので、フラグメントシェーダーで人物検出のマスクを表示させましょう。
+
+```glsl title="fragment.glsl"
+precision mediump float;
+
+varying vec2 vUv;
+uniform sampler2D uMaskTexture;
+
+void main() {
+  vec2 uv = vUv;
+  vec4 maskColor = texture(uMaskTexture, uv);
+  gl_FragColor = maskColor;
+}
+```
+
+![人物検出のマスク](https://res.cloudinary.com/dy8ftemi0/image/upload/v1783782273/threejs-mediapipe-joy-division-effect-01_trcdml.jpg "人物検出のマスク")
+
+これで、人物検出のマスクが表示されるようになりました！
+最後にJoy Division風のパルサー波形エフェクトを付けていきます。
+
+<PostAdUnit />
+
+## Joy Division風パルサー波形
+
+Joy Division風パルサー波形のGLSLコードは次のようになります。
+
+```glsl title="fragment.glsl"
+precision mediump float;
+
+varying vec2 vUv;
+uniform sampler2D uMaskTexture;
+uniform sampler2D uVideoTexture;
+uniform float uTime;
+
+const float PI = 3.1415926;
+
+void main() {
+  vec2 uv = vUv;
+
+  // ビデオのモノクロ化
+  vec3 rawVideoColor = texture(uVideoTexture, uv).rgb;
+  float monoVideo = dot(rawVideoColor, vec3(0.299, 0.587, 0.114));
+  vec3 videoColor = vec3(monoVideo);
+
+  vec3 darkColor = vec3(0.05);
+
+  // 時間経過による背景色の変化
+  float mixFactor = sin(uTime * 0.5) * 0.5 + 0.5;
+  vec3 baseBg = mix(darkColor, videoColor, mixFactor);
+
+  vec3 finalColor = baseBg;
+
+  // 中央ほど線が強くなるように重み付け
+  float centerWeight = sin(uv.x * PI);
+
+  // 線の数と太さ
+  float numLines = 30.0;
+  float thickness = 0.002;
+
+  // フラグ
+  bool isOccluded = false;
+  bool isOnLine = false;
+
+  for (float i = 0.0; i < numLines; i++) {
+    float vBase = i / numLines; // 線の基準位置（0.0〜1.0）
+
+    // 人物マスクの取得
+    float maskVal = texture(uMaskTexture, vec2(uv.x, vBase)).r;
+
+    // マスクの値に応じて線の高さを変化させる
+    float displacement = maskVal * 0.05 * centerWeight;
+
+    float noise = sin(uv.x * 120.0 + vBase * 20.0 + uTime * 1.5) * 0.0025 * maskVal;
+
+    float vLine = vBase + displacement + noise;
+
+    // すでに線が描かれている場合は、下の線を描画しないようにする
+    if (vBase < uv.y && vLine > uv.y) {
+      isOccluded = true;
+    }
+
+    // 線の太さの範囲内にuv.yがある場合、線を描画する
+    if (abs(uv.y - vLine) < thickness) {
+      if (!isOccluded) {
+        isOnLine = true;
+      }
+    }
+  }
+
+  // 線が遮蔽されている場合は背景色を使用
+  if (isOccluded) {
+    finalColor = baseBg;
+  }
+
+  // 線が描画されている場合は線の色を使用
+  if (isOnLine) {
+    vec3 lineColor = vec3(1.0);
+    finalColor = lineColor;
+  }
+
+  gl_FragColor = vec4(finalColor, 1.0);
+}
+```
+
+それではGLSLコードの解説をしていきます。
+今回のデモでは、時間経過により動画の透過を変更したいのでmix関数を使用します。
+
+```glsl
+vec2 uv = vUv;
+
+// ビデオのモノクロ化
+vec3 rawVideoColor = texture(uVideoTexture, uv).rgb;
+float monoVideo = dot(rawVideoColor, vec3(0.299, 0.587, 0.114));
+vec3 videoColor = vec3(monoVideo);
+
+vec3 darkColor = vec3(0.05);
+
+// 時間経過による背景色の変化
+float mixFactor = sin(uTime * 0.5) * 0.5 + 0.5;
+vec3 baseBg = mix(darkColor, videoColor, mixFactor);
+
+vec3 finalColor = baseBg;
+```
+
+`sin`関数を使用して時間経過を表現しています。`mixFactor`は0.0〜1.0の範囲で変化するので、`mix`関数で背景色を変化させることができます。
+
+このパルサー波形エフェクトの核となるのは、人物マスクを高さマップ(Height Map)として利用していることです。人物マスクの値が大きいほど、線の高さが高くなるようにしています。
+
+```glsl
+for (float i = 0.0; i < numLines; i++) {
+  float vBase = i / numLines; // 線の基準位置（0.0〜1.0）
+
+  // 人物マスクの取得
+  float maskVal = texture(uMaskTexture, vec2(uv.x, vBase)).r;
+
+  // マスクの値に応じて線の高さを変化させる
+  float displacement = maskVal * 0.05 * centerWeight;
+
+  float noise = sin(uv.x * 120.0 + vBase * 20.0 + uTime * 1.5) * 0.0025 * maskVal;
+
+  float vLine = vBase + displacement + noise;
+
+  // すでに線が描かれている場合は、下の線を描画しないようにする
+  if (vBase < uv.y && vLine > uv.y) {
+    isOccluded = true;
+  }
+
+  // 線の太さの範囲内にuv.yがある場合、線を描画する
+  if (abs(uv.y - vLine) < thickness) {
+    if (!isOccluded) {
+      isOnLine = true;
+    }
+  }
+}
+```
+
+`vBase < uv.y && vLine > uv.y`の条件は、上に持ち上がった線が現在のピクセルを覆っているかを判定し、下側の線を描画しないことで、複数の線が重なってギザギザになるのを防いでいます。また、`abs(uv.y - vLine) < thickness`の条件は、線の太さ(`thickness`)の範囲内にuv.yがある場合に線を描画するフラグをtrueにしています。
+
+`isOccluded`か`isOnLine`の条件に応じて、背景を描画するか線を描画するかを決定しています。
+
+```glsl
+// 線が遮蔽されている場合は背景色を使用
+if (isOccluded) {
+  finalColor = baseBg;
+}
+
+// 線が描画されている場合は線の色を使用
+if (isOnLine) {
+  vec3 lineColor = vec3(1.0);
+  finalColor = lineColor;
+}
+```
+
+![Joy Division風パルサー波形](https://res.cloudinary.com/dy8ftemi0/image/upload/v1783842336/threejs-mediapipe-joy-division-effect-02_wppbqr.jpg "Joy Division風パルサー波形")
+
+以上で、Mediapipeで人物を検出して、Three.jsでJoy Division風のパルサー波形エフェクトを付けることができました。
+
+## まとめ
+
+今回は、Mediapipeで動画の人物を検出して、Three.jsでJoy Division風のパルサー波形エフェクトを付ける方法を解説しました。DisorderのMVを忠実には再現できていないですが、Joy Division風のエフェクトを実装できてよかったです。またいつかUnkown Pleasuresのジャケの再現もやってみたいと思います！
