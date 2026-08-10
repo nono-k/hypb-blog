@@ -33,6 +33,7 @@ export const tags = [
   { name: 'Gulp', slug: 'gulp' },
   { name: '3D', slug: '3d' },
   { name: '画像処理', slug: 'image-processing' },
+  { name: 'テキスト表現', slug: 'text-expression' },
   { name: 'Mediapipe', slug: 'mediapipe' },
   { name: 'Chrome拡張機能', slug: 'chrome-extensions' },
   { name: 'ブログ', slug: 'blog' },

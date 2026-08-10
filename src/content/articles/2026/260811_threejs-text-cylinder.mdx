@@ -1,0 +1,373 @@
+---
+title: スクロールで無限ループするシリンダーテキストをThree.jsで作る方法
+slug: threejs-text-cylinder
+pubDate: '2026-08-11'
+image: ../../../assets/images/threejs-text-cylinder.jpg
+ogp: 'images/ogp/threejs-text-cylinder.jpg'
+category: Coding
+tags:
+  - Three.js
+  - テキスト表現
+description: スクロールで無限ループするシリンダーテキストをThree.jsで作る方法を解説します。テキストはThree.jsのTextGeometryを使って作成し、シリンダーの形状に沿って配置します。無限ループはシェーダー側でmodを使用して実現させます。
+---
+
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import Twitter from "@/components/markdown/Twitter.astro";
+
+<DemoBtn url="https://nono-k.github.io/threejs-text-cylinder/" />
+
+## はじめに
+
+今回は、Three.jsのTextGeometryを使ってテキストをシリンダーの形状に沿って配置し、スクロールで無限ループするシリンダーテキストを作る方法を解説します。
+
+Three.jsの開発環境は[以前の記事](/articles/threejs-vite-typescript-template)を参考にしてください。
+この記事のデモのコードは以下のGitHubリポジトリにあるので、ぜひ参考にしてください。
+
+https://github.com/nono-k/threejs-text-cylinder
+
+## 実装の考え方
+
+今回の実装の考え方は以下の通りです。
+
+- 平面上に並べたテキストを、頂点シェーダーでシリンダーの形状に沿って配置する
+- sin / cosによってうねりを加える
+- `wheel`イベントで上下スクロールし、テキストを無限ループさせる
+- `wheel`してる場合のみ、時間とともにシリンダーを動かす
+
+それでは最初は、Three.jsの`TextGeometry`を使用してテキストを表示させましょう。
+
+## テキストを表示させる
+
+Three.jsでテキストを表示させるために、`TextGeometry`と`FontLoader`を使用します。以下のようにインポートしましょう。
+
+```ts
+import { FontLoader, TextGeometry } from 'three/examples/jsm/Addons.js';
+```
+
+テキストを表示させるためには、まずフォントを読み込む必要があります。`FontLoader`を使ってフォントを読み込みます。この処理は`loadFont`メソッドにまとめておきましょう。
+
+```ts
+private loadFont(url: string) {
+  return new Promise<THREE.Font>((resolve, reject) => {
+    new FontLoader().load(url, resolve, undefined, reject);
+  });
+}
+```
+
+フォントを読み込んだら、`TextGeometry`を使ってテキストジオメトリを作成します。以下のように`createText`メソッドを作成しましょう。
+
+```ts
+private async createText() {
+  const font = await this.loadFont('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json');
+  const rawText = 'CYLINDER TEXT EFFECT';
+  const spacedText = rawText.split('').join(' ');
+  const repeatedText = `${spacedText}`.repeat(2);
+
+  const texGeo = new TextGeometry(repeatedText, {
+    font,
+    size: 0.4,
+    depth: 0.05,
+    curveSegments: 12,
+    bevelEnabled: true,
+    bevelThickness: 0.015,
+    bevelSize: 0.015,
+    bevelSegments: 3,
+  });
+}
+```
+
+`TextGeometry`のパラメータについては、次のようになります。
+
+| パラメータ | 説明 |
+| --- | --- |
+| size | テキストのサイズ |
+| depth | テキストの厚み(Z方向) |
+| curveSegments | 曲線の分割数 |
+| bevelEnabled | エッジの面取り |
+
+ここまでで、Three.jsでテキストを表示させることができました。まだシリンダーの形状に沿って配置することはできませんが、次のステップでそれを実現していきます。
+
+### テキストの前処理
+
+その前にそのままだと、文字間が詰まってしまうので、文字間を空けるために、テキストをスペースで区切って結合します。この処理は以下のように行います。
+
+```ts
+const rawText = 'CYLINDER TEXT EFFECT';
+const spacedText = rawText.split('').join(' ');
+const repeatedText = `${spacedText}`.repeat(2);
+```
+
+シリンダーの形状に沿って配置する際に、1周分の文字列が短いと隙間が出るため、`repeat`を使って文字列を繰り返しています。
+
+## 複数行配置と円周スケーリング
+
+まず最初に、複数行の数(`lineCount`)とテキストの間隔(`lineSpacing`)を定義しておきます。これらの値は、シリンダーに沿ってテキストを配置する際に使用します。また、テキスト全体の高さ(`totalHeight`)も複数行の数とテキストの間隔から計算しておきます。
+
+```ts
+export class App extends Three {
+  // ...
+  private texGroup!: THREE.Group;
+
+  private readonly lineCount = 22;
+  private readonly lineSpacing = 1.6;
+  private readonly totalHeight = this.lineCount * this.lineSpacing;
+
+  private async init() {
+    this.texGroup = new THREE.Group();
+    this.scene.add(this.texGroup);
+  }
+}
+```
+
+ここで、`THREE.Group`を使って、複数行のテキストをまとめて管理します。これにより、シリンダーの形状に沿って配置する際に、グループ全体を操作することができます。
+
+### 複数行のテキストを縦に並べる
+
+`createText`メソッド内で、複数行のテキストを縦に並べるために、`lineCount`と`lineSpacing`を使ってテキストの位置を調整します。以下のように、テキストジオメトリの位置を設定します。
+
+```ts
+private async createText() {
+  // ...
+
+  for (let i = 0; i < this.lineCount; i++) {
+    // TextGeometry作成 ...
+    const texGeo = new TextGeometry(repeatedText, {
+      // ...
+    });
+
+    // ...
+
+    this.mesh = new THREE.Mesh(texGeo, this.material);
+    this.mesh.position.y = (i - this.lineCount / 2) * this.lineSpacing;
+    // this.mesh.frustumCulled = false;
+    this.texGroup.add(this.mesh);
+  }
+}
+```
+
+`(i - this.lineCount / 2) * this.lineSpacing`の計算部分は、中央を記述にしてテキストを上下に配置するための計算です。これにより、複数行のテキストが縦に並ぶようになります。
+
+コメントアウトしている`this.mesh.frustumCulled = false;`は、カメラの視野外にあるオブジェクトの自然消失を防ぐための設定です。今回は、テキストの重なりを考慮して画面外のテキストはデフォルト通り消えるようにしていますが、より無限ループ感を出す場合は有効化してください。
+
+### シリンダーに沿って配置するための円周スケーリング
+
+次は、シリンダーの形状に沿ってテキストを配置するために、テキストの幅を円周に合わせてスケーリングします。シリンダーの半径を`radius`として、円周を計算し、`TextGeometry`の横幅(X方向)をスケールします。
+
+```ts
+private async createText() {
+  // ...
+  const radius = 2.2;
+  const circumference = 2 * Math.PI * radius;
+
+  for (let i = 0; i < this.lineCount; i++) {
+    // TextGeometry作成 ...
+    texGeo.center();
+    texGeo.computeBoundingBox();
+    const currentWidth = (texGeo.boundingBox?.max.x ?? 0) - (texGeo.boundingBox?.min.x ?? 0);
+    const scaleFactor = circumference / currentWidth;
+    texGeo.scale(scaleFactor, 1, 1);
+
+  }
+}
+```
+
+頂点シリンダー側では、`position.x / uRadius`を角度に変換するので、X方向の長さが円周と一致していないと、文字列が1周でつながらなかったり、重なったりする問題が生じるので、この処理をしています。
+
+次にマテリアルの設定を見ていきましょう。
+
+## マテリアル設定
+
+頂点シェーダーで使用するuniform変数は、スクロール量(`uScroll`)、シリンダーの半径(`uRadius`)、テキスト全体の高さ(`uTotalHeight`)、時間(`uTime`)です。これらのuniform変数を設定するために、`createMaterial`メソッドを作成します。
+
+```ts
+private createMaterial() {
+  this.material = new THREE.ShaderMaterial({
+    vertexShader: vertex,
+    fragmentShader: fragment,
+    side: THREE.DoubleSide,
+    uniforms: {
+      uScroll: { value: 0 },
+      uRadius: { value: 2.2 },
+      uTotalHeight: { value: this.totalHeight },
+      uTime: { value: 0 },
+    },
+  });
+}
+```
+
+`this.totalHeight`は、先ほど計算した複数行の数(`lineCount`)とテキストの間隔(`lineSpacing`)のかけ算の値になっています。スクロール量や時間は後ほど設定していきます。
+
+次に頂点シェーダーでシリンダーの形状に沿って配置する方法を見ていきましょう。
+
+## 頂点シェーダーでシリンダーの形状に沿って配置する
+
+頂点シェーダーの全コードは以下の通りです。
+
+```glsl title="vertex.glsl"
+uniform float uRadius;
+uniform float uScroll;
+uniform float uTotalHeight;
+uniform float uTime;
+
+void main() {
+  // メッシュの中心位置を取得
+  float meshCenterY = modelMatrix[3].y;
+
+  // スクロール量を考慮して、メッシュのZ座標をループさせる
+  float rawZ = meshCenterY + uScroll;
+  float halfH = uTotalHeight * 0.5;
+  float loopedMeshZ = mod(rawZ + halfH, uTotalHeight) - halfH;
+
+  float angle = -position.x / uRadius;
+  float r = uRadius + position.y;
+
+  // 円柱座標系に変換
+  vec3 cylPos;
+  cylPos.x = r * cos(angle);
+  cylPos.y = r * sin(angle);
+  cylPos.z = loopedMeshZ + position.z;
+
+  // 時間経過(uTime)によって変化するS字カーブとうねり
+  float curveX = sin(cylPos.z * 0.25 + uTime * 0.8) * 1.5;
+  float curveY = cos(cylPos.z * 0.15 + uTime * 0.6) * 0.8;
+
+  cylPos.x += curveX;
+  cylPos.y += curveY;
+
+  gl_Position = projectionMatrix * viewMatrix * vec4(cylPos, 1.0);
+}
+```
+
+それでは、詳しく見ていきましょう。
+
+### メッシュの中心位置を取得
+
+```glsl
+float meshCenterY = modelMatrix[3].y;
+```
+
+ここはThree.js特有で`modelMatrix[3].y`は、そのメッシュがワールド空間上でどれくらいY方向に移動しているかを取得することができます。これは、先ほどJavaScript側で計算した値になります。
+
+```ts
+this.mesh.position.y = (i - this.lineCount / 2) * this.lineSpacing;
+```
+
+### 各メッシュのY位置をZ方向のスクロールに使う
+
+```glsl
+float rawZ = meshCenterY + uScroll;
+```
+
+各テキスト行は`position.y`で縦に並べていますが、シリンダー上ではその位置情報をZ方向(奥行き、シリンダーの軸方向)として使います。ここでは、メッシュ位置+スクロール量を足して、Z方向の位置を計算しています。
+
+### 無限ループ用の処理
+
+```glsl
+float halfH = uTotalHeight * 0.5;
+float loopedMeshZ = mod(rawZ + halfH, uTotalHeight) - halfH;
+```
+
+最初に全体の高さの半分(`halfH`)を求めてから、`mod`を使って、Z方向の位置を`-halfH`から`halfH`の範囲に収めています。これにより、無限ループのように見せることができます。
+
+### シリンダー座標系に変換
+
+まずは、X座標を角度に変換し、Y座標を半径に加算してシリンダーの半径とします。
+
+```glsl
+float angle = -position.x / uRadius;
+float r = uRadius + position.y;
+```
+次に、シリンダー座標系に変換します。これは、極座標変換のようなものになります。
+
+```glsl
+vec3 cylPos;
+cylPos.x = r * cos(angle);
+cylPos.y = r * sin(angle);
+cylPos.z = loopedMeshZ + position.z;
+```
+
+Z方向は、先ほど計算した`loopedMeshZ`を使用して、スクロール量を反映させています。
+
+### 時間経過によるS字カーブとうねりの追加
+
+```glsl
+float curveX = sin(cylPos.z * 0.25 + uTime * 0.8) * 1.5;
+float curveY = cos(cylPos.z * 0.15 + uTime * 0.6) * 0.8;
+
+cylPos.x += curveX;
+cylPos.y += curveY;
+```
+
+ここでは、Z座標を基準にして、sin / cosを使ってS字カーブとうねりを追加しています。`uTime`を加えることで、時間経過とともに変化するようになります。
+
+最後に、`gl_Position`に変換後の座標を設定します。
+
+```glsl
+gl_Position = projectionMatrix * viewMatrix * vec4(cylPos, 1.0);
+```
+
+これで、頂点シェーダー側でシリンダーの形状に沿ってテキストを配置することができました。
+
+## スクロール処理とアニメーションループ
+
+最後にスクロール処理を実装します。スクロールした時のみ`uTime`を加算して、シリンダーのうねりを動かすようにします。まずは、`wheel`イベントを使ってスクロール量を取得し、`this.targetScroll`に加算します。
+
+```ts
+export class App extends Three {
+  // ...
+  private targetScroll = 0;
+  private currentScroll = 0;
+  private lastScroll = 0;
+  private uTimeValue = 0;
+
+  private async init() {
+    // ...
+    window.addEventListener('wheel', this.onWheel.bind(this), { passive: true });
+  }
+
+  private onWheel(e: WheelEvent) {
+    this.targetScroll += e.deltaY * 0.02;
+  }
+}
+```
+
+アニメーションループでは、`this.currentScroll`を`this.targetScroll`に近づけるように補間し、スクロール量の変化がある場合のみ`uTime`を加算します。
+
+```ts
+private animate() {
+  const delta = this.clock.getDelta();
+
+  this.currentScroll += (this.targetScroll - this.currentScroll) * 0.08;
+
+  const scrollDelta = Math.abs(this.currentScroll - this.lastScroll);
+
+  // スクロールしている場合のみ、時間を加算する
+  if (scrollDelta > 0.001) {
+    this.uTimeValue += delta;
+  }
+
+  this.lastScroll = this.currentScroll;
+
+  if (this.material?.uniforms?.uTime) {
+    this.material.uniforms.uTime.value = this.uTimeValue;
+  }
+
+  if (this.material?.uniforms?.uScroll) {
+    const wrappedScroll = ((this.currentScroll % this.totalHeight) + this.totalHeight) % this.totalHeight;
+    this.material.uniforms.uScroll.value = wrappedScroll;
+  }
+
+  this.renderer.render(this.scene, this.camera);
+}
+```
+
+これで、スクロールでシリンダーテキストを動かせるようになりました！
+
+![シリンダーテキストエフェクト](https://res.cloudinary.com/dy8ftemi0/image/upload/v1786350901/threejs-text-cylinder-01_q3p0nz.jpg "シリンダーテキストエフェクト")
+
+## まとめ
+
+今回は、Three.jsのTextGeometryを使ってテキストを表示させ、頂点シェーダーでシリンダーの形状に沿って配置し、スクロールで無限ループするシリンダーテキストを作る方法を解説しました。
+
+シェーダー形状で奥行き方向にスクロールさせる方法は、汎用的に使えるかと思うので参考になれば幸いです。
