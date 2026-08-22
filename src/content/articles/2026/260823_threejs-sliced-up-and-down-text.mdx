@@ -1,0 +1,339 @@
+---
+title: Three.jsでビートに同期するグリッチテキストを作る
+slug: threejs-sliced-up-and-down-text
+pubDate: '2026-08-23'
+image: ../../../assets/images/threejs-sliced-up-and-down-text.jpg
+ogp: 'images/ogp/threejs-sliced-up-and-down-text.jpg'
+category: Coding
+tags:
+  - Three.js
+  - テキスト表現
+description: Three.jsでビートに同期するグリッチテキストを作る方法を解説します。テキストは配列で保持し、一定時間が経ったらグリッチさせて表示させます。またその際にテキストをRGBシフトのエフェクトをかけて、グリッチ感を演出します。
+---
+
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import Twitter from "@/components/markdown/Twitter.astro";
+
+<DemoBtn url="https://nono-k.github.io/threejs-sliced-up-and-down-text/" />
+
+## はじめに
+
+今回は、Three.jsでテキストを描画して、一定時間が経ったらグリッチのように縦方向にズレて表示される表現の作り方を解説します。[前回の記事](/articles/threejs-text-cylinder)では、テキストを`TextGeometry`で3Dとして表示させましたが、今回はCanvas2Dでテキストを描画して、テクスチャとしてフラグメントシェーダーでグリッチ表現を作る方法を解説します。
+
+Three.jsの開発環境は[以前の記事](/articles/threejs-vite-typescript-template)を参考にしてください。
+この記事のデモのコードは以下のGitHubリポジトリにあるので、ぜひ参考にしてください。
+
+https://github.com/nono-k/threejs-sliced-up-and-down-text
+
+## 実装の考え方
+
+今回の実装の考え方は以下の通りです。
+
+- オフスクリーンCanvasでテキストテクスチャーを動的に書き換えする
+- フラグメントシェーダーでUV座標を縦スライスに分割するのと、隙間(Gap)を作る
+- JavaScript側で、一定周期のインパルス信号(減衰する数値)を作り、シェーダーに渡す
+- そのインパルス信号を使って、テキストの縦スライスを上下にズラす
+- その際に、配列で保持しているテキストを順番に表示する
+- スライスが大きく動いた瞬間だけ、RGBシフトのエフェクトをかけてグリッチ感を演出する
+
+それでは最初は、オフスクリーンCanvasでテキストを描画して、テクスチャーとして使えるようにしましょう。
+
+## Canvas2Dによるテキストテクスチャーの生成
+
+今回テキストは、一定時間が経ったら切り替わるようにするので、表示するテキストを配列で保持しておきます。以下のように`words`配列を作成し、`wordIndex`で現在表示しているテキストのインデックスを保持するようにします。
+
+```ts
+// 表示する単語のリスト
+private words: string[] = ['Whereof', 'one', 'cannot', 'speak', 'thereof', 'one', 'must', 'be', 'silent'];
+private wordIndex = 0;
+```
+
+### canvasの初期化
+
+テキストを描画するためにcanvasを初期化しておきます。`initTextCanvas`メソッドでこの処理を行います。
+
+```ts title="initTextCanvas"
+// テキストを描画するためのキャンバスを初期化
+private initTextCanvas() {
+  this.canvas = document.createElement('canvas');
+  this.canvas.width = window.innerWidth;
+  this.canvas.height = window.innerHeight;
+
+  this.textTexture = new THREE.CanvasTexture(this.canvas);
+  // ドット感を際立たせるため、テクスチャ補間をNearest（ドット絵風）に設定
+  this.textTexture.minFilter = THREE.NearestFilter;
+  this.textTexture.magFilter = THREE.NearestFilter;
+}
+```
+
+`createElement`で作成したcanvasをテクスチャとして使えるように、`THREE.CanvasTexture`を使ってテクスチャー化し、`this.textTexture`に保持しておきます。
+
+`THREE.NearestFilter`は、リニア補間(線形補間)をオフにしてアンチエイリアスを無効化することで、シェーダーで細かく分割した際にもエッジがにじまず、ソリッドなグラフィック感が出せます。
+
+
+### テキストの描画と更新メソッドの作成
+
+canvasにテキストを描画し、テクスチャを更新する`updateTextCanvas`メソッドを作成します。
+
+```ts title="updateTextCanvas"
+// キャンバスにテキストを描画し、テクスチャを更新
+private updateTextCanvas(word: string) {
+  const ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
+
+  // 前回の描画をクリア
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+  // 白文字を画面中央に描画
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 180px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(word, this.canvas.width / 2, this.canvas.height / 2);
+
+  // テクスチャを更新
+  this.textTexture.needsUpdate = true;
+}
+```
+
+やってることは通常のcanvas2Dと一緒になり、`ctx.fillText`でテキストを描画しています。その際に、最初に`ctx.fillStyle = '#000000'`で背景色で塗りつぶす処理をして、前回の描画をクリアするのを忘れないようにしましょう。
+
+テキストを描画したら、`this.textTexture.needsUpdate = true;`でテクスチャの更新を行います。これをしないと、テクスチャが更新されずに前回のテキストが表示されたままになってしまいます。
+
+### マテリアルの設定
+
+テキストテクスチャの準備ができたら、シェーダーで使用するためにマテリアルの設定を行います。以下のように設定してください。
+
+```ts title="マテリアルの設定"
+const material = new THREE.ShaderMaterial({
+  vertexShader: vertex,
+  fragmentShader: fragment,
+  transparent: true,
+  uniforms: {
+    uTexture: { value: this.textTexture },
+    uTime: { value: 0 },
+    uBeat: { value: 0 },
+  },
+});
+```
+
+`uTexture`にテキストテクスチャを設定します、
+`uTime`は時間の経過をシェーダーに渡すためのuniform変数、`uBeat`はビートに同期するインパルス信号を渡すためのuniform変数です。これは後ほど説明します。
+
+それでは次にフラグメントシェーダーでのグリッチ表現の作り方を見ていきましょう。
+
+## フラグメントシェーダーでのグリッチ表現
+
+テキストを上下に分割するグリッチ表現は、フラグメントシェーダーで行います。
+フラグメントシェーダーの全コードは以下のようになります。
+
+```glsl title="fragment.glsl"
+precision mediump float;
+
+varying vec2 vUv;
+uniform sampler2D uTexture;
+uniform float uTime;
+uniform float uBeat;
+
+float random(vec2 st) {
+  return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+void main() {
+  vec2 uv = vUv;
+
+  float segment = 120.0; // 分割数
+  float gapRatio = 0.5; // 隙間の割合
+  float amount = 0.35; // ジャンプ量の最大値
+
+  float segmentX = floor(uv.x * segment) / segment;
+  float sliceLocalX = fract(uv.x * segment);
+
+  // 隙間部分は黒で塗りつぶす
+  if (sliceLocalX > gapRatio) {
+    gl_FragColor = vec4(vec3(0.0), 1.0);
+    return;
+  }
+
+  // スライスIDと時間をシード値にして上下対象のランダムな値を生成
+  float randVal = random(vec2(segmentX, floor(uTime * 5.0))) * 2.0 - 1.0;
+  float jumpOffset = randVal * amount * uBeat; // uBeatが0に減衰すると、変位も0に戻る
+
+  float displacedY = uv.y + jumpOffset;
+
+  if (displacedY < 0.0 || displacedY > 1.0) {
+    gl_FragColor = vec4(vec3(0.0), 1.0);
+    return;
+  }
+
+  vec3 color = texture2D(uTexture, vec2(uv.x, displacedY)).rgb;
+
+  gl_FragColor = vec4(color, 1.0);
+}
+```
+
+それでは順番にみていきます。
+
+### パラメータの設定
+
+今回使用しているパラメータは以下の通りです。
+
+```glsl
+float segment = 120.0; // 分割数
+float gapRatio = 0.5; // 隙間の割合
+float amount = 0.35; // ジャンプ量の最大値
+```
+
+コメントに書いてある通り、`segment`は縦スライスの分割数、`gapRatio`は隙間の割合、`amount`はジャンプ量の最大値を表しています。
+
+### 縦スライス分割とGap処理
+
+```glsl
+float segmentX = floor(uv.x * segment) / segment;
+float sliceLocalX = fract(uv.x * segment);
+
+// 隙間部分は黒で塗りつぶす
+if (sliceLocalX > gapRatio) {
+  gl_FragColor = vec4(vec3(0.0), 1.0);
+  return;
+}
+```
+
+`segmentX`は、`floor`で各スライスに対して共通のIDを持たせています。`sliceLocalX`は、`fract`でスライス内の相対位置(0.0〜1.0)を取得し、`gapRatio`(0.5)を超える場合は、右側を背景色の黒で塗りつぶすことで、縦スライスの隙間を作っています。
+
+### 上下のグリッチ表現
+
+```glsl
+// スライスIDと時間をシード値にして上下対象のランダムな値を生成
+  float randVal = random(vec2(segmentX, floor(uTime * 5.0))) * 2.0 - 1.0;
+  float jumpOffset = randVal * amount * uBeat; // uBeatが0に減衰すると、変位も0に戻る
+
+  float displacedY = uv.y + jumpOffset;
+
+  if (displacedY < 0.0 || displacedY > 1.0) {
+    gl_FragColor = vec4(vec3(0.0), 1.0);
+    return;
+  }
+
+  vec3 color = texture2D(uTexture, vec2(uv.x, displacedY)).rgb;
+
+  gl_FragColor = vec4(color, 1.0);
+```
+
+`randVal`は、`* 2.0 - 1.0`の計算により、-1.0〜1.0の範囲でランダムな値を生成しています。これは、-1.0のときは上方向に、1.0のときは下方向にグリッチすることを意味しています。`random`関数の`x`には、スライスID(`segmentX`)と時間(`floor(uTime * 5.0)`)を渡すことで、各スライスごとに異なるランダム値を生成しています。
+
+`jumpOffset`は、`randVal`に`amount`と`uBeat`を掛けることで、ビートに同期して上下にジャンプする量を決定しています。
+
+今回は上下にグリッチさせるので、`displacedY`に、`uv.y`と`jumpOffset`を足して、テクスチャのY座標を変位させています。
+この`displacedY`を使って、テクスチャの色を取得し、`gl_FragColor`に設定することで、テキストが上下にグリッチする表現を作ることができます。
+
+ここまでで、下記のような表示になるかと思います。
+
+![テキストの分割と隙間の表示](https://res.cloudinary.com/dy8ftemi0/image/upload/v1787383854/threejs-sliced-up-and-down-text-01_xzducr.jpg "テキストの分割と隙間の表示")
+
+次にuniform変数の`uTime`と`uBeat`をJavaScript側で更新して、ビートに同期するグリッチ表現を作っていきましょう。
+
+## JavaScriptでビートに同期するインパルス信号を作る
+
+最初にビート関連のパラメータを設定しておきます。
+
+```ts title="App.ts"
+export class App extends Three {
+  // ...
+  private beatValue = 0; // ビートの加速度
+  private lastBeatTime = 0; // 前回ビートが発生した時間
+  private beatInterval = 1.0; // ビートの間隔（秒）
+}
+```
+
+このパラメータを使用して、ビートの更新とテキストの切り替えを行う`updateBeat`メソッドを作成します。
+
+```ts title="updateBeat"
+// ビートの更新とテキストの切り替えを行う
+private updateBeat(time: number) {
+  if (time - this.lastBeatTime > this.beatInterval) {
+    this.lastBeatTime = time;
+    this.beatValue = 1.0;
+
+    // 単語を順繰りで切り替え
+    this.wordIndex = (this.wordIndex + 1) % this.words.length;
+    this.updateTextCanvas(this.words[this.wordIndex] as string);
+  }
+  // ビートの減衰
+  this.beatValue *= 0.85;
+}
+```
+
+引数の`time`には経過時間が入ります。前回のビートから`beatInterval`(1秒)以上経過していたら、ビートが発生したとみなし、`beatValue`を1.0に設定します。これにより、フラグメントシェーダー側でグリッチが発生するようになります。
+
+テキストは配列で保持しているので、`wordIndex`をインクリメントして、次の単語に切り替えます。`%`演算子を使って、配列の長さを超えた場合は最初の単語に戻るようにしています。
+
+表示するテキストの切り替えが行われたら、`updateTextCanvas`メソッドを呼び出して、canvasに新しいテキストを描画し、テクスチャを更新します。
+
+最後の`this.beatValue *= 0.85;`で、ビートの値を減衰させています。これにより、ビートが発生した瞬間だけグリッチが大きくなり、徐々に元の位置に戻るようになります。
+
+### アニメーションループでのuniform変数の更新
+
+アニメーションループの`animate`メソッドでuniform変数の更新を行います。`uTime`には経過時間を、`uBeat`にはビートの値を渡します。
+
+```ts title="animate"
+private animate() {
+  // 経過時間を取得
+  const time = this.clock.getElapsedTime();
+
+  this.updateBeat(time);
+
+  const meshMaterial = this.mesh.material as THREE.ShaderMaterial;
+
+  if (meshMaterial.uniforms.uTime) {
+    meshMaterial.uniforms.uTime.value = time;
+  }
+
+  if (meshMaterial.uniforms.uBeat) {
+    meshMaterial.uniforms.uBeat.value = this.beatValue;
+  }
+
+  this.renderer.render(this.scene, this.camera);
+}
+```
+
+ここまでで、ビートに同期してテキストがグリッチする表現が完成しました。
+
+![ビートに同期してグリッチするテキスト](https://res.cloudinary.com/dy8ftemi0/image/upload/v1787383854/threejs-sliced-up-and-down-text-02_oeylje.jpg "ビートに同期してグリッチするテキスト")
+
+<PostAdUnit />
+
+## RGBシフトのエフェクトをかける
+
+最後にデモにあるように、RGBシフトエフェクトを追加しましょう。
+フラグメントシェーダーの`displacedY`の部分を削除して、下記のコードを追加してください。
+
+```glsl title="fragment.glsl"
+// 上下変位の大きさに比例して、RGBチャンネルのY座標をずらす
+float shift = jumpOffset * 0.25;
+
+float rY = uv.y + jumpOffset + shift;
+float gY = uv.y + jumpOffset;
+float bY = uv.y + jumpOffset - shift;
+
+// 各チャンネルのY座標が0.0から1.0の範囲内にあるかをチェックし、範囲外の場合は黒で塗りつぶす
+float r = (rY >= 0.0 && rY <= 1.0) ? texture2D(uTexture, vec2(uv.x, rY)).r : 0.0;
+float g = (gY >= 0.0 && gY <= 1.0) ? texture2D(uTexture, vec2(uv.x, gY)).g : 0.0;
+float b = (bY >= 0.0 && bY <= 1.0) ? texture2D(uTexture, vec2(uv.x, bY)).b : 0.0;
+
+gl_FragColor = vec4(r, g, b, 1.0);
+```
+
+`shift`では、`jumpOffset`の大きさに比例してRGBチャンネルのY座標をずらす量を計算しています。これにより、グリッチが大きくなったときにRGBシフトが発生し、よりグリッチ感のある表現になります。
+
+完成形は以下のようになります。
+ぜひデモでも動きを確認してみてください！
+
+![RGBシフトのテキストグリッチ表現](https://res.cloudinary.com/dy8ftemi0/image/upload/v1787383854/threejs-sliced-up-and-down-text-03_fgnay4.jpg "RGBシフトのテキストグリッチ表現")
+
+## まとめ
+
+Three.jsを使用して、テキストをRGBシフトエフェクトがかかった、グリッチ表現の作成方法を解説しました。一定時間が経過したらテキストの切り替えなど参考にできる部分も多いかと思います。
+
+テキスト以外でも使い道はあるかと思うので、デモのコードを参考にして、オリジナルのグリッチ表現を作ってみてください。
