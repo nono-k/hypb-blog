@@ -19,6 +19,8 @@ import Twitter from "@/components/markdown/Twitter.astro";
 
 ## はじめに
 
+<Twitter url="https://x.com/kameno_no3/status/2091181123569390068" />
+
 今回は、Three.jsでテキストを描画して、一定時間が経ったらグリッチのように縦方向にズレて表示される表現の作り方を解説します。[前回の記事](/articles/threejs-text-cylinder)では、テキストを`TextGeometry`で3Dとして表示させましたが、今回はCanvas2Dでテキストを描画して、テクスチャとしてフラグメントシェーダーでグリッチ表現を作る方法を解説します。
 
 Three.jsの開発環境は[以前の記事](/articles/threejs-vite-typescript-template)を参考にしてください。
@@ -37,7 +39,7 @@ https://github.com/nono-k/threejs-sliced-up-and-down-text
 - その際に、配列で保持しているテキストを順番に表示する
 - スライスが大きく動いた瞬間だけ、RGBシフトのエフェクトをかけてグリッチ感を演出する
 
-それでは最初は、オフスクリーンCanvasでテキストを描画して、テクスチャーとして使えるようにしましょう。
+それでは最初は、オフスクリーンCanvasでテキストを描画して、テクスチャーとして使えるようにしましょう！
 
 ## Canvas2Dによるテキストテクスチャーの生成
 
@@ -331,6 +333,8 @@ gl_FragColor = vec4(r, g, b, 1.0);
 ぜひデモでも動きを確認してみてください！
 
 ![RGBシフトのテキストグリッチ表現](https://res.cloudinary.com/dy8ftemi0/image/upload/v1787383854/threejs-sliced-up-and-down-text-03_fgnay4.jpg "RGBシフトのテキストグリッチ表現")
+
+<DemoBtn url="https://nono-k.github.io/threejs-sliced-up-and-down-text/" />
 
 ## まとめ
 
