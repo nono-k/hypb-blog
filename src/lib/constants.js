@@ -32,6 +32,7 @@ export const tags = [
   { name: 'Pug', slug: 'pug' },
   { name: 'Gulp', slug: 'gulp' },
   { name: '3D', slug: '3d' },
+  { name: '3Dモデル', slug: '3d-model' },
   { name: '画像処理', slug: 'image-processing' },
   { name: 'テキスト表現', slug: 'text-expression' },
   { name: 'Mediapipe', slug: 'mediapipe' },
