@@ -1,0 +1,542 @@
+---
+title: Three.jsで横にも縦にも回る3Dカルーセルの作り方
+slug: threejs-3d-carousel
+pubDate: '2026-10-12'
+image: ../../../assets/images/threejs-3d-carousel.jpg
+ogp: 'images/ogp/threejs-3d-carousel.jpg'
+category: Coding
+tags:
+  - Three.js
+  - 3D
+description: Three.jsで3Dカルーセルの実装方法を解説します。3Dカルーセル自体はCSSでも実装可能ですが、画像を円の縁に沿って曲げることが出来ません。Three.jsなどのWebGLを使用することで、自然な立体感のある3Dカルーセルを実現できます。
+---
+
+import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import DemoBtn from '../../../components/markdown/DemoBtn.astro';
+import Twitter from "@/components/markdown/Twitter.astro";
+
+<DemoBtn url="https://nono-k.github.io/threejs-3d-carousel/" />
+
+## はじめに
+
+今回は、Three.jsで横にも縦にも回る3Dカルーセルの作り方を解説します。[以前の記事](/articles/css-3d-carousel/)では、CSSだけで3Dカルーセルを実装する方法を紹介しました。
+
+CSSでの3Dカルーセルの場合、円形に画像を配置することは可能ですが、画像を円に沿って曲げることが出来ないので不自然な見た目になってしまいます。そこでThree.jsなどのWebGLの頂点シェーダーを使用することで、自然な立体感のある3Dカルーセルを実現できます。
+
+デモでは、画像を水平方向・垂直方向に配置し、スクロールで回転する3Dカルーセルを実装しています。GUIで水平方向・垂直方向の切り替え、画像スライダーの間隔、パララックス効果、曲げの強さの調整が可能になっています。
+
+Three.jsの開発環境は[以前の記事](/articles/threejs-vite-typescript-template)を参考にしてください。
+この記事のデモのコードは以下のGitHubリポジトリにあるので、ぜひ参考にしてください。
+
+https://github.com/nono-k/threejs-3d-carousel
+
+## 実装の考え方
+
+今回の実装の考え方は以下の通りです。
+
+- 画像はThree.jsの平面ジオメトリ（PlaneGeometry）を使用して配置する
+- JavaScript側で円形に配置するための座標計算を行う
+- 頂点シェーダーで画像を円に沿って曲げる処理を行う
+- スクロールイベントに応じてカルーセルを回転させる
+- 水平方向・垂直方向の切り替えで画像も変更する
+
+今回は、処理を3つのクラスに分けて実装しています。全体の役割としては次のようになります。
+
+| クラス | 役割 |
+| --- | --- |
+| App | 全体の管理 |
+| Slide | 1枚の画像を表現する3Dオブジェクト |
+| Carousel | 複数のスライドを円周上に配置 |
+
+共通で使用する定数や関数は`params.ts`にまとめています。
+
+<details>
+<summary>params.tsの全コード</summary>
+<div>
+```ts title="params.ts"
+export type Axis = 'horizontal' | 'vertical';
+
+export const PARAMS = {
+  spacing: 0.2,
+  axis: 'horizontal' as Axis,
+  parallax: 0.12,
+  bend: 1,
+};
+
+export const HORIZONTAL_PLANE = { width: 1, height: 1.6 };
+export const VERTICAL_PLANE = { width: 1.6, height: 1 };
+
+export const SLIDE_COUNT = 12;
+const BASE_URL = '/threejs-3d-carousel';
+
+export const verticalImages = [
+  `${BASE_URL}/images/image-01.jpg`,
+  `${BASE_URL}/images/image-02.jpg`,
+  `${BASE_URL}/images/image-03.jpg`,
+  `${BASE_URL}/images/image-04.jpg`,
+  `${BASE_URL}/images/image-05.jpg`,
+  `${BASE_URL}/images/image-06.jpg`,
+];
+
+export const horizontalImages = [
+  `${BASE_URL}/images/image-07.jpg`,
+  `${BASE_URL}/images/image-08.jpg`,
+  `${BASE_URL}/images/image-09.jpg`,
+  `${BASE_URL}/images/image-10.jpg`,
+  `${BASE_URL}/images/image-11.jpg`,
+  `${BASE_URL}/images/image-12.jpg`,
+];
+
+// 足りない画像を複製して指定枚数にする関数
+export function expandToCount<T>(items: T[], count: number) {
+  return Array.from({ length: count }, (_, i) => items[i % items.length]!);
+}
+```
+</div>
+</details>
+
+水平方向の画像は、幅1、高さ1.6の比率で表示し、垂直方向の画像は、幅1.6、高さ1の比率で表示するようにしています。画像の枚数は12枚で、読み込む画像が足りない場合は`expandToCount`関数で複製しています。
+
+それでは実装を順に見ていきましょう。
+
+## Appクラスの実装
+
+実装の中心になるのがAppクラスです。ここでは水平方向・垂直方向用の画像の読み込み部分を見ていきます。全体は[リポジトリ](https://github.com/nono-k/threejs-3d-carousel/blob/main/src/scripts/App.ts)を参照してください。
+
+`init()`では画像を非同期に読み込み、水平方向・垂直方向のテクスチャを`Carousel`クラスに渡しています。
+
+```ts title="App.ts"
+private async init() {
+  const [horizontal, vertical] = await Promise.all([
+    Promise.all(horizontalImages.map(url => this.loadTexture(url))),
+    Promise.all(verticalImages.map(url => this.loadTexture(url))),
+  ]);
+
+  this.horizontalTextures = expandToCount(horizontal, SLIDE_COUNT);
+  this.verticalTextures = expandToCount(vertical, SLIDE_COUNT);
+
+  this.carousel = new Carousel(this.horizontalTextures, this.verticalTextures);
+  this.scene.add(this.carousel.group);
+
+  this.setGui();
+}
+
+private async loadTexture(url: string) {
+  const texture = await this.textureLoader.loadAsync(url);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  return texture;
+}
+```
+
+`expandToCount`関数は先述の通り、指定した枚数に足りない場合は既存の画像を複製して補う役割を持っています。`Carousel`をシーンに追加するまでが`init()`の役割になっています。
+
+それでは次に、`Carousel`クラスの実装を見ていきましょう。
+
+<PostAdUnit />
+
+## Carouselクラスの実装
+
+画像を円周上に並べるカルーセル本体は`Carousel`クラスで実装されています。
+
+```ts title="Carousel.ts"
+export class Carousel {
+  readonly group = new THREE.Group();
+  readonly slides: Slide[] = [];
+}
+```
+
+Groupを作成し、その中に複数のSlideを入れています。
+
+### 12枚のSlideを生成する
+
+初期化処理では、渡された水平方向・垂直方向のテクスチャをもとにSlideを生成し、Groupに追加しています。
+
+```ts title="Carousel.ts"
+constructor(
+  horizontalTextures: THREE.Texture[],
+  verticalTextures: THREE.Texture[],
+) {
+  this.horizontalTextures = horizontalTextures;
+  this.verticalTextures = verticalTextures;
+
+  this.slides = horizontalTextures.map((texture) => {
+    const slide = new Slide(texture);
+    this.group.add(slide.mesh);
+    return slide;
+  });
+}
+```
+
+初期状態では水平方向のカルーセルを作成するので、`horizontalTextures`を使って12個のSlideを生成しています。重要なのは、Slide自身は、渡されたテクスチャに基づいて表示されるだけで、カルーセルの回転や配置は`Carousel`クラスが管理している点です。
+
+オブジェクトを作成するSlideクラスは後で見るとして、次はカルーセルの半径を計算する部分を見ていきます。
+
+### カルーセルの半径を計算する
+
+スライド同士が一定の間隔で円周上に並ぶように、`radius`プロパティで計算された半径を使ってカルーセルの配置を決定するようにします。
+
+```ts title="Carousel.ts"
+get radius() {
+  const count = this.slides.length;
+  if (count < 2) return 2;
+
+  const size = THREE.MathUtils.lerp(
+    HORIZONTAL_PLANE.width,
+    VERTICAL_PLANE.height,
+    this.axisBlend,
+  );
+  const chord = size + PARAMS.spacing;
+  return chord / (2 * Math.sin(Math.PI / count));
+}
+```
+
+`size`は隣のスライドと被らないように、水平方向ではスライド幅を、垂直方向ではスライド高さの間を、`axisBlend`の値に応じて線形補間したものです。今回のデモでは、間隔(spacing)を調整できるようにしているので、間隔の値を足しています。
+
+円周上でこの距離を保つ半径は、次の式になります。
+
+```ts
+radius = chord / (2 * Math.sin(Math.PI / count));
+```
+
+![半径の計算方法](https://res.cloudinary.com/dy8ftemi0/image/upload/v1791704180/threejs-3d-carousel-01_vws0fs.jpg "半径の計算方法")
+
+上図のように、三角関数の公式を使って円周の半径を導出することができます。
+
+### カルーセルの配置
+
+円周上にスライドを配置する処理と更新処理は`update`メソッドで行われます。
+
+```ts title="Carousel.ts"
+update(rotation: number) {
+  const count = this.slides.length;
+  const angleStep = (Math.PI * 2) / count;
+  const radius = this.radius;
+  const t = this.axisBlend;
+  const parallax = PARAMS.parallax;
+
+  this.slides.forEach((slide, i) => {
+    const width = THREE.MathUtils.lerp(
+      HORIZONTAL_PLANE.width,
+      VERTICAL_PLANE.width,
+      t,
+    );
+    const height = THREE.MathUtils.lerp(
+      HORIZONTAL_PLANE.height,
+      VERTICAL_PLANE.height,
+      t,
+    );
+
+    const angle = i * angleStep + rotation;
+    const sin = Math.sin(angle);
+    const cos = Math.cos(angle);
+
+    slide.mesh.position.set(
+      sin * radius * (1 - t),
+      sin * radius * t,
+      cos * radius,
+    );
+
+    slide.mesh.rotation.set(
+      (-angle) * t,
+      angle * (1 - t),
+      0,
+    );
+
+    slide.setPlaneSize(width, height);
+    slide.setBend(radius, t, PARAMS.bend);
+
+    slide.setParallax(
+      sin * parallax,
+      (1 - cos) * parallax * 0.35
+    );
+  });
+}
+```
+
+2$\pi$をスライドの数で割ることで、各スライドの角度ステップ(angleStep)が求められます。各スライドの角度は、カルーセルが回転しているので、`rotation`を加えた値になります。
+
+```ts
+const angle = i * angleStep + rotation;
+```
+
+スライドを円周上に配置するために、角度を使って位置を計算します。
+
+```ts
+slide.mesh.position.set(
+  sin * radius * (1 - t),
+  sin * radius * t,
+  cos * radius,
+);
+```
+
+ここで`t`は水平方向のときは0になり、垂直方向のときは1になります。なので水平方向のときの、各スライドの位置はこのようになるということです。
+
+```ts
+x = sin * radius;
+y = 0;
+z = cos * radius;
+```
+
+カルーセルを回転する処理も同様に`t`を使用して次のようになります。
+
+```ts
+slide.mesh.rotation.set(
+  (-angle) * t,
+  angle * (1 - t),
+  0,
+);
+```
+
+水平方向のときは、y軸を回転させ、垂直方向のときはx軸を回転させていることが分かるかと思います。これで水平方向と垂直方向のカルーセルが配置できました！
+
+### 水平方向と垂直方向の切り替え
+
+今回のデモでは、水平方向の画像と垂直方向の画像が異なっているので、次のような処理を行っています。
+
+```ts title="Carousel.ts"
+update(rotation: number) {
+  if (this.currentAxis !== PARAMS.axis) {
+    this.currentAxis = PARAMS.axis;
+    const textures =
+      PARAMS.axis === 'horizontal'
+        ? this.horizontalTextures
+        : this.verticalTextures;
+    this.slides.forEach((slide, i) => {
+      const texture = textures[i];
+      if (texture) slide.setTexture(texture);
+    });
+  }
+  const target = PARAMS.axis === 'vertical' ? 1 : 0;
+  this.axisBlend += (target - this.axisBlend) * 0.08;
+}
+```
+
+切り替えを徐々に行うために、補間しています。
+
+最後にSlideクラスを見ていきましょう。
+
+## Slideクラスの実装
+
+Slideクラスの全コードは[リポジトリ](https://github.com/nono-k/threejs-3d-carousel/blob/main/src/scripts/Slide.ts)を参照してください。ここでは、ジオメトリとマテリアルについて見ていきます。
+
+### PlaneGeometryを細かく分割する
+
+スライドは頂点シェーダーで円に沿って曲げたいので、PlaneGeometryを頂点数を増やす必要があります。
+
+```ts title="Slide.ts"
+const geometry = new THREE.PlaneGeometry(
+  HORIZONTAL_PLANE.width,
+  HORIZONTAL_PLANE.height,
+  32,
+  8
+);
+```
+
+ここでは`widthSegments`は32に、`heightSegments`は8に設定しています。
+
+### マテリアルの設定
+
+スライドのマテリアルの設定は次のようになります。
+
+```ts title="Slide.ts"
+const image = texture.image as HTMLImageElement;
+
+const material = new THREE.ShaderMaterial({
+  vertexShader: vertex,
+  fragmentShader: fragment,
+  toneMapped: false,
+  side: THREE.DoubleSide,
+  uniforms: {
+    uTexture: { value: texture },
+    uImageSize: { value: new THREE.Vector2(image.width, image.height) },
+    uPlaneSize: { value: new THREE.Vector2(HORIZONTAL_PLANE.width, HORIZONTAL_PLANE.height) },
+    uParallax: { value: new THREE.Vector2()},
+    uGeomSize: { value: new THREE.Vector2(HORIZONTAL_PLANE.width, HORIZONTAL_PLANE.height) },
+    uRadius: { value: 2 },
+    uAxis: { value: 0 },
+    uBend: { value: 1 },
+  }
+});
+```
+
+これらのuniform変数を使用してシェーダーを書いていきましょう。
+
+<PostAdUnit />
+
+## 頂点シェーダー
+
+頂点シェーダーの全コードは次のようになります。
+
+```ts title="vertex.glsl"
+varying vec2 vUv;
+
+uniform vec2 uPlaneSize;
+uniform vec2 uGeomSize;
+uniform float uRadius;
+uniform float uAxis;
+uniform float uBend;
+
+vec3 bend(vec3 p, float radius, float axis) {
+  float theta = mix(p.x, p.y, axis) / radius;
+  float s = sin(theta);
+  float c = cos(theta);
+
+  vec3 alongX = vec3(radius * s, p.y, radius * (c - 1.0));
+  vec3 alongY = vec3(p.x, radius * s, radius * (c - 1.0));
+  return mix(alongX, alongY, axis);
+}
+
+void main() {
+  vUv = uv;
+
+  vec3 p = position;
+  p.x *= uPlaneSize.x / uGeomSize.x;
+  p.y *= uPlaneSize.y / uGeomSize.y;
+
+  vec3 bent = bend(p, uRadius, uAxis);
+  p = mix(p, bent, uBend);
+
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+}
+```
+
+それでは実装を見てみましょう。
+
+### Planeサイズを補正する
+
+次のコードは、元のPlaneGeometryのサイズと、実際に表示したいサイズの比率を使って頂点の座標を補正する処理です。
+
+```ts
+vec3 p = position;
+p.x *= uPlaneSize.x / uGeomSize.x;
+p.y *= uPlaneSize.y / uGeomSize.y;
+```
+
+### bend関数で曲げる
+
+`bend`関数は、頂点を指定した半径に沿って曲げる関数になります。
+
+```ts
+vec3 bend(vec3 p, float radius, float axis) {
+  float theta = mix(p.x, p.y, axis) / radius;
+  float s = sin(theta);
+  float c = cos(theta);
+
+  vec3 alongX = vec3(radius * s, p.y, radius * (c - 1.0));
+  vec3 alongY = vec3(p.x, radius * s, radius * (c - 1.0));
+  return mix(alongX, alongY, axis);
+}
+```
+
+水平方向ならば`axis`は0なので、`p.x`を、垂直方向ならば`p.y`を選択することになります。この値は弧の長さに相当するので、角度は半径で割ることで求めることができます。
+
+水平方向のカルーセルを想定して、x方向に曲げる`alongX`を見ていきます。
+
+```ts
+vec3 alongX = vec3(
+  radius * s,
+  p.y,
+  radius * (c - 1.0)
+);
+```
+
+これは円のパラメトリック表現を利用しています。角度が0のとき、cosは1になり、z座標は0になり奥行きは変化しません。端へ行くほど、cosは1より小さくなり、奥行きがマイナスになります。
+
+このようにして、中央の平面は元の位置から動かずに、端が円の内側に入り込むような形で曲がることになります。
+
+曲がりの強さはGUIで調整できるので、mix関数で補間した値を使用してMVP変換をして頂点シェーダーは完成です。
+
+```ts
+vec3 bent = bend(p, uRadius, uAxis);
+p = mix(p, bent, uBend);
+
+gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+```
+
+続いてフラグメントシェーダーを見ていきましょう。
+
+## フラグメントシェーダー
+
+フラグメントシェーダーの全コードは次のようになります。
+
+```ts title="fragment.glsl"
+varying vec2 vUv;
+
+uniform sampler2D uTexture;
+uniform vec2 uImageSize;
+uniform vec2 uPlaneSize;
+uniform vec2 uParallax;
+
+vec2 coverUv(vec2 uv, vec2 plane, vec2 image) {
+  vec2 ratio = vec2(
+    min((plane.x / plane.y) / (image.x / image.y), 1.0),
+    min((plane.y / plane.x) / (image.y / image.x), 1.0)
+  );
+
+  return vec2(
+    uv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+    uv.y * ratio.y + (1.0 - ratio.y) * 0.5
+  );
+}
+
+void main() {
+  vec2 uv = coverUv(vUv, uPlaneSize, uImageSize);
+  uv = (uv - 0.5) * 0.85 + 0.5;
+  uv += uParallax;
+  uv = clamp(uv, 0.001, 0.999);
+
+  vec4 color = texture2D(uTexture, uv);
+
+  gl_FragColor = color;
+}
+```
+
+それでは、`coverUv`関数から見ていきましょう。
+
+### coverUv関数
+
+`coverUv`関数の役割は、cssでいう`background-size: cover;`に近い処理をGLSLで実装しています。
+
+```ts
+vec2 coverUv(vec2 uv, vec2 plane, vec2 image) {
+  vec2 ratio = vec2(
+    min((plane.x / plane.y) / (image.x / image.y), 1.0),
+    min((plane.y / plane.x) / (image.y / image.x), 1.0)
+  );
+
+  return vec2(
+    uv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+    uv.y * ratio.y + (1.0 - ratio.y) * 0.5
+  );
+}
+```
+
+### パララックス処理
+
+デモでは、パララックスに見えるようにしているので、uvを少し縮小して中心に寄せ、さらにパララックスのオフセットを加えています。具体的には次のような処理を行っています。
+
+```ts
+uv = (uv - 0.5) * 0.85 + 0.5;
+uv += uParallax;
+uv = clamp(uv, 0.001, 0.999);
+```
+
+このuv座標を使用してテクスチャをサンプリングし、描画します。
+
+```ts
+vec4 color = texture2D(uTexture, uv);
+gl_FragColor = color;
+```
+
+これで、Three.jsでの水平方向と垂直方向の3Dカルーセルが完成しました！
+
+![完成形](https://res.cloudinary.com/dy8ftemi0/image/upload/v1791709191/threejs-3d-carousel-02_qxtnxo.jpg "完成形")
+
+<DemoBtn url="https://nono-k.github.io/threejs-3d-carousel/" />
+
+## まとめ
+
+Three.jsの定番表現として、3Dカルーセルの実装を解説してみました。実際のWebサイトでの応用例としては、カメラの位置を変更して見せ方を変えてみたり、フラグメントシェーダーでエフェクトを追加してよりリッチな表現にすることも可能です。
+
+ぜひ、いろいろ試してみてください！
