@@ -15,6 +15,7 @@ relatedPosts:
 ---
 import CodePenEmbed from '../../../components/markdown/CodePenEmbed.astro';
 import PostAdUnit from '../../../components/markdown/PostAdUnit.astro';
+import RecommendLink from '../../../components/markdown/RecommendLink.astro';
 
 ## はじめに
 
@@ -195,9 +196,10 @@ cssを再掲すると、このようになってます。
 .carousel {
 
   &__item {
-    transform: translate(-50%, -50%)
-    　　　　　　　rotateY(var(--rotateY))
-    　　　　　　　translateZ(var(--tz));
+    transform:
+      translate(-50%, -50%)
+      rotateY(var(--rotateY))
+      translateZ(var(--tz));
 
     background-color: hsl(var(--hue) 80% 45% / 90%);
   }
@@ -236,6 +238,21 @@ clickHandler() {
 CSSの`perspective`プロパティと`preserve-3d`プロパティを使った3Dカルーセルの作り方を解説しました。ほぼCSSのみでリッチなカルーセルを作ることができました🎠
 
 三角関数の使い所など参考になったならば幸いです。
+
+今回はCSSのみで3Dカルーセルを実装しましたが、Three.jsなどのWebGLを使用することで、画像の縁を円形に沿って曲げることができ、より自然な立体感のある3Dカルーセルを実現できます。
+
+Three.jsでの3Dカルーセルの実装方法にも解説しているので、興味がある方はそちらも参考にしてみてください。
+
+<RecommendLink
+  items={[
+    {
+      title:
+        "Three.jsで横にも縦にも回る3Dカルーセルの作り方",
+      link: "threejs-3d-carousel",
+      image: "threejs-3d-carousel.jpg",
+    },
+  ]}
+/>
 
 ## 参考
 
